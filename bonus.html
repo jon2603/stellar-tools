@@ -1,0 +1,1456 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VPS Calculator v6 — Stellar Securities</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --gold:#8a6a1a; --gold-light:#a07c22; --gold-dim:rgba(138,106,26,.10); --gold-border:rgba(138,106,26,.25);
+  --bg:#f5f3ef; --bg2:#ffffff; --bg3:#f0ede8; --bg4:#e8e4dc;
+  --text:#1a1812; --text-dim:#5a5650; --text-muted:#9a9690;
+  --green:#276e47; --green-dim:rgba(39,110,71,.08); --green-border:rgba(39,110,71,.25);
+  --red:#b83232; --red-dim:rgba(184,50,50,.08); --red-border:rgba(184,50,50,.25);
+  --orange:#b5601a; --orange-dim:rgba(181,96,26,.09); --orange-border:rgba(181,96,26,.25);
+  --blue:#2a5fa8; --blue-dim:rgba(42,95,168,.08);
+  --purple:#5c3d9e; --purple-dim:rgba(92,61,158,.08); --purple-border:rgba(92,61,158,.25);
+  --teal:#1a7a6e; --teal-dim:rgba(26,122,110,.08); --teal-border:rgba(26,122,110,.25);
+  --border:rgba(0,0,0,.09); --border-strong:rgba(0,0,0,.15);
+  --radius:8px; --shadow:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
+
+header{border-bottom:1px solid var(--gold-border);padding:12px 36px;display:flex;align-items:center;justify-content:space-between;gap:16px;background:var(--bg2);position:sticky;top:0;z-index:100;box-shadow:var(--shadow)}
+.brand{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:600;letter-spacing:.08em;color:var(--gold);white-space:nowrap}
+.brand span{color:var(--text-muted);font-weight:300;font-size:12px}
+
+nav{display:flex;gap:2px;padding:10px 36px;background:var(--bg2);border-bottom:1px solid var(--border)}
+.nav-btn{padding:7px 18px;border:none;background:transparent;color:var(--text-dim);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;border-radius:var(--radius);transition:all .2s}
+.nav-btn:hover{background:var(--bg3);color:var(--text)}
+.nav-btn.active{background:var(--gold-dim);color:var(--gold);border:1px solid var(--gold-border);font-weight:500}
+
+/* STICKY KPI */
+#sticky-kpi{position:sticky;top:50px;z-index:90;background:var(--bg2);border-bottom:2px solid var(--gold-border);padding:10px 36px;display:none;box-shadow:0 3px 12px rgba(0,0,0,.08)}
+#sticky-kpi.visible{display:block}
+.kpi-bar{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;max-width:1240px;margin:0 auto}
+.kpi-cell{display:flex;flex-direction:column;padding:8px 14px;border-radius:var(--radius);border-left:3px solid transparent;background:var(--bg3)}
+.kpi-cell.gold{border-left-color:var(--gold)} .kpi-cell.green{border-left-color:var(--green)}
+.kpi-cell.blue{border-left-color:var(--blue)} .kpi-cell.purple{border-left-color:var(--purple)}
+.kpi-cell.red{border-left-color:var(--red)}
+.kpi-cell-label{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);font-weight:600;margin-bottom:2px}
+.kpi-cell-value{font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:600;line-height:1}
+.kpi-cell-value.gold{color:var(--gold)} .kpi-cell-value.green{color:var(--green)}
+.kpi-cell-value.blue{color:var(--blue)} .kpi-cell-value.purple{color:var(--purple)}
+.kpi-cell-value.red{color:var(--red)}
+
+.page{display:none;padding:28px 36px;max-width:1240px;margin:0 auto}
+.page.active{display:block}
+
+.quarter-bar{display:flex;gap:8px;margin-bottom:24px;align-items:center;flex-wrap:wrap}
+.year-select{background:var(--bg2);border:1px solid var(--border-strong);color:var(--text);padding:7px 14px;border-radius:var(--radius);font-family:'JetBrains Mono',monospace;font-size:13px;cursor:pointer;outline:none;box-shadow:var(--shadow)}
+.q-btn{padding:7px 20px;border:1px solid var(--border-strong);background:var(--bg2);color:var(--text-dim);font-family:'JetBrains Mono',monospace;font-size:13px;cursor:pointer;border-radius:var(--radius);transition:all .2s;box-shadow:var(--shadow)}
+.q-btn:hover{border-color:var(--gold-border);color:var(--text);background:var(--bg3)}
+.q-btn.active{background:var(--gold-dim);border-color:var(--gold);color:var(--gold);font-weight:500}
+
+/* FX SECTION — special teal accent */
+.fx-section{background:var(--bg2);border:1px solid var(--teal-border);border-radius:10px;margin-bottom:18px;overflow:hidden;box-shadow:var(--shadow)}
+.fx-header{padding:13px 20px;border-bottom:1px solid var(--teal-border);display:flex;align-items:center;justify-content:space-between;background:var(--teal-dim)}
+.fx-title{font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:600;color:var(--teal);letter-spacing:.03em}
+.fx-subtitle{font-size:11px;color:var(--teal);opacity:.7;letter-spacing:.04em;text-transform:uppercase;margin-top:2px}
+.fx-avg-badge{font-family:'JetBrains Mono',monospace;font-size:12px;padding:4px 12px;border-radius:20px;background:rgba(26,122,110,.12);border:1px solid var(--teal-border);color:var(--teal);font-weight:600}
+
+.section-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;margin-bottom:18px;overflow:hidden;box-shadow:var(--shadow)}
+.section-header{padding:13px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg3)}
+.section-title{font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:600;color:var(--text);letter-spacing:.03em}
+.section-subtitle{font-size:11px;color:var(--text-muted);letter-spacing:.04em;text-transform:uppercase;margin-top:2px}
+.section-body{padding:18px 20px}
+.section-actions{display:flex;align-items:center;gap:10px}
+
+/* MONTHLY TOGGLE */
+.monthly-toggle{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text-muted);cursor:pointer;padding:5px 12px;border-radius:20px;border:1px solid var(--border-strong);background:var(--bg2);transition:all .2s;user-select:none}
+.monthly-toggle:hover{border-color:var(--purple-border);color:var(--purple)}
+.monthly-toggle.active{background:var(--purple-dim);border-color:var(--purple-border);color:var(--purple);font-weight:500}
+.toggle-dot{width:6px;height:6px;border-radius:50%;background:var(--text-muted);transition:background .2s}
+.monthly-toggle.active .toggle-dot{background:var(--purple)}
+.monthly-grid{display:none;gap:10px;align-items:end;margin-top:12px;padding:14px 16px;background:var(--purple-dim);border-radius:var(--radius);border:1px solid var(--purple-border)}
+.monthly-grid.show{display:grid}
+.monthly-grid.cols-2{grid-template-columns:1fr 1fr 1fr 1fr}
+.monthly-grid.cols-3{grid-template-columns:1fr 1fr 1fr}
+.monthly-label{font-size:10px;color:var(--purple);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;font-weight:500}
+.monthly-total-display{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--purple);padding:4px 0;font-weight:500}
+
+/* FX monthly grid — teal style */
+.fx-monthly-grid{display:none;gap:10px;margin-top:12px;padding:14px 16px;background:var(--teal-dim);border-radius:var(--radius);border:1px solid var(--teal-border)}
+.fx-monthly-grid.show{display:grid;grid-template-columns:1fr 1fr 1fr 1fr}
+.fx-monthly-label{font-size:10px;color:var(--teal);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;font-weight:500}
+.fx-toggle{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--teal);cursor:pointer;padding:5px 12px;border-radius:20px;border:1px solid var(--teal-border);background:var(--bg2);transition:all .2s;user-select:none}
+.fx-toggle:hover{background:var(--teal-dim)}
+.fx-toggle.active{background:var(--teal-dim);font-weight:500}
+.fx-toggle .toggle-dot{background:var(--teal)}
+
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:11px;color:var(--text-dim);letter-spacing:.05em;text-transform:uppercase;font-weight:500}
+.field input,.field select{background:var(--bg3);border:1px solid var(--border-strong);border-radius:var(--radius);color:var(--text);padding:9px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;transition:border-color .2s,background .2s;width:100%}
+.field select{cursor:pointer}
+.field input:focus,.field select:focus{border-color:var(--gold);background:var(--bg2)}
+.field input.readonly-calc{background:var(--bg4);color:var(--text-muted);cursor:default;border-style:dashed}
+.field input.monthly-input{background:var(--bg2);border-color:var(--purple-border)}
+.field input.monthly-input:focus{border-color:var(--purple)}
+.field input.fx-input{background:var(--bg2);border-color:var(--teal-border)}
+.field input.fx-input:focus{border-color:var(--teal)}
+.field input.avoir-input{border-color:var(--red-border);background:var(--red-dim)}
+.field .field-note{font-size:10px;color:var(--text-muted);margin-top:2px}
+
+/* currency tabs */
+.currency-tabs{display:flex;gap:4px;margin-bottom:14px}
+.currency-tab{padding:6px 16px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid var(--border-strong);background:var(--bg3);color:var(--text-dim);cursor:pointer;transition:all .2s;font-family:'JetBrains Mono',monospace}
+.currency-tab:hover{border-color:var(--gold-border);color:var(--text)}
+.currency-tab.aed.active{background:rgba(39,110,71,.08);border-color:var(--green-border);color:var(--green)}
+.currency-tab.usd.active{background:var(--blue-dim);border-color:rgba(42,95,168,.3);color:var(--blue)}
+.currency-tab.eur.active{background:var(--gold-dim);border-color:var(--gold-border);color:var(--gold)}
+.fx-panel{display:none}
+
+/* KPI STRIP */
+.result-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
+.result-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:15px 18px;position:relative;overflow:hidden;box-shadow:var(--shadow)}
+.result-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.result-card.gold::before{background:var(--gold)} .result-card.green::before{background:var(--green)}
+.result-card.red::before{background:var(--red)} .result-card.blue::before{background:var(--blue)}
+.result-card.purple::before{background:var(--purple)}.result-label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:7px;font-weight:500}
+.result-value{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:600;color:var(--text);line-height:1}
+.result-value.gold{color:var(--gold)} .result-value.green{color:var(--green)}
+.result-value.red{color:var(--red)} .result-value.blue{color:var(--blue)} .result-value.purple{color:var(--purple)}
+.result-sub{font-size:11px;color:var(--text-muted);margin-top:4px}
+
+.carry-banner{background:var(--orange-dim);border:1px solid var(--orange-border);border-radius:8px;padding:11px 18px;margin-bottom:18px;display:flex;align-items:center;gap:12px;font-size:13px;color:var(--orange)}
+.carry-banner.hidden{display:none!important}
+.te-warning{display:none;background:var(--orange-dim);border:1px solid var(--orange-border);border-radius:6px;padding:8px 14px;margin-top:10px;font-size:12px;color:var(--orange)}
+.te-warning.show{display:block}
+
+/* WATERFALL */
+.waterfall{display:flex;flex-direction:column;gap:1px}
+.wf-row{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-radius:6px;transition:background .12s}
+.wf-row:hover{background:var(--bg3)}
+.wf-row.subtotal{background:var(--bg3);border-left:3px solid var(--gold-border);margin:5px 0}
+.wf-row.total{background:var(--gold-dim);border:1px solid var(--gold-border);border-radius:8px;margin-top:8px}
+.wf-row.bonus-final{background:var(--green-dim);border:1px solid var(--green-border);border-radius:8px;margin-top:8px}
+.wf-row.warn-row{background:var(--orange-dim);border-left:3px solid var(--orange-border)}
+.wf-row.avoir-row{background:var(--red-dim);border-left:3px solid var(--red-border)}
+.wf-row.dews-row{background:rgba(181,96,26,.05);border-left:3px solid var(--orange-border)}
+.wf-label{font-size:13px;color:var(--text-dim)}
+.wf-label strong{color:var(--text);font-weight:500}
+.wf-value{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text);text-align:right;min-width:120px}
+.wf-value.neg{color:var(--red)} .wf-value.gold{color:var(--gold);font-size:15px;font-weight:600}
+.wf-value.bonus{color:var(--green);font-size:15px;font-weight:600}
+.wf-value.warn{color:var(--orange)} .wf-value.avoir{color:var(--red)}
+
+.save-btn{background:var(--gold);color:#fff;border:none;padding:10px 26px;border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:background .2s;box-shadow:var(--shadow)}
+.save-btn:hover{background:var(--gold-light)}
+.excel-btn{background:#1d6f42;color:#fff;border:none;padding:10px 22px;border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:background .2s;box-shadow:var(--shadow);display:flex;align-items:center;gap:7px}
+.excel-btn:hover{background:#155234}
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:10px;letter-spacing:.05em;text-transform:uppercase;font-weight:600}
+.badge-gold{background:var(--gold-dim);color:var(--gold);border:1px solid var(--gold-border)}
+.badge-version{background:var(--bg3);color:var(--text-muted);border:1px solid var(--border-strong)}
+
+.info-strip{display:flex;gap:20px;padding:12px 16px;background:var(--bg3);border-radius:var(--radius);margin-top:12px;flex-wrap:wrap;border:1px solid var(--border)}
+.info-item{display:flex;flex-direction:column;gap:3px}
+.info-item .info-label{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;font-weight:500}
+.info-item .info-val{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--gold);font-weight:500}
+.info-item .info-val.neutral{color:var(--text)} .info-item .info-val.warn{color:var(--orange)} .info-item .info-val.teal{color:var(--teal)}
+
+/* Staff table */
+.staff-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px}
+.staff-name{font-family:'Cormorant Garamond',serif;font-size:15px;font-weight:600;color:var(--gold);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.computed-row{display:flex;justify-content:space-between;align-items:center;padding:5px 10px;background:var(--bg3);border-radius:6px;margin-top:4px;font-size:12px}
+.computed-row .cr-label{color:var(--text-muted)} .computed-row .cr-val{font-family:'JetBrains Mono',monospace;color:var(--text-dim);font-weight:500}
+.computed-row.highlight .cr-val{color:var(--orange)}
+
+/* History */
+.history-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.hist-table{width:100%;border-collapse:collapse;font-size:12px}
+.hist-table thead tr{background:var(--bg3);border-bottom:2px solid var(--gold-border)}
+.hist-table th{padding:10px 12px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--gold);font-weight:600}
+.hist-table th:first-child{text-align:left}
+.hist-table td{padding:10px 12px;text-align:right;border-bottom:1px solid var(--border);font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim)}
+.hist-table td:first-child{text-align:left;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500}
+.hist-table tr:hover td{background:var(--bg3)}
+.hist-table .total-row td{background:var(--gold-dim);color:var(--text);border-top:2px solid var(--gold-border);font-weight:600}
+.hist-table .bonus-cell{color:var(--green)!important;font-weight:600} .hist-table .neg-cell{color:var(--red)!important}
+
+.person-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:14px;box-shadow:var(--shadow)}
+.person-name{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:600;color:var(--gold);margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.divider{height:1px;background:var(--border);margin:18px 0}
+
+#toast{position:fixed;bottom:24px;right:24px;background:var(--text);color:#fff;padding:11px 20px;border-radius:var(--radius);font-size:13px;opacity:0;transform:translateY(8px);transition:all .3s;pointer-events:none;z-index:999;box-shadow:0 4px 12px rgba(0,0,0,.15)}
+#toast.show{opacity:1;transform:translateY(0)}
+
+@media(max-width:900px){
+  .result-grid,.kpi-bar{grid-template-columns:1fr 1fr}
+  .grid-3,.grid-4,.staff-grid{grid-template-columns:1fr 1fr}
+  header,nav,.page{padding-left:16px;padding-right:16px}
+  #sticky-kpi{padding:10px 16px}
+  .profile-bar{padding:8px 16px;flex-wrap:wrap}
+  .profile-settings-grid{grid-template-columns:1fr 1fr!important}
+}
+/* ── PROFILE SELECTOR ── */
+.profile-bar{display:flex;gap:6px;align-items:center;padding:8px 36px;background:var(--bg2);border-bottom:2px solid var(--gold-border);flex-wrap:wrap}
+.profile-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin-right:4px;white-space:nowrap}
+.profile-btn{padding:5px 13px;border:1px solid var(--border-strong);background:var(--bg3);color:var(--text-dim);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;border-radius:20px;transition:all .2s;white-space:nowrap}
+.profile-btn:hover{border-color:var(--gold-border);color:var(--text);background:var(--bg2)}
+.profile-btn.active{background:var(--gold-dim);border-color:var(--gold);color:var(--gold);font-weight:600}
+.profile-cut-badge{font-family:'JetBrains Mono',monospace;font-size:11px;padding:3px 10px;border-radius:12px;background:var(--green-dim);border:1px solid var(--green-border);color:var(--green);font-weight:600;margin-left:auto;white-space:nowrap}
+.profile-settings-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:20px}
+</style>
+<style>
+#login-screen{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;}
+#app-wrapper{display:none;}
+.login-card{background:var(--bg2);border:1px solid var(--gold-border);border-radius:14px;padding:44px 48px;width:100%;max-width:400px;box-shadow:0 8px 32px rgba(0,0,0,.10);}
+.login-brand{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;color:var(--gold);letter-spacing:.08em;margin-bottom:4px;}
+.login-sub{font-size:12px;color:var(--text-muted);margin-bottom:32px;}
+.login-field{display:flex;flex-direction:column;gap:6px;margin-bottom:18px;}
+.login-field label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);font-weight:500;}
+.login-field input{background:var(--bg3);border:1px solid var(--border-strong);border-radius:var(--radius);padding:11px 14px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);outline:none;transition:border-color .2s;}
+.login-field input:focus{border-color:var(--gold);background:var(--bg2);}
+.login-btn-style{width:100%;background:var(--gold);color:#fff;border:none;padding:12px;border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:background .2s;margin-top:8px;}
+.login-btn-style:hover{background:var(--gold-light);}
+.login-btn-style:disabled{opacity:.6;cursor:default;}
+.login-error{display:none;margin-top:12px;padding:9px 14px;background:var(--red-dim);border:1px solid var(--red-border);border-radius:var(--radius);font-size:12px;color:var(--red);}
+.logout-btn{background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:5px 14px;border-radius:20px;font-size:12px;cursor:pointer;transition:all .2s;margin-left:8px;}
+.logout-btn:hover{border-color:var(--red-border);color:var(--red);}
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-brand">STELLAR SECURITIES</div>
+    <div class="login-sub">VPS Calculator — Accès sécurisé</div>
+    <div class="login-field">
+      <label>Identifiant</label>
+      <input type="text" id="login-user" placeholder="jonathan" autocomplete="username" autocapitalize="none">
+    </div>
+    <div class="login-field">
+      <label>Mot de passe</label>
+      <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="login-btn-style" id="login-btn" onclick="doLogin()">Se connecter</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<div id="app-wrapper">
+
+<header>
+  <div class="brand">STELLAR SECURITIES <span>— by Market Securities</span></div>
+  <!-- Profils inline dans le header -->
+  <div style="display:flex;gap:5px;align-items:center">
+    <button class="profile-btn active" id="pbtn-jonathan" onclick="switchProfile('jonathan')">Jonathan</button>
+    <button class="profile-btn" id="pbtn-jeremy" onclick="switchProfile('jeremy')">Jeremy</button>
+    <button class="profile-btn" id="pbtn-julien" onclick="switchProfile('julien')">Julien</button>
+    <button class="profile-btn" id="pbtn-olivier" onclick="switchProfile('olivier')">Olivier</button>
+    <button class="profile-btn" id="pbtn-uriel" onclick="switchProfile('uriel')">Uriel</button>
+    <span class="profile-cut-badge" id="profile-cut-display" style="margin-left:6px">Cut : 60%</span>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <span class="badge badge-version">VPS CALCULATOR</span>
+    <span class="badge badge-gold">v7</span>
+    <button class="logout-btn" onclick="doLogout()">Déconnexion</button>
+  </div>
+</header>
+
+<nav>
+  <button class="nav-btn active" onclick="showPage('quarter',this)">Quarter</button>
+  <button class="nav-btn" onclick="showPage('history',this)">Historique & Cumul</button>
+  <button class="nav-btn" onclick="showPage('settings',this)">Paramètres</button>
+</nav>
+
+<!-- STICKY KPI -->
+<div id="sticky-kpi">
+  <div class="kpi-bar">
+    <div class="kpi-cell gold"><div class="kpi-cell-label">NBC Brut</div><div class="kpi-cell-value gold" id="skpi-brut">€ —</div></div>
+    <div class="kpi-cell red"><div class="kpi-cell-label">Coûts Marchés</div><div class="kpi-cell-value red" id="skpi-costs">€ —</div></div>
+    <div class="kpi-cell blue"><div class="kpi-cell-label">NBC Net</div><div class="kpi-cell-value blue" id="skpi-net">€ —</div></div>
+    <div class="kpi-cell gold"><div class="kpi-cell-label">Cut 60%</div><div class="kpi-cell-value gold" id="skpi-cut">€ —</div></div>
+    <div class="kpi-cell green"><div class="kpi-cell-label">Bonus / VPS</div><div class="kpi-cell-value green" id="skpi-bonus">€ —</div></div>
+  </div>
+</div>
+
+<!-- ══════════ QUARTER PAGE ══════════ -->
+<div id="page-quarter" class="page active">
+
+  <div class="quarter-bar">
+    <select class="year-select" id="yearSelect" onchange="onYearChange()">
+      <option value="2024">2024</option><option value="2025" selected>2025</option><option value="2026">2026</option>
+    </select>
+    <button class="q-btn active" onclick="selectQ(1)" id="qbtn-1">Q1</button>
+    <button class="q-btn" onclick="selectQ(2)" id="qbtn-2">Q2</button>
+    <button class="q-btn" onclick="selectQ(3)" id="qbtn-3">Q3</button>
+    <button class="q-btn" onclick="selectQ(4)" id="qbtn-4">Q4</button>
+    <span style="margin-left:auto;font-size:11px;color:var(--text-muted)">Sauvegarde par quarter · <span style="color:var(--purple);font-weight:500">●</span> saisie mensuelle</span>
+  </div>
+
+  <div class="carry-banner hidden" id="carryBanner">⚠ <span>Report VR négatif Q précédent : <strong id="carryAmt">—</strong> — imputé sur ce quarter (Schedule 1i).</span></div>
+
+  <!-- KPI STRIP -->
+  <div class="result-grid">
+    <div class="result-card gold"><div class="result-label">NBC Brut</div><div class="result-value gold" id="kpi-brut">€ —</div><div class="result-sub">Revenue brut</div></div>
+    <div class="result-card red"><div class="result-label">Coûts Marchés</div><div class="result-value red" id="kpi-costs">€ —</div><div class="result-sub">Frais opérationnels</div></div>
+    <div class="result-card blue"><div class="result-label">NBC Net</div><div class="result-value blue" id="kpi-net">€ —</div><div class="result-sub">Base du cut</div></div>
+    <div class="result-card gold"><div class="result-label">Cut 60%</div><div class="result-value gold" id="kpi-cut">€ —</div><div class="result-sub">Ta part brute</div></div>
+    <div class="result-card green"><div class="result-label">Bonus / VPS</div><div class="result-value green" id="kpi-bonus">€ —</div><div class="result-sub">Net final</div></div>
+  </div>
+
+  <!-- ══ 1. TAUX DE CHANGE — section centrale en haut ══ -->
+  <div class="fx-section">
+    <div class="fx-header">
+      <div>
+        <div class="fx-title">Taux de Change du Quarter</div>
+        <div class="fx-subtitle">Référence unique · utilisés partout dans le calculator</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+          <span style="font-size:9px;color:var(--teal);text-transform:uppercase;letter-spacing:.06em;font-weight:600">AED/EUR moy.</span>
+          <span class="fx-avg-badge" id="fx-aed-avg-display">—</span>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+          <span style="font-size:9px;color:var(--teal);text-transform:uppercase;letter-spacing:.06em;font-weight:600">USD/EUR moy.</span>
+          <span class="fx-avg-badge" id="fx-usd-avg-display">—</span>
+        </div>
+        <div class="fx-toggle" id="tog-fx" onclick="toggleFx()">
+          <span class="toggle-dot"></span> Saisie mensuelle
+        </div>
+      </div>
+    </div>
+    <div style="padding:16px 20px">
+      <!-- Warning taux manquants -->
+      <div id="fx-warning" style="display:none;margin-bottom:14px;padding:10px 16px;background:var(--orange-dim);border:1px solid var(--orange-border);border-radius:var(--radius);font-size:12px;color:var(--orange);display:flex;align-items:center;gap:8px">
+        ⚠ <strong>Taux de change non renseignés</strong> — les calculs de salaires, DEWS et desk fees seront à zéro tant que les taux AED/EUR et USD/EUR ne sont pas saisis.
+      </div>
+      <div class="grid-2" id="fx-quarterly-view">
+        <div class="field">
+          <label>Taux moyen AED/EUR — quarterly</label>
+          <input type="number" id="fx_aed_avg" placeholder="— à renseigner" step="0.0001" class="fx-input" oninput="onFxInput()">
+          <span class="field-note">1 AED = x EUR · utilisé : salaires Darryl/Satchel/Benjamin + ton salaire si AED</span>
+        </div>
+        <div class="field">
+          <label>Taux moyen USD/EUR — quarterly</label>
+          <input type="number" id="fx_usd_avg" placeholder="— à renseigner" step="0.0001" class="fx-input" oninput="onFxInput()">
+          <span class="field-note">1 USD = x EUR · utilisé : desk fees + coûts staff ($6,000/mois) + ton salaire si USD</span>
+        </div>
+      </div>
+      <!-- Monthly breakdown (toggle) -->
+      <div class="fx-monthly-grid" id="mg-fx">
+        <div><div class="fx-monthly-label">AED/EUR — M1</div><div class="field"><input type="number" id="fx_aed_m1" placeholder="0.2500" step="0.0001" class="fx-input" oninput="onFxMonthly()"></div></div>
+        <div><div class="fx-monthly-label">AED/EUR — M2</div><div class="field"><input type="number" id="fx_aed_m2" placeholder="0.2500" step="0.0001" class="fx-input" oninput="onFxMonthly()"></div></div>
+        <div><div class="fx-monthly-label">AED/EUR — M3</div><div class="field"><input type="number" id="fx_aed_m3" placeholder="0.2500" step="0.0001" class="fx-input" oninput="onFxMonthly()"></div></div>
+        <div style="display:flex;flex-direction:column;justify-content:flex-end;padding-bottom:2px">
+          <div class="fx-monthly-label" style="margin-bottom:6px">AED/EUR moy.</div>
+          <div class="fx-avg-badge" id="fx-aed-avg-monthly">—</div>
+        </div>
+        <div><div class="fx-monthly-label">USD/EUR — M1</div><div class="field"><input type="number" id="fx_usd_m1" placeholder="0.9200" step="0.0001" class="fx-input" oninput="onFxMonthly()"></div></div>
+        <div><div class="fx-monthly-label">USD/EUR — M2</div><div class="field"><input type="number" id="fx_usd_m2" placeholder="0.9200" step="0.0001" class="fx-input" oninput="onFxMonthly()"></div></div>
+        <div><div class="fx-monthly-label">USD/EUR — M3</div><div class="field"><input type="number" id="fx_usd_m3" placeholder="0.9200" step="0.0001" class="fx-input" oninput="onFxMonthly()"></div></div>
+        <div style="display:flex;flex-direction:column;justify-content:flex-end;padding-bottom:2px">
+          <div class="fx-monthly-label" style="margin-bottom:6px">USD/EUR moy.</div>
+          <div class="fx-avg-badge" id="fx-usd-avg-monthly">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 2. CA BRUT ══ -->
+  <div class="section-card">
+    <div class="section-header">
+      <div><div class="section-title">Chiffre d'Affaires Brut</div><div class="section-subtitle">NBC Ex-Expenses — revenue total avant déductions</div></div>
+      <div class="section-actions">
+        <div class="monthly-toggle" id="tog-ca" onclick="toggleMonthly('ca')"><span class="toggle-dot"></span> Saisie mensuelle</div>
+      </div>
+    </div>
+    <div class="section-body">
+      <div class="grid-2">
+        <div class="field">
+          <label>CA Brut quarterly (€)</label>
+          <input type="number" id="ca_brut" placeholder="0.00" oninput="recalculate()">
+        </div>
+      </div>
+      <div class="monthly-grid cols-2" id="mg-ca">
+        <div><div class="monthly-label">CA M1</div><div class="field"><input type="number" id="ca_m1" placeholder="0" class="monthly-input" oninput="onMonthlyInput('ca_brut',['ca_m1','ca_m2','ca_m3'],'mt-ca')"></div></div>
+        <div><div class="monthly-label">CA M2</div><div class="field"><input type="number" id="ca_m2" placeholder="0" class="monthly-input" oninput="onMonthlyInput('ca_brut',['ca_m1','ca_m2','ca_m3'],'mt-ca')"></div></div>
+        <div><div class="monthly-label">CA M3</div><div class="field"><input type="number" id="ca_m3" placeholder="0" class="monthly-input" oninput="onMonthlyInput('ca_brut',['ca_m1','ca_m2','ca_m3'],'mt-ca')"></div></div>
+        <div><div class="monthly-label">Total → quarterly</div><div class="monthly-total-display" id="mt-ca">€ 0</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 3. COÛTS MARCHÉS + AVOIR CLIENT ══ -->
+  <div class="section-card">
+    <div class="section-header">
+      <div><div class="section-title">Coûts Marchés & Avoir Client</div><div class="section-subtitle">Frais opérationnels directs · Avoir Client soustrait du NBC top-line</div></div>
+      <div class="section-actions">
+        <div id="total-costs-market" class="badge badge-gold">€ 0</div>
+        <div class="monthly-toggle" id="tog-costs" onclick="toggleMonthly('costs')"><span class="toggle-dot"></span> Saisie mensuelle</div>
+      </div>
+    </div>
+    <div class="section-body">
+      <div class="grid-3">
+        <div class="field"><label>Frais marché / clearer (€)</label><input type="number" id="c_clearer" placeholder="0.00" oninput="recalculate()"></div>
+        <div class="field"><label>Kerbs — pending (€)</label><input type="number" id="c_kerbs" placeholder="0.00" oninput="recalculate()"></div>
+        <div class="field"><label>Vantage Bill (€)</label><input type="number" id="c_vantage" placeholder="0.00" oninput="recalculate()"></div>
+        <div class="field"><label>XFA Bill (€)</label><input type="number" id="c_xfa" placeholder="0.00" oninput="recalculate()"></div>
+        <div class="field"><label>Frais Cash Equity (€)</label><input type="number" id="c_cashequity" placeholder="0.00" oninput="recalculate()"></div>
+        <div class="field"><label>Error PnL (€)</label><input type="number" id="c_errorpnl" placeholder="0.00" oninput="recalculate()"><span class="field-note">Négatif si perte</span></div>
+      </div>
+      <!-- Avoir Client — dans la même section -->
+      <div style="margin-top:16px;padding:14px 16px;background:var(--red-dim);border:1px solid var(--red-border);border-radius:var(--radius)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:12px;font-weight:600;color:var(--red)">↩ Avoir Client — soustrait du NBC avant cut</div>
+          <div class="monthly-toggle" id="tog-avoir" onclick="toggleMonthly('avoir')" style="font-size:11px;border-color:var(--red-border)"><span class="toggle-dot" style="background:var(--red)"></span> Saisie mensuelle</div>
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label id="avoir-label" style="color:var(--red)">Avoir Client quarterly (€)</label>
+            <input type="number" id="avoir_client" placeholder="0.00" oninput="recalculate()" class="avoir-input">
+            <span class="field-note">Trop-perçu / remboursement · réduit le NBC top-line</span>
+          </div>
+          <div id="avoir-total-display" style="display:flex;align-items:center;gap:8px;padding:8px 0">
+            <span style="font-size:11px;color:var(--text-muted)">Impact NBC :</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--red);font-weight:600" id="avoir_impact_display">—</span>
+          </div>
+        </div>
+        <div class="monthly-grid cols-2" id="mg-avoir" style="margin-top:8px;background:rgba(184,50,50,.05);border-color:var(--red-border)">
+          <div><div class="monthly-label" style="color:var(--red)">Avoir M1</div><div class="field"><input type="number" id="avoir_m1" placeholder="0" class="monthly-input" style="border-color:var(--red-border)" oninput="onMonthlyInput('avoir_client',['avoir_m1','avoir_m2','avoir_m3'],'mt-avoir')"></div></div>
+          <div><div class="monthly-label" style="color:var(--red)">Avoir M2</div><div class="field"><input type="number" id="avoir_m2" placeholder="0" class="monthly-input" style="border-color:var(--red-border)" oninput="onMonthlyInput('avoir_client',['avoir_m1','avoir_m2','avoir_m3'],'mt-avoir')"></div></div>
+          <div><div class="monthly-label" style="color:var(--red)">Avoir M3</div><div class="field"><input type="number" id="avoir_m3" placeholder="0" class="monthly-input" style="border-color:var(--red-border)" oninput="onMonthlyInput('avoir_client',['avoir_m1','avoir_m2','avoir_m3'],'mt-avoir')"></div></div>
+          <div><div class="monthly-label" style="color:var(--red)">Total avoir</div><div class="monthly-total-display" id="mt-avoir" style="color:var(--red)">€ 0</div></div>
+        </div>
+      </div>
+      <!-- Monthly costs breakdown -->
+      <div class="monthly-grid cols-3" id="mg-costs" style="display:none;margin-top:12px">
+        <div style="grid-column:span 3;font-size:11px;color:var(--purple);font-weight:500;margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em">Détail mensuel par ligne</div>
+        <div><div class="monthly-label">Clearer M1</div><div class="field"><input type="number" id="c_clearer_m1" placeholder="0" class="monthly-input" oninput="onMonthlyInput('c_clearer',['c_clearer_m1','c_clearer_m2','c_clearer_m3'])"></div></div>
+        <div><div class="monthly-label">Clearer M2</div><div class="field"><input type="number" id="c_clearer_m2" placeholder="0" class="monthly-input" oninput="onMonthlyInput('c_clearer',['c_clearer_m1','c_clearer_m2','c_clearer_m3'])"></div></div>
+        <div><div class="monthly-label">Clearer M3</div><div class="field"><input type="number" id="c_clearer_m3" placeholder="0" class="monthly-input" oninput="onMonthlyInput('c_clearer',['c_clearer_m1','c_clearer_m2','c_clearer_m3'])"></div></div>
+        <div><div class="monthly-label">Kerbs M1</div><div class="field"><input type="number" id="c_kerbs_m1" placeholder="0" class="monthly-input" oninput="onMonthlyInput('c_kerbs',['c_kerbs_m1','c_kerbs_m2','c_kerbs_m3'])"></div></div>
+        <div><div class="monthly-label">Kerbs M2</div><div class="field"><input type="number" id="c_kerbs_m2" placeholder="0" class="monthly-input" oninput="onMonthlyInput('c_kerbs',['c_kerbs_m1','c_kerbs_m2','c_kerbs_m3'])"></div></div>
+        <div><div class="monthly-label">Kerbs M3</div><div class="field"><input type="number" id="c_kerbs_m3" placeholder="0" class="monthly-input" oninput="onMonthlyInput('c_kerbs',['c_kerbs_m1','c_kerbs_m2','c_kerbs_m3'])"></div></div>
+        <div><div class="monthly-label">Vantage M1</div><div class="field"><input type="number" id="c_vantage_m1" placeholder="0" class="monthly-input" oninput="onMonthlyInput('c_vantage',['c_vantage_m1','c_vantage_m2','c_vantage_m3'])"></div></div>
+        <div><div class="monthly-label">Vantage M2</div><div class="field"><input type="number" id="c_vantage_m2" placeholder="0" class="monthly-input" oninput="onMonthlyInput('c_vantage',['c_vantage_m1','c_vantage_m2','c_vantage_m3'])"></div></div>
+        <div><div class="monthly-label">Vantage M3</div><div class="field"><input type="number" id="c_vantage_m3" placeholder="0" class="monthly-input" oninput="onMonthlyInput('c_vantage',['c_vantage_m1','c_vantage_m2','c_vantage_m3'])"></div></div>
+        <div><div class="monthly-label">XFA M1</div><div class="field"><input type="number" id="c_xfa_m1" placeholder="0" class="monthly-input" oninput="onMonthlyInput('c_xfa',['c_xfa_m1','c_xfa_m2','c_xfa_m3'])"></div></div>
+        <div><div class="monthly-label">XFA M2</div><div class="field"><input type="number" id="c_xfa_m2" placeholder="0" class="monthly-input" oninput="onMonthlyInput('c_xfa',['c_xfa_m1','c_xfa_m2','c_xfa_m3'])"></div></div>
+        <div><div class="monthly-label">XFA M3</div><div class="field"><input type="number" id="c_xfa_m3" placeholder="0" class="monthly-input" oninput="onMonthlyInput('c_xfa',['c_xfa_m1','c_xfa_m2','c_xfa_m3'])"></div></div>
+        <div><div class="monthly-label">Cash Eq M1</div><div class="field"><input type="number" id="c_cashequity_m1" placeholder="0" class="monthly-input" oninput="onMonthlyInput('c_cashequity',['c_cashequity_m1','c_cashequity_m2','c_cashequity_m3'])"></div></div>
+        <div><div class="monthly-label">Cash Eq M2</div><div class="field"><input type="number" id="c_cashequity_m2" placeholder="0" class="monthly-input" oninput="onMonthlyInput('c_cashequity',['c_cashequity_m1','c_cashequity_m2','c_cashequity_m3'])"></div></div>
+        <div><div class="monthly-label">Cash Eq M3</div><div class="field"><input type="number" id="c_cashequity_m3" placeholder="0" class="monthly-input" oninput="onMonthlyInput('c_cashequity',['c_cashequity_m1','c_cashequity_m2','c_cashequity_m3'])"></div></div>
+        <div><div class="monthly-label">Error PnL M1</div><div class="field"><input type="number" id="c_errorpnl_m1" placeholder="0" class="monthly-input" oninput="onMonthlyInput('c_errorpnl',['c_errorpnl_m1','c_errorpnl_m2','c_errorpnl_m3'])"></div></div>
+        <div><div class="monthly-label">Error PnL M2</div><div class="field"><input type="number" id="c_errorpnl_m2" placeholder="0" class="monthly-input" oninput="onMonthlyInput('c_errorpnl',['c_errorpnl_m1','c_errorpnl_m2','c_errorpnl_m3'])"></div></div>
+        <div><div class="monthly-label">Error PnL M3</div><div class="field"><input type="number" id="c_errorpnl_m3" placeholder="0" class="monthly-input" oninput="onMonthlyInput('c_errorpnl',['c_errorpnl_m1','c_errorpnl_m2','c_errorpnl_m3'])"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 4. EXPENSES T&E ══ -->
+  <div class="section-card">
+    <div class="section-header">
+      <div><div class="section-title">Expenses (T&E)</div><div class="section-subtitle">Cap 4% du NBC cumulé annuel</div></div>
+      <div class="section-actions">
+        <div id="total-expenses" class="badge badge-gold">€ 0</div>
+        <div class="monthly-toggle" id="tog-exp" onclick="toggleMonthly('exp')"><span class="toggle-dot"></span> Saisie mensuelle</div>
+      </div>
+    </div>
+    <div class="section-body">
+      <div class="grid-3">
+        <div class="field"><label>Expenses T&E (€)</label><input type="number" id="expenses" placeholder="0.00" oninput="recalculate()"></div>
+        <div class="field"><label>Cap annuel restant avant ce Q (€)</label><input type="number" id="te_cap_display" class="readonly-calc" readonly><span class="field-note">4% NBC YTD − expenses Q préc.</span></div>
+        <div class="field"><label id="te_after_label">Crédit T&E restant après ce Q (€)</label><input type="number" id="te_over_display" class="readonly-calc" readonly><span class="field-note">Vert = crédit · Rouge = dépassement VR</span></div>
+      </div>
+      <div class="monthly-grid cols-3" id="mg-exp">
+        <div><div class="monthly-label">Expenses M1</div><div class="field"><input type="number" id="exp_m1" placeholder="0" class="monthly-input" oninput="onMonthlyInput('expenses',['exp_m1','exp_m2','exp_m3'])"></div></div>
+        <div><div class="monthly-label">Expenses M2</div><div class="field"><input type="number" id="exp_m2" placeholder="0" class="monthly-input" oninput="onMonthlyInput('expenses',['exp_m1','exp_m2','exp_m3'])"></div></div>
+        <div><div class="monthly-label">Expenses M3</div><div class="field"><input type="number" id="exp_m3" placeholder="0" class="monthly-input" oninput="onMonthlyInput('expenses',['exp_m1','exp_m2','exp_m3'])"></div></div>
+      </div>
+      <div class="te-warning" id="te_warning">⚠ Expenses dépassent le cap annuel 4% — surplus <strong id="te_surplus_amt">€ 0</strong> déduit de ton VR (Schedule 2b).</div>
+    </div>
+  </div>
+
+  <!-- ══ 5. STAFF TOP LINE ÷5 ══ -->
+  <div class="section-card">
+    <div class="section-header">
+      <div><div class="section-title">Coûts Staff — Quote-Part ÷5 — TOP LINE</div><div class="section-subtitle">Salaires AED · DEWS fixe USD/mois (modifiable) · Coûts $6,000 USD/mois · taux FX centralisés</div></div>
+      <div class="section-actions">
+        <div id="total-staff" class="badge badge-gold">€ 0</div>
+        <div class="monthly-toggle" id="tog-staff" onclick="toggleMonthly('staff')"><span class="toggle-dot"></span> Salaires mensuels</div>
+      </div>
+    </div>
+    <div class="section-body">
+      <div class="staff-grid">
+        <!-- Darryl -->
+        <div>
+          <div class="staff-name">Darryl</div>
+          <div class="field" style="margin-bottom:8px"><label>Salaire mensuel (AED)</label><input type="number" id="darryl_sal_aed" placeholder="0.00" oninput="recalculate()"></div>
+          <div class="field" style="margin-bottom:8px">
+            <label>DEWS mensuel (USD) — montant fixe</label>
+            <input type="number" id="darryl_dews_usd" placeholder="364" oninput="recalculate()">
+            <span class="field-note">Défaut : $364/mois · converti via taux USD/EUR central</span>
+          </div>
+          <div class="computed-row"><span class="cr-label">Sal mensuel (€)</span><span class="cr-val" id="darryl_sal_eur_monthly_disp">—</span></div>
+          <div class="computed-row"><span class="cr-label">Sal quarterly (€) ×3</span><span class="cr-val" id="darryl_sal_eur_q_disp">—</span></div>
+          <div class="computed-row highlight"><span class="cr-label">DEWS ×3 (€)</span><span class="cr-val" id="darryl_dews_disp">—</span></div>
+          <div class="computed-row" style="margin-top:6px"><span class="cr-label">Coûts $6k/mois ×3 (€)</span><span class="cr-val" id="darryl_cost_eur_disp">—</span></div>
+          <div class="computed-row" style="background:var(--gold-dim)"><span class="cr-label" style="color:var(--gold);font-weight:600">Total ÷5 (€)</span><span class="cr-val" id="darryl_total_share_disp" style="color:var(--gold)">—</span></div>
+        </div>
+        <!-- Satchel -->
+        <div>
+          <div class="staff-name">Satchel</div>
+          <div class="field" style="margin-bottom:8px"><label>Salaire mensuel (AED)</label><input type="number" id="satchel_sal_aed" placeholder="0.00" oninput="recalculate()"></div>
+          <div class="field" style="margin-bottom:8px">
+            <label>DEWS mensuel (USD) — montant fixe</label>
+            <input type="number" id="satchel_dews_usd" placeholder="291" oninput="recalculate()">
+            <span class="field-note">Défaut : $291/mois · converti via taux USD/EUR central</span>
+          </div>
+          <div class="computed-row"><span class="cr-label">Sal mensuel (€)</span><span class="cr-val" id="satchel_sal_eur_monthly_disp">—</span></div>
+          <div class="computed-row"><span class="cr-label">Sal quarterly (€) ×3</span><span class="cr-val" id="satchel_sal_eur_q_disp">—</span></div>
+          <div class="computed-row highlight"><span class="cr-label">DEWS ×3 (€)</span><span class="cr-val" id="satchel_dews_disp">—</span></div>
+          <div class="computed-row" style="margin-top:6px"><span class="cr-label">Coûts $6k/mois ×3 (€)</span><span class="cr-val" id="satchel_cost_eur_disp">—</span></div>
+          <div class="computed-row" style="background:var(--gold-dim)"><span class="cr-label" style="color:var(--gold);font-weight:600">Total ÷5 (€)</span><span class="cr-val" id="satchel_total_share_disp" style="color:var(--gold)">—</span></div>
+        </div>
+        <!-- Benjamin -->
+        <div>
+          <div class="staff-name">Benjamin</div>
+          <div class="field" style="margin-bottom:8px"><label>Salaire mensuel (AED)</label><input type="number" id="benjamin_sal_aed" placeholder="0.00" oninput="recalculate()"></div>
+          <div class="field" style="margin-bottom:8px">
+            <label>DEWS mensuel (USD) — montant fixe</label>
+            <input type="number" id="benjamin_dews_usd" placeholder="0" oninput="recalculate()">
+            <span class="field-note">À renseigner quand connu · converti via taux USD/EUR central</span>
+          </div>
+          <div class="computed-row"><span class="cr-label">Sal mensuel (€)</span><span class="cr-val" id="benjamin_sal_eur_monthly_disp">—</span></div>
+          <div class="computed-row"><span class="cr-label">Sal quarterly (€) ×3</span><span class="cr-val" id="benjamin_sal_eur_q_disp">—</span></div>
+          <div class="computed-row highlight"><span class="cr-label">DEWS ×3 (€)</span><span class="cr-val" id="benjamin_dews_disp">—</span></div>
+          <div class="computed-row" style="margin-top:6px"><span class="cr-label">Coûts $6k/mois ×3 (€)</span><span class="cr-val" id="benjamin_cost_eur_disp">—</span></div>
+          <div class="computed-row" style="background:var(--gold-dim)"><span class="cr-label" style="color:var(--gold);font-weight:600">Total ÷5 (€)</span><span class="cr-val" id="benjamin_total_share_disp" style="color:var(--gold)">—</span></div>
+        </div>
+      </div>
+      <!-- Monthly salaries toggle -->
+      <div class="monthly-grid cols-3" id="mg-staff" style="display:none;margin-top:16px">
+        <div style="grid-column:span 3;font-size:11px;color:var(--purple);font-weight:500;margin-bottom:4px;text-transform:uppercase;letter-spacing:.06em">Salaires mensuels AED (si variables)</div>
+        <div><div class="monthly-label">Darryl M1 (AED)</div><div class="field"><input type="number" id="darryl_sal_m1" placeholder="0" class="monthly-input" oninput="onMonthlyStaff('darryl_sal_aed',['darryl_sal_m1','darryl_sal_m2','darryl_sal_m3'])"></div></div>
+        <div><div class="monthly-label">Darryl M2 (AED)</div><div class="field"><input type="number" id="darryl_sal_m2" placeholder="0" class="monthly-input" oninput="onMonthlyStaff('darryl_sal_aed',['darryl_sal_m1','darryl_sal_m2','darryl_sal_m3'])"></div></div>
+        <div><div class="monthly-label">Darryl M3 (AED)</div><div class="field"><input type="number" id="darryl_sal_m3" placeholder="0" class="monthly-input" oninput="onMonthlyStaff('darryl_sal_aed',['darryl_sal_m1','darryl_sal_m2','darryl_sal_m3'])"></div></div>
+        <div><div class="monthly-label">Satchel M1 (AED)</div><div class="field"><input type="number" id="satchel_sal_m1" placeholder="0" class="monthly-input" oninput="onMonthlyStaff('satchel_sal_aed',['satchel_sal_m1','satchel_sal_m2','satchel_sal_m3'])"></div></div>
+        <div><div class="monthly-label">Satchel M2 (AED)</div><div class="field"><input type="number" id="satchel_sal_m2" placeholder="0" class="monthly-input" oninput="onMonthlyStaff('satchel_sal_aed',['satchel_sal_m1','satchel_sal_m2','satchel_sal_m3'])"></div></div>
+        <div><div class="monthly-label">Satchel M3 (AED)</div><div class="field"><input type="number" id="satchel_sal_m3" placeholder="0" class="monthly-input" oninput="onMonthlyStaff('satchel_sal_aed',['satchel_sal_m1','satchel_sal_m2','satchel_sal_m3'])"></div></div>
+        <div><div class="monthly-label">Benjamin M1 (AED)</div><div class="field"><input type="number" id="benjamin_sal_m1" placeholder="0" class="monthly-input" oninput="onMonthlyStaff('benjamin_sal_aed',['benjamin_sal_m1','benjamin_sal_m2','benjamin_sal_m3'])"></div></div>
+        <div><div class="monthly-label">Benjamin M2 (AED)</div><div class="field"><input type="number" id="benjamin_sal_m2" placeholder="0" class="monthly-input" oninput="onMonthlyStaff('benjamin_sal_aed',['benjamin_sal_m1','benjamin_sal_m2','benjamin_sal_m3'])"></div></div>
+        <div><div class="monthly-label">Benjamin M3 (AED)</div><div class="field"><input type="number" id="benjamin_sal_m3" placeholder="0" class="monthly-input" oninput="onMonthlyStaff('benjamin_sal_aed',['benjamin_sal_m1','benjamin_sal_m2','benjamin_sal_m3'])"></div></div>
+      </div>
+      <div class="info-strip" style="margin-top:14px">
+        <div class="info-item"><span class="info-label">Coûts USD/personne</span><span class="info-val teal" id="staff-cost-usd-disp">$6,000/mois</span></div>
+        <div class="info-item"><span class="info-label">Total staff brut (€)</span><span class="info-val neutral" id="staff_full_total">—</span></div>
+        <div class="info-item"><span class="info-label">dont DEWS total (€)</span><span class="info-val warn" id="staff_dews_total">—</span></div>
+        <div class="info-item"><span class="info-label">Ta quote-part ÷5 (€)</span><span class="info-val" id="staff_your_share">—</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 6. MON SALAIRE ══ -->
+  <div class="section-card">
+    <div class="section-header">
+      <div><div class="section-title">Mon Salaire & Desk Fees</div><div class="section-subtitle">FX centralisé ci-dessus · DEWS si AED uniquement</div></div>
+      <div id="total-my-sal" class="badge badge-gold">€ 0</div>
+    </div>
+    <div class="section-body">
+      <div style="margin-bottom:14px">
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;font-weight:500;margin-bottom:8px">Devise du salaire</div>
+        <div class="currency-tabs">
+          <div class="currency-tab aed active" id="tab-aed" onclick="setCurrency('AED')">AED — Dirham</div>
+          <div class="currency-tab usd" id="tab-usd" onclick="setCurrency('USD')">USD — Dollar</div>
+          <div class="currency-tab eur" id="tab-eur" onclick="setCurrency('EUR')">EUR — Euro</div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <label id="sal-label">Salaire mensuel (AED)</label>
+          <input type="number" id="my_sal_native" placeholder="0.00" oninput="recalculate()">
+          <span class="field-note" id="sal-fx-note">Converti via taux AED/EUR moyen ci-dessus</span>
+        </div>
+        <div id="fx-eur-panel" style="display:none;align-items:center">
+          <div style="padding:10px 16px;background:var(--gold-dim);border:1px solid var(--gold-border);border-radius:var(--radius);font-size:13px;color:var(--gold);font-weight:500">
+            ✓ Salaire déjà en EUR — aucune conversion nécessaire
+          </div>
+        </div>
+      </div>
+      <div class="dews-panel show" id="dews-panel" style="margin-top:12px">
+        <div style="background:var(--orange-dim);border:1px solid var(--orange-border);border-radius:var(--radius);padding:10px 16px;font-size:12px;color:var(--orange)">
+          <strong>DEWS (Gratuity) — AED uniquement :</strong> 5.83% × sal mensuel EUR × 3 mois — calculé automatiquement via taux FX central
+        </div>
+      </div>
+      <div class="grid-3" style="margin-top:14px">
+        <div class="field">
+          <label id="desk-fee-label">Desk Fees (USD/mois — défaut $5,700)</label>
+          <input type="number" id="desk_fee_usd" placeholder="5700" oninput="recalculate()">
+          <span class="field-note" id="desk-fee-note">Converti via taux USD/EUR moyen ci-dessus</span>
+        </div>
+        <div class="field"><label>Desk Fees quarterly (€) — calculé</label><input type="number" id="desk_fee_eur" class="readonly-calc" readonly></div>
+        <div class="field">
+          <label>Mon Cut % (défaut 60)</label>
+          <input type="number" id="my_cut_pct" placeholder="60" min="0" max="100" step="0.5" oninput="recalculate(); updateCutBadge()">
+          <span class="field-note">Modifiable par quarter — pré-rempli depuis le profil</span>
+        </div>
+      </div>
+      <div class="info-strip" style="margin-top:12px">
+        <div class="info-item"><span class="info-label">Devise</span><span class="info-val teal" id="info-currency">AED</span></div>
+        <div class="info-item"><span class="info-label">Taux utilisé → EUR</span><span class="info-val neutral" id="fx_avg_display">—</span></div>
+        <div class="info-item"><span class="info-label">Salaire quarterly (€)</span><span class="info-val neutral" id="my_sal_eur_display">—</span></div>
+        <div class="info-item" id="dews-info-item"><span class="info-label">Gratuity DEWS (€)</span><span class="info-val warn" id="gratuity_display">—</span></div>
+        <div class="info-item"><span class="info-label">Desk fees (€)</span><span class="info-val warn" id="desk_display">—</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 7. CASH EQUITY EXECUTION + CARRY ══ -->
+  <div class="section-card">
+    <div class="section-header">
+      <div><div class="section-title">Cash Equity — Execution Charge & Report</div><div class="section-subtitle">2.5% · Déduit après cut</div></div>
+    </div>
+    <div class="section-body">
+      <div class="grid-3">
+        <div class="field">
+          <label>Cash Equity — Execution Charge (2.5%) (€)</label>
+          <input type="number" id="my_costs" placeholder="0.00" oninput="recalculate()">
+          <span class="field-note">Frais d'exécution cash equity — 2.5% du volume</span>
+        </div>
+        <div class="field">
+          <label>Report VR négatif Q précédent (€)</label>
+          <input type="number" id="carry_forward" placeholder="0.00" oninput="recalculate()">
+          <span class="field-note">Saisir en positif — sera déduit (Schedule 1i)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 8. WATERFALL ══ -->
+  <div class="section-card">
+    <div class="section-header">
+      <div><div class="section-title">Récapitulatif — Waterfall VR</div><div class="section-subtitle">Décomposition complète du calcul</div></div>
+      <div class="section-actions">
+        <button class="excel-btn" onclick="exportExcel()">
+          <svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM8.5 18l-2-3h1.2l1.3 2 1.3-2h1.2l-2 3 2 3h-1.2L9 19l-1.3 2H6.5l2-3zm5.5 0h-1v-4h-1v-1h2v5z"/></svg>
+          Export Excel
+        </button>
+        <button class="save-btn" onclick="saveQuarter()">💾 Sauvegarder Q</button>
+      </div>
+    </div>
+    <div class="section-body"><div class="waterfall" id="waterfall"></div></div>
+  </div>
+
+</div><!-- end quarter page -->
+
+<!-- ══════════ HISTORY ══════════ -->
+<div id="page-history" class="page">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px">
+    <div>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:600;color:var(--text);margin-bottom:4px" id="hist-title">Historique & Cumul Annuel</div>
+      <div style="font-size:12px;color:var(--text-muted)">Données enregistrées par quarter</div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <button class="excel-btn" onclick="exportExcelHistory()">
+        <svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5z"/></svg>
+        Export Annuel
+      </button>
+      <select class="year-select" id="histYearSelect" onchange="renderHistory()">
+        <option value="2024">2024</option><option value="2025" selected>2025</option><option value="2026">2026</option>
+      </select>
+    </div>
+  </div>
+  <div class="history-summary" id="hist-kpis"></div>
+  <div class="section-card">
+    <div class="section-header"><div class="section-title">Détail par Quarter</div></div>
+    <div style="overflow-x:auto">
+      <table class="hist-table">
+        <thead><tr><th>Q</th><th>NBC Brut</th><th>Avoir</th><th>Coûts Mkt</th><th>T&E</th><th>Staff ÷5</th><th>NBC Net</th><th>Cut</th><th>Salaire</th><th>DEWS</th><th>Desk</th><th>Exec 2.5%</th><th>Carry</th><th>VPS</th></tr></thead>
+        <tbody id="histBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SETTINGS ══════════ -->
+<div id="page-settings" class="page">
+  <div style="font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:600;color:var(--text);margin-bottom:4px">Paramètres & Profils</div>
+  <div style="font-size:12px;color:var(--text-muted);margin-bottom:24px">Configurer chaque profil une fois — chargé automatiquement à la sélection</div>
+
+  <!-- PROFILS BROKERS -->
+  <div style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:600;color:var(--text);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">Profils Brokers</div>
+  <div class="profile-settings-grid" id="profile-settings-grid">
+    <!-- Jonathan -->
+    <div class="person-card" data-profile="jonathan">
+      <div class="person-name" style="display:flex;align-items:center;justify-content:space-between">Jonathan <span style="font-size:11px;color:var(--text-muted);font-family:'DM Sans',sans-serif;font-weight:400">Toi</span></div>
+      <div class="field" style="margin-bottom:10px"><label>Devise salaire</label><select id="p_jonathan_currency" onchange="saveProfiles()"><option value="AED">AED</option><option value="USD">USD</option><option value="EUR">EUR</option></select></div>
+      <div class="field" style="margin-bottom:10px"><label>Salaire mensuel</label><input type="number" id="p_jonathan_sal" placeholder="0.00" oninput="saveProfiles()"></div>
+      <div class="field" style="margin-bottom:10px"><label>DEWS mensuel (USD)</label><input type="number" id="p_jonathan_dews_usd" placeholder="0" oninput="saveProfiles()"><span class="field-note">Si salaire AED uniquement</span></div>
+      <div class="field" style="margin-bottom:10px"><label>Seat Cost (USD/mois)</label><input type="number" id="p_jonathan_seat_usd" placeholder="5700" oninput="saveProfiles()"><span class="field-note">Desk fees</span></div>
+      <div class="field"><label>Cut %</label><input type="number" id="p_jonathan_cut" placeholder="60" min="0" max="100" step="0.5" oninput="saveProfiles()"></div>
+      <button onclick="validateAndApplyProfile()" style="width:100%;margin-top:14px;background:var(--gold);color:#fff;border:none;padding:10px;border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:background .2s" onmouseover="this.style.background='var(--gold-light)'" onmouseout="this.style.background='var(--gold)'">✓ Valider & Appliquer</button>
+    </div>
+    <!-- Jeremy -->
+    <div class="person-card" data-profile="jeremy">
+      <div class="person-name">Jeremy</div>
+      <div class="field" style="margin-bottom:10px"><label>Devise salaire</label><select id="p_jeremy_currency" onchange="saveProfiles()"><option value="AED">AED</option><option value="USD">USD</option><option value="EUR">EUR</option></select></div>
+      <div class="field" style="margin-bottom:10px"><label>Salaire mensuel</label><input type="number" id="p_jeremy_sal" placeholder="0.00" oninput="saveProfiles()"></div>
+      <div class="field" style="margin-bottom:10px"><label>DEWS mensuel (USD)</label><input type="number" id="p_jeremy_dews_usd" placeholder="0" oninput="saveProfiles()"><span class="field-note">Si salaire AED uniquement</span></div>
+      <div class="field" style="margin-bottom:10px"><label>Seat Cost (USD/mois)</label><input type="number" id="p_jeremy_seat_usd" placeholder="5700" oninput="saveProfiles()"></div>
+      <div class="field"><label>Cut %</label><input type="number" id="p_jeremy_cut" placeholder="60" min="0" max="100" step="0.5" oninput="saveProfiles()"></div>
+      <button onclick="validateAndApplyProfile()" style="width:100%;margin-top:14px;background:var(--gold);color:#fff;border:none;padding:10px;border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:background .2s" onmouseover="this.style.background='var(--gold-light)'" onmouseout="this.style.background='var(--gold)'">✓ Valider & Appliquer</button>
+    </div>
+    <!-- Julien -->
+    <div class="person-card" data-profile="julien">
+      <div class="person-name">Julien</div>
+      <div class="field" style="margin-bottom:10px"><label>Devise salaire</label><select id="p_julien_currency" onchange="saveProfiles()"><option value="AED">AED</option><option value="USD">USD</option><option value="EUR" selected>EUR</option></select></div>
+      <div class="field" style="margin-bottom:10px"><label>Salaire mensuel</label><input type="number" id="p_julien_sal" placeholder="0.00" oninput="saveProfiles()"></div>
+      <div class="field" style="margin-bottom:10px"><label>DEWS mensuel (USD)</label><input type="number" id="p_julien_dews_usd" placeholder="0" oninput="saveProfiles()" disabled style="opacity:.4"><span class="field-note">N/A — salaire EUR</span></div>
+      <div class="field" style="margin-bottom:10px"><label>Seat Cost (EUR/mois)</label><input type="number" id="p_julien_seat_usd" placeholder="5700" oninput="saveProfiles()"></div>
+      <div class="field" style="margin-bottom:10px"><label>Cut %</label><input type="number" id="p_julien_cut" placeholder="60" min="0" max="100" step="0.5" oninput="saveProfiles()"></div>
+      <div class="field">
+        <label>Taxe patronale (€/mois)</label>
+        <input type="number" id="p_julien_taxe_eur" placeholder="2000" oninput="saveProfiles()">
+        <span class="field-note">Défaut : €2,000/mois — déduit du bonus</span>
+      </div>
+      <button onclick="validateAndApplyProfile()" style="width:100%;margin-top:14px;background:var(--gold);color:#fff;border:none;padding:10px;border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:background .2s" onmouseover="this.style.background='var(--gold-light)'" onmouseout="this.style.background='var(--gold)'">✓ Valider & Appliquer</button>
+    </div>
+    <!-- Olivier -->
+    <div class="person-card" data-profile="olivier">
+      <div class="person-name">Olivier</div>
+      <div class="field" style="margin-bottom:10px"><label>Devise salaire</label><select id="p_olivier_currency" onchange="saveProfiles()"><option value="AED">AED</option><option value="USD">USD</option><option value="EUR">EUR</option></select></div>
+      <div class="field" style="margin-bottom:10px"><label>Salaire mensuel</label><input type="number" id="p_olivier_sal" placeholder="0.00" oninput="saveProfiles()"></div>
+      <div class="field" style="margin-bottom:10px"><label>DEWS mensuel (USD)</label><input type="number" id="p_olivier_dews_usd" placeholder="0" oninput="saveProfiles()"><span class="field-note">Si salaire AED uniquement</span></div>
+      <div class="field" style="margin-bottom:10px"><label>Seat Cost (USD/mois)</label><input type="number" id="p_olivier_seat_usd" placeholder="5700" oninput="saveProfiles()"></div>
+      <div class="field"><label>Cut %</label><input type="number" id="p_olivier_cut" placeholder="60" min="0" max="100" step="0.5" oninput="saveProfiles()"></div>
+      <button onclick="validateAndApplyProfile()" style="width:100%;margin-top:14px;background:var(--gold);color:#fff;border:none;padding:10px;border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:background .2s" onmouseover="this.style.background='var(--gold-light)'" onmouseout="this.style.background='var(--gold)'">✓ Valider & Appliquer</button>
+    </div>
+    <!-- Uriel -->
+    <div class="person-card" data-profile="uriel">
+      <div class="person-name">Uriel</div>
+      <div class="field" style="margin-bottom:10px"><label>Devise salaire</label><select id="p_uriel_currency" onchange="saveProfiles()"><option value="AED">AED</option><option value="USD">USD</option><option value="EUR" selected>EUR</option></select></div>
+      <div class="field" style="margin-bottom:10px"><label>Salaire mensuel</label><input type="number" id="p_uriel_sal" placeholder="0.00" oninput="saveProfiles()"></div>
+      <div class="field" style="margin-bottom:10px"><label>DEWS mensuel (USD)</label><input type="number" id="p_uriel_dews_usd" placeholder="0" oninput="saveProfiles()" disabled style="opacity:.4"><span class="field-note">N/A — salaire EUR</span></div>
+      <div class="field" style="margin-bottom:10px"><label>Seat Cost (EUR/mois)</label><input type="number" id="p_uriel_seat_usd" placeholder="5700" oninput="saveProfiles()"></div>
+      <div class="field" style="margin-bottom:10px"><label>Cut %</label><input type="number" id="p_uriel_cut" placeholder="60" min="0" max="100" step="0.5" oninput="saveProfiles()"></div>
+      <div class="field" style="margin-bottom:10px">
+        <label>Taxe patronale (€/mois)</label>
+        <input type="number" id="p_uriel_taxe_eur" placeholder="2000" oninput="saveProfiles()">
+        <span class="field-note">Défaut : €2,000/mois — déduit du bonus</span>
+      </div>
+      <button onclick="validateAndApplyProfile()" style="width:100%;margin-top:14px;background:var(--gold);color:#fff;border:none;padding:10px;border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:background .2s" onmouseover="this.style.background='var(--gold-light)'" onmouseout="this.style.background='var(--gold)'">✓ Valider & Appliquer</button>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- STAFF SECTION -->
+  <div style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:600;color:var(--text);margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">Staff (Darryl / Satchel / Benjamin)</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px">
+    <div class="person-card">
+      <div class="person-name">Darryl</div>
+      <div class="field" style="margin-bottom:10px"><label>Salaire mensuel (AED)</label><input type="number" id="def_darryl_sal_aed" placeholder="38260" oninput="saveSettings()"></div>
+      <div class="field"><label>DEWS mensuel (USD)</label><input type="number" id="def_darryl_dews_usd" placeholder="364" oninput="saveSettings()"><span class="field-note">Défaut : $364/mois</span></div>
+    </div>
+    <div class="person-card">
+      <div class="person-name">Satchel</div>
+      <div class="field" style="margin-bottom:10px"><label>Salaire mensuel (AED)</label><input type="number" id="def_satchel_sal_aed" placeholder="30603" oninput="saveSettings()"></div>
+      <div class="field"><label>DEWS mensuel (USD)</label><input type="number" id="def_satchel_dews_usd" placeholder="291" oninput="saveSettings()"><span class="field-note">Défaut : $291/mois</span></div>
+    </div>
+    <div class="person-card">
+      <div class="person-name">Benjamin</div>
+      <div class="field" style="margin-bottom:10px"><label>Salaire mensuel (AED)</label><input type="number" id="def_benjamin_sal_aed" placeholder="0.00" oninput="saveSettings()"></div>
+      <div class="field"><label>DEWS mensuel (USD)</label><input type="number" id="def_benjamin_dews_usd" placeholder="0" oninput="saveSettings()"><span class="field-note">À renseigner quand connu</span></div>
+    </div>
+  </div>
+
+  <div style="padding:12px 16px;background:var(--bg3);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:20px">
+    <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;font-weight:500">Paramètres contractuels fixes</div>
+    <div style="display:flex;gap:28px;flex-wrap:wrap;font-size:12px;color:var(--text-dim)">
+      <span>DEWS staff : <strong style="color:var(--orange)">montant fixe USD/mois</strong></span>
+      <span>Coûts staff : <strong style="color:var(--teal)">$6,000/mois</strong> × 3 × USD/EUR</span>
+      <span>T&E cap : <strong style="color:var(--orange)">4%</strong> NBC cumulé annuel</span>
+      <span>Staff : <strong style="color:var(--gold)">÷5</strong> brokers — top line</span>
+    </div>
+  </div>
+
+  <div style="padding:14px 20px;background:var(--bg2);border:1px solid var(--red-border);border-radius:10px;display:flex;align-items:center;justify-content:space-between">
+    <span style="font-size:12px;color:var(--text-dim)">⚠ Réinitialiser toutes les données sauvegardées</span>
+    <button onclick="resetAll()" style="background:var(--red-dim);border:1px solid var(--red-border);color:var(--red);padding:8px 18px;border-radius:var(--radius);cursor:pointer;font-size:13px;font-weight:500">Reset complet</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+</div><!-- end app-wrapper -->
+
+<script>
+// ═══ CONSTANTS ═══
+const GRATUITY_RATE = 0.0583;
+const STAFF_COST_USD_MONTHLY = 6000;
+const STORE_KEY = 'vps_calc_v7';
+const PROFILES = ['jonathan','jeremy','julien','olivier','uriel'];
+
+let currentYear = 2025, currentQ = 1, currentCurrency = 'AED';
+let currentProfile = 'jonathan';
+let fxMonthlyMode = false;
+const monthlyState = { ca:false, avoir:false, costs:false, exp:false, staff:false };
+
+// ═══ STORE ═══
+const ls = { get:()=>{ try{return JSON.parse(localStorage.getItem(STORE_KEY))||{}}catch{return{}} }, set:(d)=>localStorage.setItem(STORE_KEY,JSON.stringify(d)) };
+const qKey = (y,q) => `${y}_Q${q}`;
+
+// ═══ FX — central getters ═══
+function getFxAed() {
+  if (fxMonthlyMode) {
+    const vals = [v('fx_aed_m1'),v('fx_aed_m2'),v('fx_aed_m3')].filter(x=>x>0);
+    return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
+  }
+  return v('fx_aed_avg');
+}
+function getFxUsd() {
+  if (fxMonthlyMode) {
+    const vals = [v('fx_usd_m1'),v('fx_usd_m2'),v('fx_usd_m3')].filter(x=>x>0);
+    return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
+  }
+  return v('fx_usd_avg');
+}
+
+function onFxInput() { updateFxWarning(); recalculate(); }
+
+function updateFxWarning() {
+  const aed = getFxAed(), usd = getFxUsd();
+  const warn = document.getElementById('fx-warning');
+  if (warn) warn.style.display = (!aed || !usd) ? 'flex' : 'none';
+}
+function onFxMonthly() {
+  // Sync monthly averages to display badges
+  const aedVals = [v('fx_aed_m1'),v('fx_aed_m2'),v('fx_aed_m3')].filter(x=>x>0);
+  const usdVals = [v('fx_usd_m1'),v('fx_usd_m2'),v('fx_usd_m3')].filter(x=>x>0);
+  const aedAvg = aedVals.length ? aedVals.reduce((a,b)=>a+b,0)/aedVals.length : 0;
+  const usdAvg = usdVals.length ? usdVals.reduce((a,b)=>a+b,0)/usdVals.length : 0;
+  const aD = document.getElementById('fx-aed-avg-monthly'); if(aD) aD.textContent = aedAvg ? aedAvg.toFixed(4) : '—';
+  const uD = document.getElementById('fx-usd-avg-monthly'); if(uD) uD.textContent = usdAvg ? usdAvg.toFixed(4) : '—';
+  // Also push to quarterly fields for consistency
+  const aQ = document.getElementById('fx_aed_avg'); if(aQ && aedAvg) aQ.value = aedAvg.toFixed(4);
+  const uQ = document.getElementById('fx_usd_avg'); if(uQ && usdAvg) uQ.value = usdAvg.toFixed(4);
+  recalculate();
+}
+
+function toggleFx() {
+  fxMonthlyMode = !fxMonthlyMode;
+  const tog = document.getElementById('tog-fx');
+  const mg = document.getElementById('mg-fx');
+  const qv = document.getElementById('fx-quarterly-view');
+  if (fxMonthlyMode) {
+    tog.classList.add('active');
+    mg.classList.add('show');
+    qv.style.opacity = '0.4';
+  } else {
+    tog.classList.remove('active');
+    mg.classList.remove('show');
+    qv.style.opacity = '1';
+  }
+}
+
+// ═══ CURRENCY ═══
+function setCurrency(ccy, save=true) {
+  currentCurrency = ccy;
+  ['AED','USD','EUR'].forEach(c => document.getElementById('tab-'+c.toLowerCase()).classList.toggle('active', c===ccy));
+  const eurPanel = document.getElementById('fx-eur-panel');
+  if(eurPanel) eurPanel.style.display = ccy==='EUR' ? 'flex' : 'none';
+  const dewsPanel = document.getElementById('dews-panel');
+  if(dewsPanel) dewsPanel.classList.toggle('show', ccy==='AED');
+  const dewsInfo = document.getElementById('dews-info-item');
+  if(dewsInfo) dewsInfo.style.display = ccy==='AED' ? '' : 'none';
+  const labels = { AED:'Salaire mensuel (AED)', USD:'Salaire mensuel (USD)', EUR:'Salaire mensuel (EUR)' };
+  const notes = { AED:'Converti via taux AED/EUR moyen ci-dessus', USD:'Converti via taux USD/EUR moyen ci-dessus', EUR:'Montant directement en EUR' };
+  const ll = document.getElementById('sal-label'); if(ll) ll.textContent = labels[ccy];
+  const ln = document.getElementById('sal-fx-note'); if(ln) ln.textContent = notes[ccy];
+  document.getElementById('info-currency').textContent = ccy;
+  if(save) recalculate();
+}
+
+// ═══ PROFILES ═══
+function getProfileKey(profile) { return `profile_${profile}`; }
+
+function saveProfiles() {
+  const store = ls.get();
+  PROFILES.forEach(p => {
+    const ccy = document.getElementById(`p_${p}_currency`)?.value || 'AED';
+    store[getProfileKey(p)] = {
+      currency: ccy,
+      sal: parseFloat(document.getElementById(`p_${p}_sal`)?.value) || 0,
+      dews_usd: ccy === 'AED' ? (parseFloat(document.getElementById(`p_${p}_dews_usd`)?.value) || 0) : 0,
+      seat_usd: parseFloat(document.getElementById(`p_${p}_seat_usd`)?.value) || 5700,
+      cut: parseFloat(document.getElementById(`p_${p}_cut`)?.value) || 60,
+      taxe_eur_monthly: parseFloat(document.getElementById(`p_${p}_taxe_eur`)?.value) || 0,
+      impot_pct: 0,
+    };
+    // Auto-disable DEWS field for non-AED
+    const dewsEl = document.getElementById(`p_${p}_dews_usd`);
+    const dewsNote = dewsEl?.nextElementSibling;
+    if (dewsEl) { dewsEl.disabled = ccy !== 'AED'; dewsEl.style.opacity = ccy !== 'AED' ? '0.4' : '1'; }
+    if (dewsNote) dewsNote.textContent = ccy !== 'AED' ? 'N/A — salaire non-AED' : 'Si salaire AED uniquement';
+  });
+  ls.set(store);
+  showToast('Profils sauvegardés');
+}
+
+function loadProfiles() {
+  const store = ls.get();
+  PROFILES.forEach(p => {
+    const d = store[getProfileKey(p)] || {};
+    const ccyEl = document.getElementById(`p_${p}_currency`);
+    if (ccyEl) ccyEl.value = d.currency || (p === 'julien' || p === 'uriel' ? 'EUR' : 'AED');
+    const salEl = document.getElementById(`p_${p}_sal`); if (salEl && d.sal) salEl.value = d.sal;
+    const dewsEl = document.getElementById(`p_${p}_dews_usd`); if (dewsEl && d.dews_usd) dewsEl.value = d.dews_usd;
+    const seatEl = document.getElementById(`p_${p}_seat_usd`); if (seatEl) seatEl.value = d.seat_usd || 5700;
+    const cutEl = document.getElementById(`p_${p}_cut`); if (cutEl) cutEl.value = d.cut || 60;
+    const taxeEl = document.getElementById(`p_${p}_taxe_eur`);
+    if (taxeEl) taxeEl.value = d.taxe_eur_monthly !== undefined ? d.taxe_eur_monthly : ((p === 'julien' || p === 'uriel') ? 2000 : 0);
+    // Disable DEWS if not AED
+    const ccy2 = ccyEl?.value || 'AED';
+    if (dewsEl) { dewsEl.disabled = ccy2 !== 'AED'; dewsEl.style.opacity = ccy2 !== 'AED' ? '0.4' : '1'; }
+  });
+}
+
+function getProfileData(profile) {
+  const store = ls.get();
+  const d = store[getProfileKey(profile)] || {};
+  return {
+    currency: d.currency || (profile === 'julien' || profile === 'uriel' ? 'EUR' : 'AED'),
+    sal: d.sal || 0,
+    dews_usd: d.dews_usd || 0,
+    seat_usd: d.seat_usd || 5700,
+    cut: d.cut || 60,
+    taxe_eur_monthly: d.taxe_eur_monthly !== undefined ? d.taxe_eur_monthly : ((profile === 'julien' || profile === 'uriel') ? 2000 : 0),
+    impot_pct: 0,
+  };
+}
+
+function switchProfile(profile) {
+  currentProfile = profile;
+  // Update profile buttons
+  PROFILES.forEach(p => document.getElementById(`pbtn-${p}`)?.classList.toggle('active', p === profile));
+  // Load profile data into quarter fields
+  applyProfileToQuarter();
+  updateCutBadge();
+}
+
+function applyProfileToQuarter() {
+  const p = getProfileData(currentProfile);
+  // Set currency
+  currentCurrency = p.currency;
+  setCurrency(p.currency, false);
+  // Set salary
+  setVal('my_sal_native', p.sal);
+  // Set seat cost
+  setVal('desk_fee_usd', p.seat_usd);
+  // Set cut
+  setVal('my_cut_pct', p.cut);
+  recalculate();
+}
+
+function updateCutBadge() {
+  const cut = v('my_cut_pct') || 60;
+  const badge = document.getElementById('profile-cut-badge');
+  const name = currentProfile.charAt(0).toUpperCase() + currentProfile.slice(1);
+  if (badge) badge.textContent = `${name} — Cut : ${cut}%`;
+  // Also update KPI label
+  const kpiCutLabel = document.querySelector('#kpi-cut + .result-sub, .result-card.gold .result-sub');
+}
+
+// ═══ NAVIGATION ═══
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  if(btn) btn.classList.add('active');
+  if(name==='history') renderHistory();
+  if(name==='settings') loadProfiles();
+  const sk = document.getElementById('sticky-kpi'); if(sk) sk.classList.remove('visible');
+}
+function selectQ(q) {
+  currentQ=q;
+  document.querySelectorAll('[id^="qbtn-"]').forEach(b=>b.classList.remove('active'));
+  document.getElementById('qbtn-'+q).classList.add('active');
+  loadQuarterData();
+}
+function onYearChange() { currentYear=parseInt(document.getElementById('yearSelect').value); loadQuarterData(); }
+
+// ═══ MONTHLY TOGGLE ═══
+function toggleMonthly(section) {
+  monthlyState[section] = !monthlyState[section];
+  const tog = document.getElementById('tog-'+section);
+  const mg = document.getElementById('mg-'+section);
+  if (monthlyState[section]) {
+    tog.classList.add('active');
+    if(mg) mg.classList.add('show');
+    if(section==='ca') { const t=v('ca_brut'); if(!v('ca_m1')&&!v('ca_m2')&&!v('ca_m3')&&t){const m=(t/3).toFixed(2);['ca_m1','ca_m2','ca_m3'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=m;})} }
+    if(section==='avoir') {
+      const lbl=document.getElementById('avoir-label'); if(lbl) lbl.textContent='Avoir Client Quarterly (€) — total M1+M2+M3';
+      const t=v('avoir_client'); if(!v('avoir_m1')&&!v('avoir_m2')&&!v('avoir_m3')&&t){const m=(t/3).toFixed(2);['avoir_m1','avoir_m2','avoir_m3'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=m;});const mt=document.getElementById('mt-avoir');if(mt)mt.textContent=fmt(t);}
+    }
+  } else {
+    tog.classList.remove('active');
+    if(mg) mg.classList.remove('show');
+    if(section==='avoir'){const lbl=document.getElementById('avoir-label');if(lbl)lbl.textContent='Avoir Client (€) — soustrait du NBC avant cut';}
+  }
+}
+function onMonthlyInput(targetId, sourceIds, displayId) {
+  const total = sourceIds.reduce((s,id)=>s+v(id),0);
+  const el=document.getElementById(targetId); if(el) el.value=total||'';
+  if(displayId){const d=document.getElementById(displayId);if(d)d.textContent=fmt(total);}
+  recalculate();
+}
+function onMonthlyStaff(targetId, sourceIds) {
+  const total = sourceIds.reduce((s,id)=>s+v(id),0);
+  const el=document.getElementById(targetId); if(el) el.value=total||'';
+  recalculate();
+}
+
+// ═══ SETTINGS ═══
+function saveSettings() {
+  const store=ls.get();
+  store.settings={ darryl_sal_aed:v('def_darryl_sal_aed'), darryl_dews_usd:v('def_darryl_dews_usd'), satchel_sal_aed:v('def_satchel_sal_aed'), satchel_dews_usd:v('def_satchel_dews_usd'), benjamin_sal_aed:v('def_benjamin_sal_aed'), benjamin_dews_usd:v('def_benjamin_dews_usd') };
+  ls.set(store); showToast('Staff sauvegardé');
+}
+function loadSettings() {
+  const s=(ls.get().settings)||{};
+  setVal('def_darryl_sal_aed', s.darryl_sal_aed||38260); setVal('def_darryl_dews_usd', s.darryl_dews_usd!==undefined?s.darryl_dews_usd:364);
+  setVal('def_satchel_sal_aed', s.satchel_sal_aed||30603); setVal('def_satchel_dews_usd', s.satchel_dews_usd!==undefined?s.satchel_dews_usd:291);
+  setVal('def_benjamin_sal_aed', s.benjamin_sal_aed||0); setVal('def_benjamin_dews_usd', s.benjamin_dews_usd!==undefined?s.benjamin_dews_usd:0);
+  return s;
+}
+function getSettings(){return (ls.get().settings)||{};}
+
+// ═══ FIELDS ═══
+const FIELDS = ['fx_aed_avg','fx_usd_avg','fx_aed_m1','fx_aed_m2','fx_aed_m3','fx_usd_m1','fx_usd_m2','fx_usd_m3',
+  'ca_brut','avoir_client','ca_m1','ca_m2','ca_m3','avoir_m1','avoir_m2','avoir_m3',
+  'c_clearer','c_kerbs','c_vantage','c_xfa','c_cashequity','c_errorpnl',
+  'c_clearer_m1','c_clearer_m2','c_clearer_m3','c_kerbs_m1','c_kerbs_m2','c_kerbs_m3',
+  'c_vantage_m1','c_vantage_m2','c_vantage_m3','c_xfa_m1','c_xfa_m2','c_xfa_m3',
+  'c_cashequity_m1','c_cashequity_m2','c_cashequity_m3','c_errorpnl_m1','c_errorpnl_m2','c_errorpnl_m3',
+  'expenses','exp_m1','exp_m2','exp_m3',
+  'darryl_sal_aed','darryl_dews_usd','darryl_sal_m1','darryl_sal_m2','darryl_sal_m3',
+  'satchel_sal_aed','satchel_dews_usd','satchel_sal_m1','satchel_sal_m2','satchel_sal_m3',
+  'benjamin_sal_aed','benjamin_dews_usd','benjamin_sal_m1','benjamin_sal_m2','benjamin_sal_m3',
+  'my_sal_native','desk_fee_usd','my_cut_pct','my_costs','carry_forward'];
+
+// ═══ LOAD / SAVE QUARTER ═══
+function loadQuarterData() {
+  const store=ls.get(); const key=qKey(currentYear,currentQ)+'_'+currentProfile; const s=getSettings();
+  const p=getProfileData(currentProfile);
+  const defaults={ 
+    darryl_sal_aed:s.darryl_sal_aed||38260, darryl_dews_usd:s.darryl_dews_usd!==undefined?s.darryl_dews_usd:364,
+    satchel_sal_aed:s.satchel_sal_aed||30603, satchel_dews_usd:s.satchel_dews_usd!==undefined?s.satchel_dews_usd:291,
+    benjamin_sal_aed:s.benjamin_sal_aed||0, benjamin_dews_usd:s.benjamin_dews_usd!==undefined?s.benjamin_dews_usd:0,
+    my_sal_native:p.sal||0, desk_fee_usd:p.seat_usd||5700, my_cut_pct:p.cut||60, my_costs:0, carry_forward:0 };
+  if(!store[key]){const pb=getPrevBonus();if(pb<0)defaults.carry_forward=Math.abs(pb);}
+  const saved=store[key]; const merged=saved?Object.assign({},defaults,saved):defaults;
+  const savedCcy=merged._currency||p.currency||'AED'; currentCurrency=savedCcy; setCurrency(savedCcy,false);
+  FIELDS.forEach(f=>setVal(f,merged[f]!==undefined&&merged[f]!==''?merged[f]:(defaults[f]||'')));
+  updateCarryBanner(); updateCutBadge(); recalculate();
+}
+function getPrevBonus(){const store=ls.get();let py=currentYear,pq=currentQ-1;if(pq<1){pq=4;py--;}const d=store[qKey(py,pq)+'_'+currentProfile];return(d&&d._results)?(d._results.bonus||0):0;}
+function saveQuarter(){const store=ls.get();const key=qKey(currentYear,currentQ)+'_'+currentProfile;const data={};FIELDS.forEach(f=>data[f]=v(f));data._currency=currentCurrency;data._results=computeResults();store[key]=data;ls.set(store);showToast(`Q${currentQ} ${currentYear} — ${currentProfile} sauvegardé`);}
+
+// ═══ COMPUTE ═══
+function v(id){return parseFloat(document.getElementById(id)?.value)||0;}
+function setVal(id,val){const el=document.getElementById(id);if(!el)return;el.value=(val!==undefined&&val!==null&&val!=='')?val:'';}
+
+function computeStaffMember(salAed, dewsUsdMonthly, fxAed, fxUsd) {
+  const salEurMonthly = fxAed ? salAed * fxAed : 0;
+  const salEurQ = salEurMonthly * 3;
+  // DEWS: montant fixe USD/mois (basé sur salaire de base, pas package total) × 3 mois × taux USD/EUR
+  const dews = fxUsd ? dewsUsdMonthly * 3 * fxUsd : 0;
+  const costEurQ = fxUsd ? STAFF_COST_USD_MONTHLY * 3 * fxUsd : 0;
+  const totalFull = salEurQ + dews + costEurQ;
+  const share = totalFull / 5; // ÷5 brokers
+  return { salEurMonthly, salEurQ, dews, dewsUsdMonthly, costEurQ, totalFull, share };
+}
+
+function computeResults() {
+  const s=getSettings();
+  const cut_pct = (v('my_cut_pct') || v('def_cut_pct') || s.cut || 60) / 100;
+  const fxAed=getFxAed(), fxUsd=getFxUsd();
+
+  const ca_brut=v('ca_brut'), avoir_client=v('avoir_client');
+  const ca_brut_net_avoir=ca_brut-avoir_client;
+  const costs_market=v('c_clearer')+v('c_kerbs')+v('c_vantage')+v('c_xfa')+v('c_cashequity')+v('c_errorpnl');
+
+  // T&E annual cap
+  const expenses_total=v('expenses');
+  const store_te=ls.get(); let cumul_nbc_prev=0, cumul_expenses_prev=0;
+  for(let qq=1;qq<currentQ;qq++){const dd=store_te[qKey(currentYear,qq)];if(dd&&dd._results){cumul_nbc_prev+=(dd._results.ca_brut_net_avoir||dd._results.ca_brut||0);cumul_expenses_prev+=(dd._results.expenses_total||0);}}
+  const cumul_nbc_ytd=cumul_nbc_prev+ca_brut_net_avoir;
+  const te_cap_annual=cumul_nbc_ytd*0.04;
+  const te_remaining_cap=Math.max(0,te_cap_annual-cumul_expenses_prev);
+  const te_in_nbc=Math.min(expenses_total,te_remaining_cap);
+  const te_over=Math.max(0,expenses_total-te_remaining_cap);
+  const te_cap_after_this_q=te_cap_annual-cumul_expenses_prev-expenses_total;
+
+  // Staff — salaire AED + DEWS fixe USD/mois + coûts USD
+  const darryl=computeStaffMember(v('darryl_sal_aed'),v('darryl_dews_usd'),fxAed,fxUsd);
+  const satchel=computeStaffMember(v('satchel_sal_aed'),v('satchel_dews_usd'),fxAed,fxUsd);
+  const benjamin=computeStaffMember(v('benjamin_sal_aed'),v('benjamin_dews_usd'),fxAed,fxUsd);
+  const staff_full=darryl.totalFull+satchel.totalFull+benjamin.totalFull;
+  const staff_share=darryl.share+satchel.share+benjamin.share;
+  const staff_dews_total=darryl.dews+satchel.dews+benjamin.dews;
+
+  const ca_net=ca_brut_net_avoir-costs_market-te_in_nbc-staff_share;
+  const cut=ca_net*cut_pct;
+
+  // My salary
+  const my_sal_native=v('my_sal_native');
+  let my_sal_eur_monthly=0, fx_used=0;
+  if(currentCurrency==='AED'){fx_used=fxAed;my_sal_eur_monthly=fxAed?my_sal_native*fxAed:0;}
+  else if(currentCurrency==='USD'){fx_used=fxUsd;my_sal_eur_monthly=fxUsd?my_sal_native*fxUsd:0;}
+  else{fx_used=1;my_sal_eur_monthly=my_sal_native;}
+  const my_sal_eur=my_sal_eur_monthly*3;
+  const gratuity=currentCurrency==='AED'?my_sal_eur_monthly*GRATUITY_RATE*3:0;
+
+  // Desk fees — USD pour AED/USD profiles, EUR direct pour EUR profiles
+  const desk_fee_native_monthly = v('desk_fee_usd') || 5700;
+  const deskIsEur = currentCurrency === 'EUR';
+  const desk_fee_eur = deskIsEur ? desk_fee_native_monthly * 3 : (fxUsd ? desk_fee_native_monthly * 3 * fxUsd : 0);
+  const desk_fee_usd_monthly = desk_fee_native_monthly; // kept for display
+
+  const my_costs=v('my_costs'), carry_forward=v('carry_forward');
+
+  // Profile-specific: taxe mensuelle (Uriel) + impôt sur bonus (Julien, Uriel)
+  const p_data = getProfileData(currentProfile);
+  const taxe_quarterly = p_data.taxe_eur_monthly * 3; // ex: Uriel €2,000/mois × 3
+  const bonus_before_tax = cut - te_over - my_sal_eur - gratuity - desk_fee_eur - my_costs - carry_forward - taxe_quarterly;
+  const impot_pct = p_data.impot_pct / 100;
+  const impot_amount = impot_pct > 0 ? bonus_before_tax * impot_pct : 0;
+  const bonus = bonus_before_tax - impot_amount;
+
+  return {
+    ca_brut,avoir_client,ca_brut_net_avoir,costs_market,
+    expenses_total,te_in_nbc,te_over,te_remaining_cap,te_cap_annual,cumul_nbc_ytd,cumul_expenses_prev,te_cap_after_this_q,
+    darryl,satchel,benjamin,staff_full,staff_share,staff_dews_total,
+    ca_net,cut,cut_pct,fxAed,fxUsd,fx_used,
+    currency:currentCurrency,my_sal_native,my_sal_eur,my_sal_eur_monthly,gratuity,
+    desk_fee_usd_monthly,desk_fee_eur,deskIsEur,my_costs,carry_forward,
+    taxe_quarterly,impot_pct,impot_amount,bonus_before_tax,bonus
+  };
+}
+
+function recalculate() {
+  const r=computeResults();
+  updateFxWarning();
+  // Update FX avg displays
+  const aedAvg=getFxAed(), usdAvg=getFxUsd();
+  const aD=document.getElementById('fx-aed-avg-display'); if(aD) aD.textContent=aedAvg?aedAvg.toFixed(4):'—';
+  const uD=document.getElementById('fx-usd-avg-display'); if(uD) uD.textContent=usdAvg?usdAvg.toFixed(4):'—';
+
+  // Staff computed rows
+  const names=['darryl','satchel','benjamin'];
+  names.forEach(n=>{
+    const d=r[n];
+    const se=document.getElementById(`${n}_sal_eur_monthly_disp`); if(se) se.textContent=d.salEurMonthly?fmtN2(d.salEurMonthly)+'€':'—';
+    const sq=document.getElementById(`${n}_sal_eur_q_disp`); if(sq) sq.textContent=d.salEurQ?fmtN2(d.salEurQ)+'€':'—';
+    const dw=document.getElementById(`${n}_dews_disp`); if(dw) dw.textContent=d.dews?fmtN2(d.dews)+'€':'—';
+    const ce=document.getElementById(`${n}_cost_eur_disp`); if(ce) ce.textContent=d.costEurQ?fmtN2(d.costEurQ)+'€':'—';
+    const ts=document.getElementById(`${n}_total_share_disp`); if(ts) ts.textContent=d.share?fmt(d.share):'—';
+  });
+  const sft=document.getElementById('staff_full_total'); if(sft) sft.textContent=fmt(r.staff_full);
+  const sdt=document.getElementById('staff_dews_total'); if(sdt) sdt.textContent=fmt(r.staff_dews_total);
+  const sys=document.getElementById('staff_your_share'); if(sys) sys.textContent=fmt(r.staff_share);
+  const scu=document.getElementById('staff-cost-usd-disp'); if(scu) scu.textContent=`$${STAFF_COST_USD_MONTHLY.toLocaleString()}/mois`;
+
+  // T&E
+  const ce2=document.getElementById('te_cap_display'); if(ce2) ce2.value=r.te_remaining_cap?r.te_remaining_cap.toFixed(2):'0';
+  const oe=document.getElementById('te_over_display');
+  if(oe){oe.value=r.te_cap_after_this_q.toFixed(2);oe.style.color=r.te_cap_after_this_q>=0?'var(--green)':'var(--red)';}
+  const tal=document.getElementById('te_after_label'); if(tal) tal.textContent=r.te_cap_after_this_q>=0?'Crédit T&E restant après ce Q (€)':'Dépassement T&E cap annuel (€)';
+  const tw=document.getElementById('te_warning');
+  if(tw){if(r.te_over>0){tw.classList.add('show');document.getElementById('te_surplus_amt').textContent=fmt(r.te_over);}else tw.classList.remove('show');}
+
+  // Desk
+  const dfe=document.getElementById('desk_fee_eur'); if(dfe) dfe.value=r.desk_fee_eur?r.desk_fee_eur.toFixed(2):'';
+
+  // KPI
+  document.getElementById('kpi-brut').textContent=fmt(r.ca_brut);
+  // KPI Coûts Marchés (replaces Avoir in strip)
+  const costsEl=document.getElementById('kpi-costs');
+  if(costsEl){costsEl.textContent='−'+fmt(r.costs_market);costsEl.className='result-value red';}
+  // Avoir impact display in costs section
+  const aiEl=document.getElementById('avoir_impact_display');
+  if(aiEl) aiEl.textContent=r.avoir_client>0?'−'+fmt(r.avoir_client)+' du NBC':'Aucun avoir ce Q';
+  document.getElementById('kpi-net').textContent=fmt(r.ca_net);
+  document.getElementById('kpi-cut').textContent=fmt(r.cut);
+  // Update cut label with actual %
+  const cutPct=Math.round(r.cut_pct*100);
+  const cutCard=document.querySelector('.result-card.gold:nth-child(4) .result-label');
+  if(cutCard) cutCard.textContent=`Cut ${cutPct}%`;
+  const skpiCutCell=document.querySelector('#skpi-cut')?.closest('.kpi-cell')?.querySelector('.kpi-cell-label');
+  if(skpiCutCell) skpiCutCell.textContent=`Cut ${cutPct}%`;
+  const bn=document.getElementById('kpi-bonus'); bn.textContent=fmt(r.bonus); bn.className='result-value '+(r.bonus>=0?'green':'red');
+
+  // Badges
+  document.getElementById('total-costs-market').textContent='−'+fmt(r.costs_market);
+  document.getElementById('total-expenses').textContent='−'+fmt(r.expenses_total);
+  document.getElementById('total-staff').textContent='−'+fmt(r.staff_share);
+  document.getElementById('total-my-sal').textContent=fmt(r.my_sal_eur+r.gratuity+r.desk_fee_eur);
+
+  // Update desk fee label in quarter page
+  const deskLbl = document.getElementById('desk-fee-label');
+  const deskNote = document.getElementById('desk-fee-note');
+  if (deskLbl) deskLbl.textContent = r.deskIsEur ? 'Seat Cost (EUR/mois)' : 'Desk Fees (USD/mois — défaut $5,700)';
+  if (deskNote) deskNote.textContent = r.deskIsEur ? 'Montant directement en EUR × 3' : 'Converti via taux USD/EUR moyen ci-dessus';
+
+  // Salary info
+  document.getElementById('fx_avg_display').textContent=r.fx_used&&r.fx_used!==1?r.fx_used.toFixed(4):(currentCurrency==='EUR'?'N/A (EUR)':'—');
+  document.getElementById('my_sal_eur_display').textContent=r.my_sal_eur?fmt(r.my_sal_eur):'—';
+  document.getElementById('gratuity_display').textContent=r.gratuity?fmt(r.gratuity):(currentCurrency!=='AED'?'N/A':'—');
+  document.getElementById('desk_display').textContent=r.desk_fee_eur?fmt(r.desk_fee_eur):'—';
+
+  renderWaterfall(r);
+  syncStickyKpi(r);
+  updateCarryBanner();
+}
+
+// ═══ WATERFALL ═══
+function renderWaterfall(r) {
+  const pct=Math.round(r.cut_pct*100);
+  const salDetail=r.currency==='EUR'?`${fmtN2(r.my_sal_native)} EUR × 3`:`${r.my_sal_native.toLocaleString('fr-FR')} ${r.currency} × ${r.fx_used?r.fx_used.toFixed(4):'?'} × 3`;
+  document.getElementById('waterfall').innerHTML=`
+    ${wfRow('NBC Brut (CA Ex-Expenses)',r.ca_brut,'gold')}
+    ${r.avoir_client>0?wfAvoir('— Avoir Client (remboursement trop-perçu)',-r.avoir_client):''}
+    ${r.avoir_client>0?wfSubtotal('= NBC après Avoir Client',r.ca_brut_net_avoir):''}
+    ${wfRow('— Frais marché / clearer',-v('c_clearer'))}
+    ${wfRow('— Kerbs (pending)',-v('c_kerbs'))}
+    ${wfRow('— Vantage Bill',-v('c_vantage'))}
+    ${wfRow('— XFA Bill',-v('c_xfa'))}
+    ${wfRow('— Frais Cash Equity',-v('c_cashequity'))}
+    ${wfRow('— Error PnL',-v('c_errorpnl'))}
+    ${wfSubtotal('Total coûts marchés',r.costs_market,true)}
+    ${wfRow('— Expenses T&E (dans cap annuel)',-r.te_in_nbc)}
+    ${r.te_over>0?wfRowWarn('— T&E surplus cap annuel (→ déduit VR plus bas)',-r.te_over):''}
+    ${wfRowInfo(`ℹ Cap T&E annuel : ${fmt(r.te_cap_annual)} — utilisé Q préc. : ${fmt(r.cumul_expenses_prev)} — restant avant : ${fmt(r.te_remaining_cap)} — après : ${r.te_cap_after_this_q>=0?fmt(r.te_cap_after_this_q)+' crédit':'−'+fmt(Math.abs(r.te_cap_after_this_q))+' dépassement'}`)}
+    ${wfRowStaff('— Darryl ÷5',r.darryl,r.fxAed,r.fxUsd)}
+    ${wfRowStaff('— Satchel ÷5',r.satchel,r.fxAed,r.fxUsd)}
+    ${wfRowStaff('— Benjamin ÷5',r.benjamin,r.fxAed,r.fxUsd)}
+    ${wfTotal('= NBC Net (base du cut)',r.ca_net)}
+    ${wfRow(`× Cut ${pct}% — ta part brute`,r.cut,'gold')}
+    ${r.te_over>0?wfRowWarn('— T&E dépassement cap annuel (Schedule 2b)',-r.te_over):''}
+    ${wfRow(`— Mon salaire quarterly (${salDetail})`,-r.my_sal_eur)}
+    ${r.gratuity>0?wfRow('— Gratuity / DEWS perso (5.83% × sal mensuel EUR × 3)',-r.gratuity):''}
+    ${wfRow(r.deskIsEur ? `— Seat Cost (€${r.desk_fee_usd_monthly.toLocaleString()}/mois × 3)` : `— Desk Fees ($${r.desk_fee_usd_monthly.toLocaleString()}/mois × 3 × ${r.fxUsd?r.fxUsd.toFixed(4):'?'})`,-r.desk_fee_eur)}
+    ${r.my_costs>0?wfRow('— Cash Equity Execution Charge (2.5%)',-r.my_costs):''}
+    ${r.carry_forward>0?wfRowWarn('— Report VR négatif Q précédent (Schedule 1i)',-r.carry_forward):''}
+    ${r.taxe_quarterly>0?wfRowTaxe(`— Taxe mensuelle × 3 (€${(r.taxe_quarterly/3).toFixed(0)}/mois)`,-r.taxe_quarterly):''}
+    ${r.impot_amount>0?wfRowTaxe(`— Impôt ${Math.round(r.impot_pct*100)}% sur bonus net`,-r.impot_amount):''}
+    ${wfBonus('= Bonus / VPS net',r.bonus)}
+  `;
+}
+
+function wfRowStaff(label, d, fxAed, fxUsd) {
+  const detail=`sal ${fmt(d.salEurQ)} + DEWS $${d.dewsUsdMonthly}/m→${fmt(d.dews)} + coûts ${fmt(d.costEurQ)} = ${fmt(d.totalFull)} → ÷5 = ${fmt(d.share)}`;
+  return `<div class="wf-row"><span class="wf-label">${label} <span style="font-size:10px;color:var(--text-muted)">${detail}</span></span><span class="wf-value neg">−${fmt(d.share).replace('€\u202f','')}</span></div>`;
+}
+function wfRow(label,val,cls=''){const vc=cls==='gold'?'gold':(val<0?'neg':'');return`<div class="wf-row"><span class="wf-label">${label}</span><span class="wf-value ${vc}">${fmtSigned(val)}</span></div>`;}
+function wfAvoir(label,val){return`<div class="wf-row avoir-row"><span class="wf-label" style="color:var(--red)">${label}</span><span class="wf-value avoir">${fmtSigned(val)}</span></div>`;}
+function wfRowWarn(label,val){return`<div class="wf-row warn-row"><span class="wf-label" style="color:var(--orange)">${label}</span><span class="wf-value warn">${fmtSigned(val)}</span></div>`;}
+function wfRowTaxe(label,val){return`<div class="wf-row" style="background:rgba(92,61,158,.07);border-left:3px solid var(--purple-border)"><span class="wf-label" style="color:var(--purple)">${label}</span><span class="wf-value" style="color:var(--purple)">${fmtSigned(val)}</span></div>`;}
+function wfRowInfo(label){return`<div class="wf-row" style="padding:5px 16px"><span class="wf-label" style="font-size:11px;color:var(--text-muted);font-style:italic">${label}</span></div>`;}
+function wfSubtotal(label,val,isNeg=false){return`<div class="wf-row subtotal"><span class="wf-label"><strong>${label}</strong></span><span class="wf-value ${isNeg?'neg':''}">${isNeg?'−':''}${fmt(val)}</span></div>`;}
+function wfTotal(label,val){return`<div class="wf-row total"><span class="wf-label"><strong>${label}</strong></span><span class="wf-value gold">${fmt(val)}</span></div>`;}
+function wfBonus(label,val){const cls=val>=0?'bonus':'neg';return`<div class="wf-row bonus-final"><span class="wf-label" style="color:var(--text);font-size:15px;font-family:'Cormorant Garamond',serif;font-weight:600"><strong>${label}</strong></span><span class="wf-value ${cls}" style="font-size:18px">${fmt(val)}</span></div>`;}
+
+// ═══ STICKY KPI ═══
+function syncStickyKpi(r) {
+  const map=[['skpi-brut',fmt(r.ca_brut),'gold'],['skpi-costs','−'+fmt(r.costs_market),'red'],['skpi-net',fmt(r.ca_net),'blue'],['skpi-cut',fmt(r.cut),'gold'],['skpi-bonus',fmt(r.bonus),r.bonus>=0?'green':'red']];
+  map.forEach(([id,val,cls])=>{const el=document.getElementById(id);if(!el)return;el.textContent=val;el.className='kpi-cell-value '+cls;el.closest('.kpi-cell').className='kpi-cell '+cls;});
+}
+function setupStickyKpi() {
+  const stickyBar=document.getElementById('sticky-kpi');
+  const kpiStrip=document.querySelector('.result-grid');
+  if(!stickyBar||!kpiStrip)return;
+  new IntersectionObserver(entries=>{entries.forEach(entry=>{const onQ=document.getElementById('page-quarter').classList.contains('active');if(!onQ){stickyBar.classList.remove('visible');return;}stickyBar.classList.toggle('visible',!entry.isIntersecting);});},{threshold:0,rootMargin:'-10px 0px 0px 0px'}).observe(kpiStrip);
+}
+
+// ═══ HISTORY ═══
+function renderHistory() {
+  const year=parseInt(document.getElementById('histYearSelect').value);
+  const pName=currentProfile.charAt(0).toUpperCase()+currentProfile.slice(1);
+  const titleEl=document.getElementById('hist-title');
+  if(titleEl) titleEl.textContent=`Historique & Cumul — ${pName} — ${year}`;
+  const store=ls.get();let totBrut=0,totNet=0,totCut=0,totBonus=0;const rows=[];
+  ['Q1','Q2','Q3','Q4'].forEach((q,i)=>{const d=store[`${year}_Q${i+1}_${currentProfile}`];if(!d||!d._results){rows.push({label:q,empty:true});return;}const r=d._results;totBrut+=r.ca_brut||0;totNet+=r.ca_net||0;totCut+=r.cut||0;totBonus+=r.bonus||0;rows.push({label:q,r});});
+  document.getElementById('hist-kpis').innerHTML=`${histKpi('NBC Brut Annuel',totBrut,'gold')}${histKpi('NBC Net Annuel',totNet,'blue')}${histKpi('Cut Total',totCut,'gold')}${histKpi('Bonus / VPS Total',totBonus,totBonus>=0?'green':'red')}`;
+  const tbody=document.getElementById('histBody');
+  tbody.innerHTML=rows.map(row=>{if(row.empty)return`<tr><td>${row.label}</td>${'<td style="color:var(--text-muted)">—</td>'.repeat(13)}</tr>`;const r=row.r;return`<tr><td>${row.label}</td><td>${fmt(r.ca_brut)}</td><td class="neg-cell">${r.avoir_client>0?'−'+fmt(r.avoir_client):'—'}</td><td class="neg-cell">−${fmt(r.costs_market)}</td><td class="neg-cell">−${fmt(r.expenses_total||0)}</td><td class="neg-cell">−${fmt(r.staff_share)}</td><td>${fmt(r.ca_net)}</td><td style="color:var(--gold)">${fmt(r.cut)}</td><td class="neg-cell">−${fmt(r.my_sal_eur)}</td><td class="neg-cell" style="color:var(--orange)">${r.gratuity>0?'−'+fmt(r.gratuity):'—'}</td><td class="neg-cell" style="color:var(--orange)">−${fmt(r.desk_fee_eur||0)}</td><td class="neg-cell">${r.my_costs>0?'−'+fmt(r.my_costs):'—'}</td><td class="neg-cell">${r.carry_forward>0?'−'+fmt(r.carry_forward):'—'}</td><td class="${r.bonus>=0?'bonus-cell':'neg-cell'}">${fmt(r.bonus)}</td></tr>`;}).join('');
+  tbody.innerHTML+=`<tr class="total-row"><td>TOTAL ${year}</td><td>${fmt(totBrut)}</td><td colspan="4" style="text-align:center;color:var(--text-muted);font-size:10px">—</td><td>${fmt(totNet)}</td><td style="color:var(--gold)">${fmt(totCut)}</td><td colspan="5" style="text-align:center;color:var(--text-muted);font-size:10px">—</td><td class="${totBonus>=0?'bonus-cell':'neg-cell'}">${fmt(totBonus)}</td></tr>`;
+}
+function histKpi(label,val,cls){const cm={gold:'var(--gold)',green:'var(--green)',red:'var(--red)',blue:'var(--blue)'};return`<div class="result-card ${cls}"><div class="result-label">${label}</div><div style="font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:600;color:${cm[cls]}">${fmt(val)}</div></div>`;}
+
+// ═══ EXCEL EXPORT ═══
+function loadSheetJS(cb){if(window.XLSX){cb();return;}const s=document.createElement('script');s.src='https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js';s.onload=cb;document.head.appendChild(s);}
+function fmtN(n){return Math.round(n||0);}
+function exportExcel(){loadSheetJS(()=>{const r=computeResults();const qLabel=`Q${currentQ} ${currentYear}`;const rows=[['STELLAR SECURITIES — VPS Calculator','',qLabel],['','',''],['POSTE','MONTANT (€)','NOTE'],['NBC Brut',fmtN(r.ca_brut),''],];if(r.avoir_client>0){rows.push(['— Avoir Client',-fmtN(r.avoir_client),'Remboursement trop-perçu']);rows.push(['= NBC après Avoir',fmtN(r.ca_brut_net_avoir),'']);}rows.push(['— Coûts marchés',-fmtN(r.costs_market),''],['— T&E dans cap',-fmtN(r.te_in_nbc),`Cap restant: ${fmtN(r.te_remaining_cap)}€`]);if(r.te_over>0)rows.push(['— T&E surplus',-fmtN(r.te_over),'→ déduit VR']);['darryl','satchel','benjamin'].forEach(n=>{const d=r[n];rows.push([`— ${n.charAt(0).toUpperCase()+n.slice(1)} ÷5 (sal+DEWS+coûts)`,-fmtN(d.share),`sal${fmtN(d.salEurQ)}+dews${fmtN(d.dews)}+coûts${fmtN(d.costEurQ)}`]);});rows.push(['= NBC NET',fmtN(r.ca_net),''],['× Cut 60%',fmtN(r.cut),''],['— Mon salaire',-fmtN(r.my_sal_eur),'']);if(r.gratuity>0)rows.push(['— DEWS perso',-fmtN(r.gratuity),'5.83% AED']);rows.push(['— Desk Fees',-fmtN(r.desk_fee_eur),'']);if(r.my_costs>0)rows.push(['— Cash Equity Exec 2.5%',-fmtN(r.my_costs),'']);if(r.carry_forward>0)rows.push(['— Carry forward',-fmtN(r.carry_forward),'Schedule 1i']);rows.push(['','',''],['= BONUS / VPS',fmtN(r.bonus),'']);const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[{wch:42},{wch:16},{wch:36}];XLSX.utils.book_append_sheet(wb,ws,qLabel);XLSX.writeFile(wb,`VPS_${qLabel.replace(' ','_')}.xlsx`);showToast(`Export Excel ${qLabel}`);})}
+function exportExcelHistory(){loadSheetJS(()=>{const year=parseInt(document.getElementById('histYearSelect').value);const store=ls.get();const headers=['Quarter','NBC Brut','Avoir','Coûts Mkt','T&E','Staff ÷5','NBC Net','Cut 60%','Salaire','DEWS','Desk','Exec 2.5%','Carry','VPS'];const rows=[['STELLAR SECURITIES — VPS Calculator '+year],[''],headers];let totBrut=0,totNet=0,totCut=0,totBonus=0;['Q1','Q2','Q3','Q4'].forEach((q,i)=>{const d=store[`${year}_Q${i+1}`];if(!d||!d._results){rows.push([q,...Array(13).fill('')]);return;}const r=d._results;totBrut+=r.ca_brut||0;totNet+=r.ca_net||0;totCut+=r.cut||0;totBonus+=r.bonus||0;rows.push([q,fmtN(r.ca_brut),r.avoir_client>0?-fmtN(r.avoir_client):0,-fmtN(r.costs_market),-fmtN(r.expenses_total||0),-fmtN(r.staff_share),fmtN(r.ca_net),fmtN(r.cut),-fmtN(r.my_sal_eur),r.gratuity>0?-fmtN(r.gratuity):0,-fmtN(r.desk_fee_eur||0),r.my_costs>0?-fmtN(r.my_costs):0,r.carry_forward>0?-fmtN(r.carry_forward):0,fmtN(r.bonus)]);});rows.push(['','',...Array(12).fill('')]);rows.push([`TOTAL ${year}`,fmtN(totBrut),'','','','',fmtN(totNet),fmtN(totCut),'','','','','',fmtN(totBonus)]);const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=Array(14).fill({wch:13});ws['!cols'][0]={wch:10};XLSX.utils.book_append_sheet(wb,ws,`Annuel ${year}`);XLSX.writeFile(wb,`VPS_Annuel_${year}.xlsx`);showToast(`Export annuel ${year}`);})}
+
+// ═══ UTILS ═══
+function fmt(n){if(n===undefined||n===null||isNaN(n))return'—';return'€\u202f'+Math.abs(n).toLocaleString('fr-FR',{minimumFractionDigits:0,maximumFractionDigits:0});}
+function fmtSigned(n){if(!n)return'€\u202f0';return(n<0?'−':'+')+' €\u202f'+Math.abs(n).toLocaleString('fr-FR',{minimumFractionDigits:0,maximumFractionDigits:0});}
+function fmtN2(n){return Math.round(n||0).toLocaleString('fr-FR');}
+function updateCarryBanner(){const carry=v('carry_forward'),banner=document.getElementById('carryBanner');if(!banner)return;if(carry>0){banner.classList.remove('hidden');document.getElementById('carryAmt').textContent=fmt(carry);}else banner.classList.add('hidden');}
+function showToast(msg){const t=document.getElementById('toast');t.textContent='✓ '+msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);}
+function resetAll(){if(confirm('Supprimer TOUTES les données ? Action irréversible.')){localStorage.removeItem(STORE_KEY);loadSettings();loadQuarterData();showToast('Données réinitialisées');}}
+
+// ═══ SUPABASE CONFIG ═══
+const SUPA_URL = 'https://ndcjgdapqccovopqyayt.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kY2pnZGFwcWNjb3ZvcHF5YXl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NDAyNTksImV4cCI6MjA5MzAxNjI1OX0.dICBeImd8TzL9xpi9zGQLuLe4BybNUfHs-tzS8XcedU';
+
+const supa = {
+  async query(table, filters={}) {
+    let url = `${SUPA_URL}/rest/v1/${table}?select=*`;
+    Object.entries(filters).forEach(([k,v]) => url += `&${k}=eq.${v}`);
+    const r = await fetch(url, { headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` } });
+    return r.json();
+  },
+  async upsert(table, data) {
+    const r = await fetch(`${SUPA_URL}/rest/v1/${table}`, {
+      method: 'POST',
+      headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify(data)
+    });
+    return r.ok;
+  }
+};
+
+// ═══ AUTH ═══
+let loggedInProfile = null;
+
+async function doLogin() {
+  const user = document.getElementById('login-user').value.trim().toLowerCase();
+  const pass = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-error');
+  const btn = document.getElementById('login-btn');
+  if (!user || !pass) { errEl.textContent = 'Remplis les deux champs.'; errEl.style.display='block'; return; }
+  btn.textContent = 'Connexion…'; btn.disabled = true;
+  try {
+    const rows = await supa.query('profiles', { username: user });
+    if (!rows || rows.length === 0 || rows[0].password !== pass) {
+      errEl.textContent = 'Identifiants incorrects.'; errEl.style.display='block';
+      btn.textContent = 'Se connecter'; btn.disabled = false; return;
+    }
+    loggedInProfile = rows[0].profile_key;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-wrapper').style.display = 'block';
+    // Lock profile to logged-in user — hide other profile buttons
+    lockProfileToUser(loggedInProfile);
+    loadSettings(); loadProfiles(); loadQuarterData(); setupStickyKpi(); updateCutBadge();
+    showToast(`Bienvenue ${loggedInProfile.charAt(0).toUpperCase()+loggedInProfile.slice(1)} !`);
+  } catch(e) {
+    errEl.textContent = 'Erreur réseau. Réessaie.'; errEl.style.display='block';
+    btn.textContent = 'Se connecter'; btn.disabled = false;
+  }
+}
+
+function lockProfileToUser(profile) {
+  currentProfile = profile;
+  // Hide all profile buttons except the logged-in user
+  ['jonathan','jeremy','julien','olivier','uriel'].forEach(p => {
+    const btn = document.getElementById(`pbtn-${p}`);
+    if (!btn) return;
+    if (p === profile) { btn.classList.add('active'); btn.style.display = ''; }
+    else btn.style.display = 'none';
+  });
+  // Hide other broker cards in Settings — show only logged-in profile
+  document.querySelectorAll('#profile-settings-grid .person-card[data-profile]').forEach(card => {
+    card.style.display = card.dataset.profile === profile ? '' : 'none';
+  });
+  // Also hide Staff section and Reset in settings for non-admin (optional: show only to jonathan)
+}
+
+function doLogout() {
+  loggedInProfile = null;
+  document.getElementById('app-wrapper').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-user').value = '';
+  document.getElementById('login-pass').value = '';
+  document.getElementById('login-error').style.display = 'none';
+  document.getElementById('login-btn').textContent = 'Se connecter';
+  document.getElementById('login-btn').disabled = false;
+}
+
+// Allow Enter key on login
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('login-pass')?.addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+  document.getElementById('login-user')?.addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+});
+
+// ═══ SUPABASE SAVE / LOAD ═══
+const _lsGet = ls.get.bind(ls);
+const _lsSet = ls.set.bind(ls);
+
+// Override saveQuarter to also push to Supabase
+const _origSaveQuarter = saveQuarter;
+window.saveQuarter = async function() {
+  // Local save first
+  const store = ls.get();
+  const key = qKey(currentYear, currentQ) + '_' + currentProfile;
+  const data = {};
+  FIELDS.forEach(f => data[f] = v(f));
+  data._currency = currentCurrency;
+  data._results = computeResults();
+  store[key] = data;
+  ls.set(store);
+  // Push to Supabase
+  const ok = await supa.upsert('quarter_data', {
+    profile_key: currentProfile,
+    year: currentYear,
+    quarter: currentQ,
+    data: data,
+    updated_at: new Date().toISOString()
+  });
+  showToast(ok ? `Q${currentQ} ${currentYear} — ${currentProfile} sauvegardé ✓` : `Sauvegarde locale OK · erreur Supabase`);
+};
+
+// Load quarter data from Supabase (fallback to localStorage)
+async function loadQuarterDataRemote() {
+  try {
+    const rows = await supa.query('quarter_data', { profile_key: currentProfile });
+    if (rows && rows.length) {
+      const store = ls.get();
+      rows.forEach(row => {
+        const key = `${row.year}_Q${row.quarter}_${row.profile_key}`;
+        store[key] = row.data;
+      });
+      ls.set(store);
+    }
+  } catch(e) { /* fallback silently to localStorage */ }
+  loadQuarterData();
+}
+
+function validateAndApplyProfile() {
+  saveProfiles();
+  applyProfileToQuarter();
+  showToast('Paramètres sauvegardés et appliqués au Quarter ✓');
+  // Switch to quarter page
+  showPage('quarter', document.querySelector('.nav-btn'));
+}
+
+// ═══ INIT ═══
+// NE PAS charger les données ici — attendre le login pour éviter
+// que le profil par défaut (jonathan) écrase celui de l'utilisateur connecté.
+setupStickyKpi();
+// Enter key support on login
+document.getElementById('login-pass')?.addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+document.getElementById('login-user')?.addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+</script>
+</body>
+</html>

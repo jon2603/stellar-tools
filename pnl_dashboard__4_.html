@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PnL Dashboard — Stellar Securities</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--gold:#8a6a1a;--gold-dim:rgba(138,106,26,.10);--gold-border:rgba(138,106,26,.25);--bg:#f5f3ef;--bg2:#fff;--bg3:#f0ede8;--bg4:#e8e4dc;--text:#1a1812;--text-dim:#5a5650;--text-muted:#9a9690;--green:#276e47;--green-border:rgba(39,110,71,.25);--red:#b83232;--red-border:rgba(184,50,50,.25);--blue:#2a5fa8;--border:rgba(0,0,0,.09);--border-strong:rgba(0,0,0,.15);--radius:8px;--shadow:0 1px 3px rgba(0,0,0,.06)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+header{background:var(--bg2);border-bottom:1px solid var(--gold-border);padding:12px 36px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:var(--shadow)}
+.brand{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:600;color:var(--gold);letter-spacing:.08em}
+.brand span{color:var(--text-muted);font-size:11px;font-weight:300;margin-left:8px}
+.hright{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.period{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-muted);background:var(--bg3);padding:4px 10px;border-radius:10px;border:1px solid var(--border)}
+.ubtn{padding:6px 14px;background:var(--gold-dim);border:1px solid var(--gold-border);color:var(--gold);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;border-radius:var(--radius);transition:background .2s}
+.ubtn:hover{background:rgba(138,106,26,.2)}
+#fi{display:none}
+.pbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:8px 36px;display:flex;gap:6px;align-items:center}
+.plbl{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);font-weight:600;margin-right:4px}
+.pbtn{padding:5px 14px;border:1px solid var(--border-strong);background:var(--bg3);color:var(--text-dim);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;border-radius:20px;transition:all .2s}
+.pbtn.active{background:var(--gold-dim);border-color:var(--gold);color:var(--gold);font-weight:600}
+.tbar{display:flex;padding:0 36px;background:var(--bg2);border-bottom:2px solid var(--border)}
+.tab{padding:10px 24px;border:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;color:var(--text-muted);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s}
+.tab.active{color:var(--gold);border-bottom-color:var(--gold);font-weight:500}
+.main{padding:24px 36px;max-width:1360px;margin:0 auto}
+.krow{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.kpi{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;border-left:3px solid var(--gold-border)}
+.kl{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);font-weight:600;margin-bottom:4px}
+.kv{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:600;line-height:1.1}
+.kv.gold{color:var(--gold)} .kv.green{color:var(--green)} .kv.red{color:var(--red)} .kv.blue{color:var(--blue)}
+.ks{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-muted);margin-top:3px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+.ch{padding:13px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.ct2{font-family:'Cormorant Garamond',serif;font-size:15px;font-weight:600}
+.cbadge{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-muted);background:var(--bg3);padding:3px 9px;border-radius:10px}
+table.ct{width:100%;border-collapse:collapse}
+table.ct th{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);padding:8px 14px;text-align:left;border-bottom:1px solid var(--border);background:var(--bg3);font-weight:600}
+table.ct th.r{text-align:right}
+table.ct td{padding:9px 14px;border-bottom:1px solid var(--border);font-size:12px}
+table.ct tr:last-of-type td{border-bottom:none}
+table.ct tr:hover:not(.tr) td{background:var(--bg3)}
+table.ct td.name{color:var(--text-dim);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+table.ct td.mono{font-family:'JetBrains Mono',monospace;font-size:11px;text-align:right}
+table.ct td.green{color:var(--green);font-weight:600}
+table.ct td.red{color:var(--red)}
+table.ct tr.tr td{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:var(--gold);border-top:2px solid var(--gold-border)}
+.bw{display:flex;align-items:center;gap:8px}
+.bb{flex:1;height:4px;background:var(--bg4);border-radius:2px;min-width:50px}
+.bf{height:100%;border-radius:2px;background:var(--gold)}
+.chart-area{padding:16px 18px}
+.chart-wrap{position:relative;height:210px}
+.empty{padding:32px;text-align:center;color:var(--text-muted);font-size:13px}
+#dropOverlay{position:fixed;inset:0;z-index:999;display:none;align-items:center;justify-content:center;pointer-events:none}
+#dropOverlay.show{display:flex}
+#dropOverlay::before{content:'';position:absolute;inset:0;background:rgba(245,243,239,.75);backdrop-filter:blur(3px)}
+#dropOverlay .drop-inner{position:relative;z-index:1;background:var(--bg2);border:3px dashed var(--gold);border-radius:16px;padding:56px 80px;text-align:center}
+.di-icon{font-size:48px;margin-bottom:12px}
+.di-text{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:600;color:var(--gold)}
+.di-sub{font-size:12px;color:var(--text-muted);margin-top:6px}
+.mbar-wrap{background:var(--bg2);border-bottom:1px solid var(--border);padding:8px 36px 10px}
+.mbar-top{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.mbar-label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);font-weight:600;font-family:'JetBrains Mono',monospace}
+.mbar-nav{background:none;border:1px solid var(--border-strong);color:var(--text-dim);width:22px;height:22px;border-radius:4px;cursor:pointer;font-size:13px;line-height:1;padding:0;transition:all .15s}
+.mbar-nav:hover{border-color:var(--gold);color:var(--gold)}
+.mbar-year{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:var(--text);min-width:38px;text-align:center}
+.mbar-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:4px}
+.mc{border:1px solid var(--border);border-radius:6px;padding:5px 4px 4px;text-align:center;transition:all .15s;position:relative;cursor:default;min-width:0;user-select:none}
+.mc.has-data{cursor:pointer}
+.mc.has-data:hover{border-color:var(--gold-border);background:var(--gold-dim)}
+.mc.is-draft{border-color:var(--gold-border);background:var(--gold-dim);cursor:pointer}
+.mc.is-closed{border-color:var(--green-border);background:rgba(39,110,71,.07);cursor:pointer}
+.mc.is-closed:hover{background:rgba(39,110,71,.14)}
+.mc.is-viewing{box-shadow:0 0 0 2px var(--gold);border-color:var(--gold)}
+.mc-q{position:absolute;top:2px;right:3px;font-size:7px;font-family:'JetBrains Mono',monospace;color:var(--text-muted);opacity:.55}
+.mc-name{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;color:var(--text-dim);line-height:1}
+.mc.is-draft .mc-name{color:var(--gold)}
+.mc.is-closed .mc-name{color:var(--green)}
+.mc-ico{font-size:9px;margin-top:2px;height:10px}
+.toast{position:fixed;bottom:24px;right:24px;background:#1a1812;color:#fff;padding:10px 18px;border-radius:8px;font-size:12px;opacity:0;transition:opacity .3s;z-index:9999;pointer-events:none;max-width:360px}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div id="dropOverlay">
+  <div class="drop-inner">
+    <div class="di-icon">📂</div>
+    <div class="di-text">Déposer le fichier XLS ici</div>
+    <div class="di-sub">Relâchez pour importer</div>
+  </div>
+</div>
+<header>
+  <span class="brand">Stellar Securities <span>PnL Dashboard</span></span>
+  <div class="hright">
+    <span class="period" id="plbl">Base Avril 2026</span>
+    <button class="ubtn" id="btnClose" onclick="closeMonth()" style="display:none;background:rgba(39,110,71,.10);border-color:rgba(39,110,71,.3);color:var(--green)">📌 Clôturer</button>
+    <button class="ubtn" id="btnReopen" onclick="reopenMonth()" style="display:none;background:rgba(184,50,50,.07);border-color:rgba(184,50,50,.2);color:var(--red)">🔓 Rouvrir</button>
+    <button class="ubtn" onclick="document.getElementById('fi').click()">📁 Importer XLS</button>
+    <input type="file" id="fi" accept=".xls,.xlsx" onchange="handleFilePick(event)">
+  </div>
+</header>
+<div class="mbar-wrap">
+  <div class="mbar-top">
+    <span class="mbar-label">Année</span>
+    <button class="mbar-nav" onclick="changeBarYear(-1)">‹</button>
+    <span class="mbar-year" id="barYearLbl">2026</span>
+    <button class="mbar-nav" onclick="changeBarYear(+1)">›</button>
+  </div>
+  <div class="mbar-grid" id="mbarGrid"></div>
+</div>
+<div class="pbar">
+  <span class="plbl">Profil</span>
+  <button class="pbtn active" id="pb-j1" onclick="setP('Jonathan Buenavida','j1')">Jonathan</button>
+  <button class="pbtn" id="pb-j2" onclick="setP('Jeremy Cohen','j2')">Jeremy</button>
+  <button class="pbtn" id="pb-j3" onclick="setP('Julien Rouach','j3')">Julien</button>
+  <button class="pbtn" id="pb-o"  onclick="setP('Olivier Levy-Bencheton','o')">Olivier</button>
+  <button class="pbtn" id="pb-u"  onclick="setP('Uriel Kutnowski','u')">Uriel</button>
+</div>
+<div class="tbar">
+  <button class="tab active" id="tab-mtd"   onclick="setTab('mtd')">📅 MTD</button>
+  <button class="tab"        id="tab-daily" onclick="setTab('daily')">📆 Daily (T-1)</button>
+  <button class="tab"        id="tab-qtd"   onclick="setTab('qtd')" style="color:#6b3fa0">📈 QTD (Quarter)</button>
+</div>
+<div class="main">
+  <div class="krow" id="krow"></div>
+  <div id="content"></div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+var DATA={"Jeremy Cohen":{"day_gross":4356.5,"day_fees":-247.28,"day_net":4109.22,"mtd_gross":82070.43,"mtd_fees":-2019.67,"mtd_net":80050.76,"clients":[{"client":"Banco Bilbao Vizcaya Argentaria Sociedad Anonima","day_gross":1974.14,"day_fees":-166.73,"day_net":1807.41,"mtd_gross":18954.26,"mtd_fees":-1130.24,"mtd_net":17824.02},{"client":"Susquehanna International Securities Limited","day_gross":676.36,"day_fees":-15.6,"day_net":660.76,"mtd_gross":7128.33,"mtd_fees":-103.23,"mtd_net":7025.1},{"client":"Credit Agricole Corporate and Investment Bank","day_gross":95.2,"day_fees":-0.6,"day_net":94.6,"mtd_gross":5792.58,"mtd_fees":-31.79,"mtd_net":5760.79},{"client":"Goldman Sachs International","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":5610.56,"mtd_fees":-19.29,"mtd_net":5591.27},{"client":"J.P. Morgan Securities Plc","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":5018.03,"mtd_fees":-7.06,"mtd_net":5010.97},{"client":"Citigroup Global Markets Limited","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":4931.51,"mtd_fees":-107.74,"mtd_net":4823.77},{"client":"Societe Generale SA","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":4043.41,"mtd_fees":-39.31,"mtd_net":4004.1},{"client":"Natixis SA","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":3901.31,"mtd_fees":-90.41,"mtd_net":3810.9},{"client":"HSBC Bank PLC","day_gross":98.22,"day_fees":-9.0,"day_net":89.22,"mtd_gross":3601.62,"mtd_fees":-30.0,"mtd_net":3571.62},{"client":"Morgan Stanley & Co. International PLC","day_gross":516.0,"day_fees":-16.32,"day_net":499.68,"mtd_gross":3269.86,"mtd_fees":-22.89,"mtd_net":3246.97},{"client":"Optiver V.O.F.","day_gross":78.58,"day_fees":0.0,"day_net":78.58,"mtd_gross":2964.66,"mtd_fees":-12.0,"mtd_net":2952.66},{"client":"Barclays Bank PLC","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":2931.0,"mtd_fees":-79.57,"mtd_net":2851.43},{"client":"Merrill Lynch International","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":2790.2,"mtd_fees":-80.34,"mtd_net":2709.86},{"client":"BNP Paribas","day_gross":258.0,"day_fees":-8.16,"day_net":249.84,"mtd_gross":2193.66,"mtd_fees":-8.16,"mtd_net":2185.5},{"client":"UBS Europe SE","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":2055.38,"mtd_fees":0.0,"mtd_net":2055.38},{"client":"Natixis SA [London Branch]","day_gross":660.0,"day_fees":-26.4,"day_net":633.6,"mtd_gross":1291.61,"mtd_fees":-44.4,"mtd_net":1247.21},{"client":"Mediobanca","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":1246.5,"mtd_fees":-14.22,"mtd_net":1232.28},{"client":"IMC Trading B.V","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":921.0,"mtd_fees":-18.36,"mtd_net":902.64},{"client":"Centiva Capital Europe","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":853.83,"mtd_fees":0.0,"mtd_net":853.83},{"client":"UniCredit Bank GmbH [Milan Branch]","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":625.0,"mtd_fees":0.0,"mtd_net":625.0},{"client":"Balyasny Asset Management L.P.","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":450.0,"mtd_fees":-9.0,"mtd_net":441.0},{"client":"Morgan Stanley Europe SE","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":376.45,"mtd_fees":-27.9,"mtd_net":348.55},{"client":"Nordea Bank Abp","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":355.19,"mtd_fees":0.0,"mtd_net":355.19},{"client":"Squarepoint Capital LLP","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":232.5,"mtd_fees":-2.48,"mtd_net":230.02},{"client":"D. E. Shaw Valence International, Inc.","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":162.0,"mtd_fees":-7.73,"mtd_net":154.27},{"client":"Schonfeld Strategic Advisors (UK) LLP","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":120.0,"mtd_fees":-3.3,"mtd_net":116.7},{"client":"DRW Investments (UK) Limited","day_gross":0.0,"day_fees":-4.47,"day_net":-4.47,"mtd_gross":115.25,"mtd_fees":-40.11,"mtd_net":75.14},{"client":"Goldman Sachs Bank Europe SE","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":82.98,"mtd_fees":0.0,"mtd_net":82.98},{"client":"Verition  Multi Strategy Master Fund Ltd","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":51.75,"mtd_fees":0.0,"mtd_net":51.75},{"client":"Bofa Securities Europe SA","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":0.0,"mtd_fees":-12.0,"mtd_net":-12.0},{"client":"DRW Europe B.V.","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":0.0,"mtd_fees":-1.72,"mtd_net":-1.72},{"client":"JPMorgan Chase Bank, National Association [London Branch]","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":0.0,"mtd_fees":-47.19,"mtd_net":-47.19},{"client":"Kyte Broking Limited","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":0.0,"mtd_fees":-5.17,"mtd_net":-5.17},{"client":"Societe Generale, S.A. [London Branch]","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":0.0,"mtd_fees":-7.56,"mtd_net":-7.56},{"client":"UniCredit Bank GmbH","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":0.0,"mtd_fees":-15.0,"mtd_net":-15.0},{"client":"Verition Advisors (UK Partners) LLP","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":0.0,"mtd_fees":-1.5,"mtd_net":-1.5}],"daily_evolution":[{"date":"2026-04-01","daily":3499.21,"cumul":3499.21},{"date":"2026-04-02","daily":3295.46,"cumul":6794.67},{"date":"2026-04-07","daily":836.02,"cumul":7630.69},{"date":"2026-04-08","daily":9.63,"cumul":7640.32},{"date":"2026-04-09","daily":7969.83,"cumul":15610.15},{"date":"2026-04-10","daily":1824.14,"cumul":17434.29},{"date":"2026-04-13","daily":5265.89,"cumul":22700.18},{"date":"2026-04-14","daily":9578.81,"cumul":32278.99},{"date":"2026-04-15","daily":2218.95,"cumul":34497.94},{"date":"2026-04-16","daily":9756.49,"cumul":44254.43},{"date":"2026-04-17","daily":4343.52,"cumul":48597.95},{"date":"2026-04-20","daily":1282.43,"cumul":49880.38},{"date":"2026-04-21","daily":3543.48,"cumul":53423.86},{"date":"2026-04-22","daily":3230.0,"cumul":56653.86},{"date":"2026-04-23","daily":10710.98,"cumul":67364.84},{"date":"2026-04-24","daily":2745.56,"cumul":70110.4},{"date":"2026-04-27","daily":2922.95,"cumul":73033.35},{"date":"2026-04-28","daily":2908.4,"cumul":75941.75},{"date":"2026-04-29","daily":4109.25,"cumul":80051.0}]},"Jonathan Buenavida":{"day_gross":4356.44,"day_fees":-247.28,"day_net":4109.16,"mtd_gross":82070.25,"mtd_fees":-2019.67,"mtd_net":80050.58,"clients":[{"client":"Banco Bilbao Vizcaya Argentaria Sociedad Anonima","day_gross":1974.14,"day_fees":-166.73,"day_net":1807.41,"mtd_gross":18954.24,"mtd_fees":-1130.24,"mtd_net":17824.0},{"client":"Susquehanna International Securities Limited","day_gross":676.32,"day_fees":-15.6,"day_net":660.72,"mtd_gross":7128.32,"mtd_fees":-103.23,"mtd_net":7025.09},{"client":"Credit Agricole Corporate and Investment Bank","day_gross":95.2,"day_fees":-0.6,"day_net":94.6,"mtd_gross":5792.58,"mtd_fees":-31.79,"mtd_net":5760.79},{"client":"Goldman Sachs International","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":5610.56,"mtd_fees":-19.29,"mtd_net":5591.27},{"client":"J.P. Morgan Securities Plc","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":5018.02,"mtd_fees":-7.06,"mtd_net":5010.96},{"client":"Citigroup Global Markets Limited","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":4931.47,"mtd_fees":-107.74,"mtd_net":4823.73},{"client":"Societe Generale SA","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":4043.41,"mtd_fees":-39.31,"mtd_net":4004.1},{"client":"Natixis SA","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":3901.31,"mtd_fees":-90.41,"mtd_net":3810.9},{"client":"HSBC Bank PLC","day_gross":98.22,"day_fees":-9.0,"day_net":89.22,"mtd_gross":3601.62,"mtd_fees":-30.0,"mtd_net":3571.62},{"client":"Morgan Stanley & Co. International PLC","day_gross":516.0,"day_fees":-16.32,"day_net":499.68,"mtd_gross":3269.84,"mtd_fees":-22.89,"mtd_net":3246.95},{"client":"Optiver V.O.F.","day_gross":78.56,"day_fees":0.0,"day_net":78.56,"mtd_gross":2964.64,"mtd_fees":-12.0,"mtd_net":2952.64},{"client":"Barclays Bank PLC","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":2931.0,"mtd_fees":-79.57,"mtd_net":2851.43},{"client":"Merrill Lynch International","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":2790.18,"mtd_fees":-80.34,"mtd_net":2709.84},{"client":"BNP Paribas","day_gross":258.0,"day_fees":-8.16,"day_net":249.84,"mtd_gross":2193.66,"mtd_fees":-8.16,"mtd_net":2185.5},{"client":"UBS Europe SE","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":2055.36,"mtd_fees":0.0,"mtd_net":2055.36},{"client":"Natixis SA [London Branch]","day_gross":660.0,"day_fees":-26.4,"day_net":633.6,"mtd_gross":1291.61,"mtd_fees":-44.4,"mtd_net":1247.21},{"client":"Mediobanca","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":1246.5,"mtd_fees":-14.22,"mtd_net":1232.28},{"client":"IMC Trading B.V","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":921.0,"mtd_fees":-18.36,"mtd_net":902.64},{"client":"Centiva Capital Europe","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":853.83,"mtd_fees":0.0,"mtd_net":853.83},{"client":"UniCredit Bank GmbH [Milan Branch]","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":625.0,"mtd_fees":0.0,"mtd_net":625.0},{"client":"Balyasny Asset Management L.P.","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":450.0,"mtd_fees":-9.0,"mtd_net":441.0},{"client":"Morgan Stanley Europe SE","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":376.45,"mtd_fees":-27.9,"mtd_net":348.55},{"client":"Nordea Bank Abp","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":355.19,"mtd_fees":0.0,"mtd_net":355.19},{"client":"Squarepoint Capital LLP","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":232.5,"mtd_fees":-2.48,"mtd_net":230.02},{"client":"D. E. Shaw Valence International, Inc.","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":162.0,"mtd_fees":-7.73,"mtd_net":154.27},{"client":"Schonfeld Strategic Advisors (UK) LLP","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":120.0,"mtd_fees":-3.3,"mtd_net":116.7},{"client":"DRW Investments (UK) Limited","day_gross":0.0,"day_fees":-4.47,"day_net":-4.47,"mtd_gross":115.25,"mtd_fees":-40.11,"mtd_net":75.14},{"client":"Goldman Sachs Bank Europe SE","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":82.96,"mtd_fees":0.0,"mtd_net":82.96},{"client":"Verition  Multi Strategy Master Fund Ltd","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":51.75,"mtd_fees":0.0,"mtd_net":51.75},{"client":"Bofa Securities Europe SA","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":0.0,"mtd_fees":-12.0,"mtd_net":-12.0},{"client":"DRW Europe B.V.","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":0.0,"mtd_fees":-1.72,"mtd_net":-1.72},{"client":"JPMorgan Chase Bank, National Association [London Branch]","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":0.0,"mtd_fees":-47.19,"mtd_net":-47.19},{"client":"Kyte Broking Limited","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":0.0,"mtd_fees":-5.17,"mtd_net":-5.17},{"client":"Societe Generale, S.A. [London Branch]","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":0.0,"mtd_fees":-7.56,"mtd_net":-7.56},{"client":"UniCredit Bank GmbH","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":0.0,"mtd_fees":-15.0,"mtd_net":-15.0},{"client":"Verition Advisors (UK Partners) LLP","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":0.0,"mtd_fees":-1.5,"mtd_net":-1.5}],"daily_evolution":[{"date":"2026-04-01","daily":3499.21,"cumul":3499.21},{"date":"2026-04-02","daily":3295.46,"cumul":6794.67},{"date":"2026-04-07","daily":836.02,"cumul":7630.69},{"date":"2026-04-08","daily":9.63,"cumul":7640.32},{"date":"2026-04-09","daily":7969.83,"cumul":15610.15},{"date":"2026-04-10","daily":1824.14,"cumul":17434.29},{"date":"2026-04-13","daily":5265.89,"cumul":22700.18},{"date":"2026-04-14","daily":9578.81,"cumul":32278.99},{"date":"2026-04-15","daily":2218.95,"cumul":34497.94},{"date":"2026-04-16","daily":9756.49,"cumul":44254.43},{"date":"2026-04-17","daily":4343.52,"cumul":48597.95},{"date":"2026-04-20","daily":1282.43,"cumul":49880.38},{"date":"2026-04-21","daily":3543.48,"cumul":53423.86},{"date":"2026-04-22","daily":3230.0,"cumul":56653.86},{"date":"2026-04-23","daily":10710.98,"cumul":67364.84},{"date":"2026-04-24","daily":2745.56,"cumul":70110.4},{"date":"2026-04-27","daily":2922.95,"cumul":73033.35},{"date":"2026-04-28","daily":2908.4,"cumul":75941.75},{"date":"2026-04-29","daily":4109.25,"cumul":80051.0}]},"Julien Rouach":{"day_gross":4356.5,"day_fees":-247.28,"day_net":4109.22,"mtd_gross":82070.43,"mtd_fees":-2019.67,"mtd_net":80050.76,"clients":[{"client":"Banco Bilbao Vizcaya Argentaria Sociedad Anonima","day_gross":1974.14,"day_fees":-166.73,"day_net":1807.41,"mtd_gross":18954.26,"mtd_fees":-1130.24,"mtd_net":17824.02},{"client":"Susquehanna International Securities Limited","day_gross":676.36,"day_fees":-15.6,"day_net":660.76,"mtd_gross":7128.33,"mtd_fees":-103.23,"mtd_net":7025.1},{"client":"Credit Agricole Corporate and Investment Bank","day_gross":95.2,"day_fees":-0.6,"day_net":94.6,"mtd_gross":5792.58,"mtd_fees":-31.79,"mtd_net":5760.79},{"client":"Goldman Sachs International","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":5610.56,"mtd_fees":-19.29,"mtd_net":5591.27},{"client":"J.P. Morgan Securities Plc","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":5018.03,"mtd_fees":-7.06,"mtd_net":5010.97},{"client":"Citigroup Global Markets Limited","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":4931.51,"mtd_fees":-107.74,"mtd_net":4823.77},{"client":"Societe Generale SA","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":4043.41,"mtd_fees":-39.31,"mtd_net":4004.1},{"client":"Natixis SA","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":3901.31,"mtd_fees":-90.41,"mtd_net":3810.9},{"client":"HSBC Bank PLC","day_gross":98.22,"day_fees":-9.0,"day_net":89.22,"mtd_gross":3601.62,"mtd_fees":-30.0,"mtd_net":3571.62},{"client":"Morgan Stanley & Co. International PLC","day_gross":516.0,"day_fees":-16.32,"day_net":499.68,"mtd_gross":3269.86,"mtd_fees":-22.89,"mtd_net":3246.97},{"client":"Optiver V.O.F.","day_gross":78.58,"day_fees":0.0,"day_net":78.58,"mtd_gross":2964.66,"mtd_fees":-12.0,"mtd_net":2952.66},{"client":"Barclays Bank PLC","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":2931.0,"mtd_fees":-79.57,"mtd_net":2851.43},{"client":"Merrill Lynch International","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":2790.2,"mtd_fees":-80.34,"mtd_net":2709.86},{"client":"BNP Paribas","day_gross":258.0,"day_fees":-8.16,"day_net":249.84,"mtd_gross":2193.66,"mtd_fees":-8.16,"mtd_net":2185.5},{"client":"UBS Europe SE","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":2055.38,"mtd_fees":0.0,"mtd_net":2055.38},{"client":"Natixis SA [London Branch]","day_gross":660.0,"day_fees":-26.4,"day_net":633.6,"mtd_gross":1291.61,"mtd_fees":-44.4,"mtd_net":1247.21},{"client":"Mediobanca","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":1246.5,"mtd_fees":-14.22,"mtd_net":1232.28},{"client":"IMC Trading B.V","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":921.0,"mtd_fees":-18.36,"mtd_net":902.64},{"client":"Centiva Capital Europe","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":853.83,"mtd_fees":0.0,"mtd_net":853.83},{"client":"UniCredit Bank GmbH [Milan Branch]","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":625.0,"mtd_fees":0.0,"mtd_net":625.0},{"client":"Balyasny Asset Management L.P.","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":450.0,"mtd_fees":-9.0,"mtd_net":441.0},{"client":"Morgan Stanley Europe SE","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":376.45,"mtd_fees":-27.9,"mtd_net":348.55},{"client":"Nordea Bank Abp","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":355.19,"mtd_fees":0.0,"mtd_net":355.19},{"client":"Squarepoint Capital LLP","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":232.5,"mtd_fees":-2.48,"mtd_net":230.02},{"client":"D. E. Shaw Valence International, Inc.","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":162.0,"mtd_fees":-7.73,"mtd_net":154.27},{"client":"Schonfeld Strategic Advisors (UK) LLP","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":120.0,"mtd_fees":-3.3,"mtd_net":116.7},{"client":"DRW Investments (UK) Limited","day_gross":0.0,"day_fees":-4.47,"day_net":-4.47,"mtd_gross":115.25,"mtd_fees":-40.11,"mtd_net":75.14},{"client":"Goldman Sachs Bank Europe SE","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":82.98,"mtd_fees":0.0,"mtd_net":82.98},{"client":"Verition  Multi Strategy Master Fund Ltd","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":51.75,"mtd_fees":0.0,"mtd_net":51.75},{"client":"Bofa Securities Europe SA","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":0.0,"mtd_fees":-12.0,"mtd_net":-12.0},{"client":"DRW Europe B.V.","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":0.0,"mtd_fees":-1.72,"mtd_net":-1.72},{"client":"JPMorgan Chase Bank, National Association [London Branch]","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":0.0,"mtd_fees":-47.19,"mtd_net":-47.19},{"client":"Kyte Broking Limited","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":0.0,"mtd_fees":-5.17,"mtd_net":-5.17},{"client":"Societe Generale, S.A. [London Branch]","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":0.0,"mtd_fees":-7.56,"mtd_net":-7.56},{"client":"UniCredit Bank GmbH","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":0.0,"mtd_fees":-15.0,"mtd_net":-15.0},{"client":"Verition Advisors (UK Partners) LLP","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":0.0,"mtd_fees":-1.5,"mtd_net":-1.5}],"daily_evolution":[{"date":"2026-04-01","daily":3499.21,"cumul":3499.21},{"date":"2026-04-02","daily":3295.46,"cumul":6794.67},{"date":"2026-04-07","daily":836.02,"cumul":7630.69},{"date":"2026-04-08","daily":9.63,"cumul":7640.32},{"date":"2026-04-09","daily":7969.83,"cumul":15610.15},{"date":"2026-04-10","daily":1824.14,"cumul":17434.29},{"date":"2026-04-13","daily":5265.89,"cumul":22700.18},{"date":"2026-04-14","daily":9578.81,"cumul":32278.99},{"date":"2026-04-15","daily":2218.95,"cumul":34497.94},{"date":"2026-04-16","daily":9756.49,"cumul":44254.43},{"date":"2026-04-17","daily":4343.52,"cumul":48597.95},{"date":"2026-04-20","daily":1282.43,"cumul":49880.38},{"date":"2026-04-21","daily":3543.48,"cumul":53423.86},{"date":"2026-04-22","daily":3230.0,"cumul":56653.86},{"date":"2026-04-23","daily":10710.98,"cumul":67364.84},{"date":"2026-04-24","daily":2745.56,"cumul":70110.4},{"date":"2026-04-27","daily":2922.95,"cumul":73033.35},{"date":"2026-04-28","daily":2908.4,"cumul":75941.75},{"date":"2026-04-29","daily":4109.25,"cumul":80051.0}]},"Olivier Levy-Bencheton":{"day_gross":4356.5,"day_fees":-247.28,"day_net":4109.22,"mtd_gross":82070.43,"mtd_fees":-2019.67,"mtd_net":80050.76,"clients":[{"client":"Banco Bilbao Vizcaya Argentaria Sociedad Anonima","day_gross":1974.14,"day_fees":-166.73,"day_net":1807.41,"mtd_gross":18954.26,"mtd_fees":-1130.24,"mtd_net":17824.02},{"client":"Susquehanna International Securities Limited","day_gross":676.36,"day_fees":-15.6,"day_net":660.76,"mtd_gross":7128.33,"mtd_fees":-103.23,"mtd_net":7025.1},{"client":"Credit Agricole Corporate and Investment Bank","day_gross":95.2,"day_fees":-0.6,"day_net":94.6,"mtd_gross":5792.58,"mtd_fees":-31.79,"mtd_net":5760.79},{"client":"Goldman Sachs International","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":5610.56,"mtd_fees":-19.29,"mtd_net":5591.27},{"client":"J.P. Morgan Securities Plc","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":5018.03,"mtd_fees":-7.06,"mtd_net":5010.97},{"client":"Citigroup Global Markets Limited","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":4931.51,"mtd_fees":-107.74,"mtd_net":4823.77},{"client":"Societe Generale SA","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":4043.41,"mtd_fees":-39.31,"mtd_net":4004.1},{"client":"Natixis SA","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":3901.31,"mtd_fees":-90.41,"mtd_net":3810.9},{"client":"HSBC Bank PLC","day_gross":98.22,"day_fees":-9.0,"day_net":89.22,"mtd_gross":3601.62,"mtd_fees":-30.0,"mtd_net":3571.62},{"client":"Morgan Stanley & Co. International PLC","day_gross":516.0,"day_fees":-16.32,"day_net":499.68,"mtd_gross":3269.86,"mtd_fees":-22.89,"mtd_net":3246.97},{"client":"Optiver V.O.F.","day_gross":78.58,"day_fees":0.0,"day_net":78.58,"mtd_gross":2964.66,"mtd_fees":-12.0,"mtd_net":2952.66},{"client":"Barclays Bank PLC","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":2931.0,"mtd_fees":-79.57,"mtd_net":2851.43},{"client":"Merrill Lynch International","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":2790.2,"mtd_fees":-80.34,"mtd_net":2709.86},{"client":"BNP Paribas","day_gross":258.0,"day_fees":-8.16,"day_net":249.84,"mtd_gross":2193.66,"mtd_fees":-8.16,"mtd_net":2185.5},{"client":"UBS Europe SE","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":2055.38,"mtd_fees":0.0,"mtd_net":2055.38},{"client":"Natixis SA [London Branch]","day_gross":660.0,"day_fees":-26.4,"day_net":633.6,"mtd_gross":1291.61,"mtd_fees":-44.4,"mtd_net":1247.21},{"client":"Mediobanca","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":1246.5,"mtd_fees":-14.22,"mtd_net":1232.28},{"client":"IMC Trading B.V","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":921.0,"mtd_fees":-18.36,"mtd_net":902.64},{"client":"Centiva Capital Europe","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":853.83,"mtd_fees":0.0,"mtd_net":853.83},{"client":"UniCredit Bank GmbH [Milan Branch]","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":625.0,"mtd_fees":0.0,"mtd_net":625.0},{"client":"Balyasny Asset Management L.P.","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":450.0,"mtd_fees":-9.0,"mtd_net":441.0},{"client":"Morgan Stanley Europe SE","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":376.45,"mtd_fees":-27.9,"mtd_net":348.55},{"client":"Nordea Bank Abp","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":355.19,"mtd_fees":0.0,"mtd_net":355.19},{"client":"Squarepoint Capital LLP","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":232.5,"mtd_fees":-2.48,"mtd_net":230.02},{"client":"D. E. Shaw Valence International, Inc.","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":162.0,"mtd_fees":-7.73,"mtd_net":154.27},{"client":"Schonfeld Strategic Advisors (UK) LLP","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":120.0,"mtd_fees":-3.3,"mtd_net":116.7},{"client":"DRW Investments (UK) Limited","day_gross":0.0,"day_fees":-4.47,"day_net":-4.47,"mtd_gross":115.25,"mtd_fees":-40.11,"mtd_net":75.14},{"client":"Goldman Sachs Bank Europe SE","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":82.98,"mtd_fees":0.0,"mtd_net":82.98},{"client":"Verition  Multi Strategy Master Fund Ltd","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":51.75,"mtd_fees":0.0,"mtd_net":51.75},{"client":"Bofa Securities Europe SA","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":0.0,"mtd_fees":-12.0,"mtd_net":-12.0},{"client":"DRW Europe B.V.","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":0.0,"mtd_fees":-1.72,"mtd_net":-1.72},{"client":"JPMorgan Chase Bank, National Association [London Branch]","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":0.0,"mtd_fees":-47.19,"mtd_net":-47.19},{"client":"Kyte Broking Limited","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":0.0,"mtd_fees":-5.17,"mtd_net":-5.17},{"client":"Societe Generale, S.A. [London Branch]","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":0.0,"mtd_fees":-7.56,"mtd_net":-7.56},{"client":"UniCredit Bank GmbH","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":0.0,"mtd_fees":-15.0,"mtd_net":-15.0},{"client":"Verition Advisors (UK Partners) LLP","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":0.0,"mtd_fees":-1.5,"mtd_net":-1.5}],"daily_evolution":[{"date":"2026-04-01","daily":3499.21,"cumul":3499.21},{"date":"2026-04-02","daily":3295.46,"cumul":6794.67},{"date":"2026-04-07","daily":836.02,"cumul":7630.69},{"date":"2026-04-08","daily":9.63,"cumul":7640.32},{"date":"2026-04-09","daily":7969.83,"cumul":15610.15},{"date":"2026-04-10","daily":1824.14,"cumul":17434.29},{"date":"2026-04-13","daily":5265.89,"cumul":22700.18},{"date":"2026-04-14","daily":9578.81,"cumul":32278.99},{"date":"2026-04-15","daily":2218.95,"cumul":34497.94},{"date":"2026-04-16","daily":9756.49,"cumul":44254.43},{"date":"2026-04-17","daily":4343.52,"cumul":48597.95},{"date":"2026-04-20","daily":1282.43,"cumul":49880.38},{"date":"2026-04-21","daily":3543.48,"cumul":53423.86},{"date":"2026-04-22","daily":3230.0,"cumul":56653.86},{"date":"2026-04-23","daily":10710.98,"cumul":67364.84},{"date":"2026-04-24","daily":2745.56,"cumul":70110.4},{"date":"2026-04-27","daily":2922.95,"cumul":73033.35},{"date":"2026-04-28","daily":2908.4,"cumul":75941.75},{"date":"2026-04-29","daily":4109.25,"cumul":80051.0}]},"Uriel Kutnowski":{"day_gross":4356.5,"day_fees":-247.28,"day_net":4109.22,"mtd_gross":82070.43,"mtd_fees":-2019.67,"mtd_net":80050.76,"clients":[{"client":"Banco Bilbao Vizcaya Argentaria Sociedad Anonima","day_gross":1974.14,"day_fees":-166.73,"day_net":1807.41,"mtd_gross":18954.26,"mtd_fees":-1130.24,"mtd_net":17824.02},{"client":"Susquehanna International Securities Limited","day_gross":676.36,"day_fees":-15.6,"day_net":660.76,"mtd_gross":7128.33,"mtd_fees":-103.23,"mtd_net":7025.1},{"client":"Credit Agricole Corporate and Investment Bank","day_gross":95.2,"day_fees":-0.6,"day_net":94.6,"mtd_gross":5792.58,"mtd_fees":-31.79,"mtd_net":5760.79},{"client":"Goldman Sachs International","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":5610.56,"mtd_fees":-19.29,"mtd_net":5591.27},{"client":"J.P. Morgan Securities Plc","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":5018.03,"mtd_fees":-7.06,"mtd_net":5010.97},{"client":"Citigroup Global Markets Limited","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":4931.51,"mtd_fees":-107.74,"mtd_net":4823.77},{"client":"Societe Generale SA","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":4043.41,"mtd_fees":-39.31,"mtd_net":4004.1},{"client":"Natixis SA","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":3901.31,"mtd_fees":-90.41,"mtd_net":3810.9},{"client":"HSBC Bank PLC","day_gross":98.22,"day_fees":-9.0,"day_net":89.22,"mtd_gross":3601.62,"mtd_fees":-30.0,"mtd_net":3571.62},{"client":"Morgan Stanley & Co. International PLC","day_gross":516.0,"day_fees":-16.32,"day_net":499.68,"mtd_gross":3269.86,"mtd_fees":-22.89,"mtd_net":3246.97},{"client":"Optiver V.O.F.","day_gross":78.58,"day_fees":0.0,"day_net":78.58,"mtd_gross":2964.66,"mtd_fees":-12.0,"mtd_net":2952.66},{"client":"Barclays Bank PLC","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":2931.0,"mtd_fees":-79.57,"mtd_net":2851.43},{"client":"Merrill Lynch International","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":2790.2,"mtd_fees":-80.34,"mtd_net":2709.86},{"client":"BNP Paribas","day_gross":258.0,"day_fees":-8.16,"day_net":249.84,"mtd_gross":2193.66,"mtd_fees":-8.16,"mtd_net":2185.5},{"client":"UBS Europe SE","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":2055.38,"mtd_fees":0.0,"mtd_net":2055.38},{"client":"Natixis SA [London Branch]","day_gross":660.0,"day_fees":-26.4,"day_net":633.6,"mtd_gross":1291.61,"mtd_fees":-44.4,"mtd_net":1247.21},{"client":"Mediobanca","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":1246.5,"mtd_fees":-14.22,"mtd_net":1232.28},{"client":"IMC Trading B.V","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":921.0,"mtd_fees":-18.36,"mtd_net":902.64},{"client":"Centiva Capital Europe","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":853.83,"mtd_fees":0.0,"mtd_net":853.83},{"client":"UniCredit Bank GmbH [Milan Branch]","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":625.0,"mtd_fees":0.0,"mtd_net":625.0},{"client":"Balyasny Asset Management L.P.","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":450.0,"mtd_fees":-9.0,"mtd_net":441.0},{"client":"Morgan Stanley Europe SE","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":376.45,"mtd_fees":-27.9,"mtd_net":348.55},{"client":"Nordea Bank Abp","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":355.19,"mtd_fees":0.0,"mtd_net":355.19},{"client":"Squarepoint Capital LLP","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":232.5,"mtd_fees":-2.48,"mtd_net":230.02},{"client":"D. E. Shaw Valence International, Inc.","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":162.0,"mtd_fees":-7.73,"mtd_net":154.27},{"client":"Schonfeld Strategic Advisors (UK) LLP","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":120.0,"mtd_fees":-3.3,"mtd_net":116.7},{"client":"DRW Investments (UK) Limited","day_gross":0.0,"day_fees":-4.47,"day_net":-4.47,"mtd_gross":115.25,"mtd_fees":-40.11,"mtd_net":75.14},{"client":"Goldman Sachs Bank Europe SE","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":82.98,"mtd_fees":0.0,"mtd_net":82.98},{"client":"Verition  Multi Strategy Master Fund Ltd","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":51.75,"mtd_fees":0.0,"mtd_net":51.75},{"client":"Bofa Securities Europe SA","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":0.0,"mtd_fees":-12.0,"mtd_net":-12.0},{"client":"DRW Europe B.V.","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":0.0,"mtd_fees":-1.72,"mtd_net":-1.72},{"client":"JPMorgan Chase Bank, National Association [London Branch]","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":0.0,"mtd_fees":-47.19,"mtd_net":-47.19},{"client":"Kyte Broking Limited","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":0.0,"mtd_fees":-5.17,"mtd_net":-5.17},{"client":"Societe Generale, S.A. [London Branch]","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":0.0,"mtd_fees":-7.56,"mtd_net":-7.56},{"client":"UniCredit Bank GmbH","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":0.0,"mtd_fees":-15.0,"mtd_net":-15.0},{"client":"Verition Advisors (UK Partners) LLP","day_gross":0.0,"day_fees":0.0,"day_net":0.0,"mtd_gross":0.0,"mtd_fees":-1.5,"mtd_net":-1.5}],"daily_evolution":[{"date":"2026-04-01","daily":3499.21,"cumul":3499.21},{"date":"2026-04-02","daily":3295.46,"cumul":6794.67},{"date":"2026-04-07","daily":836.02,"cumul":7630.69},{"date":"2026-04-08","daily":9.63,"cumul":7640.32},{"date":"2026-04-09","daily":7969.83,"cumul":15610.15},{"date":"2026-04-10","daily":1824.14,"cumul":17434.29},{"date":"2026-04-13","daily":5265.89,"cumul":22700.18},{"date":"2026-04-14","daily":9578.81,"cumul":32278.99},{"date":"2026-04-15","daily":2218.95,"cumul":34497.94},{"date":"2026-04-16","daily":9756.49,"cumul":44254.43},{"date":"2026-04-17","daily":4343.52,"cumul":48597.95},{"date":"2026-04-20","daily":1282.43,"cumul":49880.38},{"date":"2026-04-21","daily":3543.48,"cumul":53423.86},{"date":"2026-04-22","daily":3230.0,"cumul":56653.86},{"date":"2026-04-23","daily":10710.98,"cumul":67364.84},{"date":"2026-04-24","daily":2745.56,"cumul":70110.4},{"date":"2026-04-27","daily":2922.95,"cumul":73033.35},{"date":"2026-04-28","daily":2908.4,"cumul":75941.75},{"date":"2026-04-29","daily":4109.25,"cumul":80051.0}]}};
+var SEED_DATA=DATA;
+
+var SEED_DATA = DATA;
+
+// ═══════════════════════════════════════════════════════════════
+// STORAGE
+// One key per month: stellar_pnl_month_2026_04 = {data, label, closed, closedAt}
+// ═══════════════════════════════════════════════════════════════
+var LS_PREFIX = 'stellar_pnl_month_';
+var LS_SHARED = 'stellar_pnl_v5_imports';
+
+function mKey(y,m){ return LS_PREFIX+y+'_'+String(m).padStart(2,'0'); }
+function mToQ(m){ return m<=3?1:m<=6?2:m<=9?3:4; }
+
+function getMonthData(year, month){
+  try{ return JSON.parse(localStorage.getItem(mKey(year,month))||'null'); }
+  catch(e){ return null; }
+}
+function setMonthData(year, month, obj){
+  try{ localStorage.setItem(mKey(year,month), JSON.stringify(obj)); }
+  catch(e){ alert('localStorage plein'); }
+}
+function getAllMonths(){
+  // Returns array of {year,month,label,closed,closedAt,data}
+  var result = [];
+  for(var i=0; i<localStorage.length; i++){
+    var k = localStorage.key(i);
+    if(k && k.indexOf(LS_PREFIX)===0){
+      try{
+        var v = JSON.parse(localStorage.getItem(k));
+        if(v) result.push(v);
+      }catch(e){}
+    }
+  }
+  return result;
+}
+
+function syncShared(){
+  var months = getAllMonths();
+  var arr = months.map(function(mo){
+    return {key:'import_'+mo.year+'_'+String(mo.month).padStart(2,'0'),
+            label:mo.label, month:mo.month, year:mo.year,
+            quarter:mToQ(mo.month), data:mo.data};
+  });
+  try{ localStorage.setItem(LS_SHARED, JSON.stringify(arr)); }catch(e){}
+}
+
+// ─────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────
+var MONTHS_FR=['Janvier','F\u00e9vrier','Mars','Avril','Mai','Juin',
+               'Juillet','Ao\u00fbt','Septembre','Octobre','Novembre','D\u00e9cembre'];
+var MONTHS_SH=['Jan','F\u00e9v','Mar','Avr','Mai','Jun','Jul','Ao\u00fb','Sep','Oct','Nov','D\u00e9c'];
+
+function fN(v){
+  if(v===undefined||v===null||isNaN(v)) return '\u2014';
+  return new Intl.NumberFormat('fr-FR',{minimumFractionDigits:0,maximumFractionDigits:0})
+           .format(Math.round(v))+'\u00a0\u20ac';
+}
+
+function parseDateFromName(fname){
+  var all=[], re=/(\d{8})/g, m;
+  while((m=re.exec(fname))!==null){
+    var s=m[1], y=parseInt(s.slice(0,4)), mo=parseInt(s.slice(4,6)), d=parseInt(s.slice(6,8));
+    if(y>=2020&&y<=2035&&mo>=1&&mo<=12&&d>=1&&d<=31) all.push({y:y,m:mo,d:d});
+  }
+  if(!all.length) return null;
+  var last=all[all.length-1];
+  return {year:last.y, month:last.m};
+}
+
+// ─────────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────────
+var profile='Jonathan Buenavida', tab='mtd', chart=null;
+var barYear=new Date().getFullYear();
+var currentYear=null, currentMonth=null; // which month is being viewed
+
+function setP(nm,id){
+  profile=nm;
+  ['j1','j2','j3','o','u'].forEach(function(k){
+    document.getElementById('pb-'+k).classList.toggle('active',k===id);
+  });
+  renderAll();
+}
+function setTab(t){
+  tab=t;
+  ['mtd','daily','qtd'].forEach(function(k){
+    var el=document.getElementById('tab-'+k);
+    if(el) el.classList.toggle('active',k===t);
+  });
+  renderAll();
+}
+
+// ─────────────────────────────────────────────────
+// MONTH BAR
+// ─────────────────────────────────────────────────
+function changeBarYear(d){ barYear+=d; renderMonthBar(); }
+
+function renderMonthBar(){
+  document.getElementById('barYearLbl').textContent=barYear;
+  var Q=['Q1','Q1','Q1','Q2','Q2','Q2','Q3','Q3','Q3','Q4','Q4','Q4'];
+  var html='';
+  for(var m=1;m<=12;m++){
+    var mo=getMonthData(barYear,m);
+    var isClosed=mo&&mo.closed;
+    var isImported=mo&&!mo.closed;
+    var isViewing=currentYear===barYear&&currentMonth===m;
+    var cls='mc'+(isClosed?' is-closed':isImported?' is-draft':'')
+            +(mo?' has-data':'')+(isViewing?' is-viewing':'');
+    var icon=isClosed?'\uD83D\uDD12':isImported?'\u270F\uFE0F':'';
+    var oc=mo?'loadMonth('+barYear+','+m+')':'';
+    var ttip=isClosed?('Cl\u00f4tur\u00e9 '+mo.closedAt):isImported?'Import\u00e9 (en cours)':'Non import\u00e9';
+    html+='<div class="'+cls+'" onclick="'+oc+'" title="'+ttip+'">'
+      +'<span class="mc-q">'+Q[m-1]+'</span>'
+      +'<div class="mc-name">'+MONTHS_SH[m-1]+'</div>'
+      +'<div class="mc-ico">'+icon+'</div>'
+      +'</div>';
+  }
+  document.getElementById('mbarGrid').innerHTML=html;
+}
+
+function loadMonth(year, month){
+  var mo=getMonthData(year,month);
+  if(!mo) return;
+  DATA=mo.data;
+  currentYear=year; currentMonth=month;
+  barYear=year;
+  document.getElementById('plbl').textContent=mo.label+(mo.closed?' \uD83D\uDD12':'');
+  renderMonthBar();
+  updateCloseBtns();
+  renderAll();
+}
+
+// ─────────────────────────────────────────────────
+// CLOSE / REOPEN
+// ─────────────────────────────────────────────────
+function updateCloseBtns(){
+  var bC=document.getElementById('btnClose'), bR=document.getElementById('btnReopen');
+  if(!currentYear||!currentMonth){ bC.style.display='none'; bR.style.display='none'; return; }
+  var mo=getMonthData(currentYear,currentMonth);
+  if(!mo){ bC.style.display='none'; bR.style.display='none'; return; }
+  bC.style.display=mo.closed?'none':'';
+  bC.textContent='\uD83D\uDCCC Cl\u00f4turer '+MONTHS_FR[currentMonth-1];
+  bR.style.display=mo.closed?'':'none';
+  bR.textContent='\uD83D\uDD13 Rouvrir '+MONTHS_FR[currentMonth-1];
+}
+
+function closeMonth(){
+  if(!currentYear||!currentMonth) return;
+  var mo=getMonthData(currentYear,currentMonth);
+  if(!mo) return;
+  if(mo.closed&&!confirm(MONTHS_FR[currentMonth-1]+' est d\u00e9j\u00e0 cl\u00f4tur\u00e9. Remplacer ?')) return;
+  mo.closed=true;
+  mo.closedAt=new Date().toISOString().slice(0,10);
+  setMonthData(currentYear,currentMonth,mo);
+  syncShared(); renderMonthBar(); updateCloseBtns();
+  document.getElementById('plbl').textContent=mo.label+' \uD83D\uDD12';
+  showToast('\uD83D\uDD12 '+MONTHS_FR[currentMonth-1]+' '+currentYear+' cl\u00f4tur\u00e9 !');
+}
+
+function reopenMonth(){
+  if(!currentYear||!currentMonth) return;
+  var mo=getMonthData(currentYear,currentMonth);
+  if(!mo||!mo.closed) return;
+  if(!confirm('Rouvrir '+MONTHS_FR[currentMonth-1]+' '+currentYear+' ?')) return;
+  mo.closed=false; mo.closedAt=null;
+  setMonthData(currentYear,currentMonth,mo);
+  syncShared(); renderMonthBar(); updateCloseBtns();
+  document.getElementById('plbl').textContent=mo.label+' (en cours)';
+  showToast('\uD83D\uDD13 '+MONTHS_FR[currentMonth-1]+' rouvert');
+}
+
+// ─────────────────────────────────────────────────
+// KPIs
+// ─────────────────────────────────────────────────
+function renderKPIs(){
+  if(tab==='qtd'){ renderQTDKPIs(); return; }
+  var br=DATA[profile]||{}, isD=(tab==='daily');
+  var gross=isD?br.day_gross:br.mtd_gross,
+      fees =isD?br.day_fees:br.mtd_fees,
+      net  =isD?br.day_net:br.mtd_net;
+  var cl=br.clients||[];
+  var ct=cl.reduce(function(s,c){return s+(isD?c.day_net:c.mtd_net);},0);
+  var ks=[
+    {l:'Gross brokerage desk',v:fN(gross),s:isD?'Aujourd\u2019hui':'MTD',c:'gold',bc:'var(--gold-border)'},
+    {l:'Fees march\u00e9s',v:fN(Math.abs(fees)),s:fees<0?'\u2190 d\u00e9duites':'\u2014',c:'red',bc:'var(--red-border)'},
+    {l:'Net PnL (\u00f75)',v:fN(net),s:'brokers',c:'green',bc:'var(--green-border)'},
+    {l:'Clients actifs',v:cl.length,s:fN(ct)+' net',c:'blue',bc:'var(--blue)'}
+  ];
+  document.getElementById('krow').innerHTML=ks.map(function(k){
+    return '<div class="kpi" style="border-left-color:'+k.bc+'">'
+      +'<div class="kl">'+k.l+'</div>'
+      +'<div class="kv '+k.c+'">'+k.v+'</div>'
+      +'<div class="ks">'+k.s+'</div></div>';
+  }).join('');
+}
+
+// ─────────────────────────────────────────────────
+// QTD
+// ─────────────────────────────────────────────────
+function getQTDData(){
+  // Use barYear + detect best quarter (where there is data)
+  var curY=barYear;
+  var curQ=mToQ(new Date().getMonth()+1);
+  // If viewing a month in barYear, use its quarter
+  if(currentYear===barYear&&currentMonth) curQ=mToQ(currentMonth);
+  else{
+    // Find latest quarter that has data in barYear
+    for(var q=4;q>=1;q--){
+      for(var mi=(q-1)*3+1;mi<=q*3;mi++){
+        if(getMonthData(barYear,mi)){curQ=q;break;}
+      }
+      if(getMonthData(barYear,(curQ-1)*3+1)||getMonthData(barYear,(curQ-1)*3+2)||getMonthData(barYear,curQ*3)) break;
+    }
+  }
+  var months=[],qtdG=0,qtdF=0,qtdN=0,cMap={},evo=[],hasData=false;
+  for(var m=(curQ-1)*3+1;m<=curQ*3;m++){
+    var mo=getMonthData(curY,m);
+    var locked=mo?mo.closed:null;
+    months.push({month:m,year:curY,label:MONTHS_FR[m-1],locked:locked,data:mo?mo.data:null});
+    if(!mo) continue;
+    hasData=true;
+    var br=mo.data[profile]||{};
+    qtdG+=br.mtd_gross||0; qtdF+=br.mtd_fees||0; qtdN+=br.mtd_net||0;
+    (br.clients||[]).forEach(function(c){
+      if(!cMap[c.client]) cMap[c.client]={client:c.client,qtd_gross:0,qtd_fees:0,qtd_net:0};
+      cMap[c.client].qtd_gross+=c.mtd_gross||0;
+      cMap[c.client].qtd_fees+=c.mtd_fees||0;
+      cMap[c.client].qtd_net+=c.mtd_net||0;
+    });
+    (br.daily_evolution||[]).forEach(function(d){evo.push({date:d.date,daily:d.daily});});
+  }
+  evo.sort(function(a,b){return a.date.localeCompare(b.date);});
+  var cum=0;
+  evo=evo.map(function(d){cum+=d.daily;return{date:d.date,daily:d.daily,cumul:Math.round(cum*100)/100};});
+  return{quarter:curQ,year:curY,months:months,gross:qtdG,fees:qtdF,net:qtdN,
+    clients:Object.values(cMap).sort(function(a,b){return b.qtd_gross-a.qtd_gross;}),
+    allEvolution:evo,hasData:hasData};
+}
+
+function renderQTDKPIs(){
+  var qtd=getQTDData();
+  if(!qtd.hasData){
+    document.getElementById('krow').innerHTML='<div style="grid-column:1/-1;padding:18px;'
+      +'color:var(--text-muted);font-size:13px">Aucune donn\u00e9e pour Q'
+      +qtd.quarter+' '+qtd.year+'</div>';
+    return;
+  }
+  var ks=[
+    {l:'Gross QTD \u2014 Q'+qtd.quarter+' '+qtd.year,v:fN(qtd.gross),s:'mois agr\u00e9g\u00e9s',c:'gold',bc:'rgba(107,63,160,.3)'},
+    {l:'Fees QTD',v:fN(Math.abs(qtd.fees)),s:'\u2190 d\u00e9duites',c:'red',bc:'var(--red-border)'},
+    {l:'Net QTD (\u00f75)',v:fN(qtd.net),s:'quarter complet',c:'green',bc:'var(--green-border)'},
+    {l:'Clients uniques',v:qtd.clients.length,s:'sur le quarter',c:'blue',bc:'var(--blue)'}
+  ];
+  document.getElementById('krow').innerHTML=ks.map(function(k){
+    return '<div class="kpi" style="border-left-color:'+k.bc+'">'
+      +'<div class="kl">'+k.l+'</div>'
+      +'<div class="kv '+k.c+'">'+k.v+'</div>'
+      +'<div class="ks">'+k.s+'</div></div>';
+  }).join('');
+}
+
+// ─────────────────────────────────────────────────
+// TABLES
+// ─────────────────────────────────────────────────
+function buildTable(clients,isD){
+  if(!clients||!clients.length) return '<div class="empty">Aucune donn\u00e9e</div>';
+  var gt=0,ft=0,nt=0,mx=0;
+  clients.forEach(function(c){
+    var g=isD?c.day_gross:c.mtd_gross;
+    gt+=g; ft+=isD?c.day_fees:c.mtd_fees; nt+=isD?c.day_net:c.mtd_net;
+    if(g>mx) mx=g;
+  });
+  var rows=clients.map(function(c){
+    var g=isD?c.day_gross:c.mtd_gross, f=isD?c.day_fees:c.mtd_fees, n=isD?c.day_net:c.mtd_net;
+    var pct=mx>0?(g/mx*100).toFixed(1):0, sh=gt>0?(g/gt*100).toFixed(0):0;
+    var nm=c.client.length>38?c.client.slice(0,37)+'\u2026':c.client;
+    return '<tr><td class="name" title="'+c.client+'">'+nm+'</td>'
+      +'<td class="mono">'+fN(g)+'</td>'
+      +'<td class="mono red">'+(f?fN(f):'\u2014')+'</td>'
+      +'<td class="mono green">'+fN(n)+'</td>'
+      +'<td style="padding:9px 14px 9px 8px"><div class="bw"><div class="bb">'
+      +'<div class="bf" style="width:'+pct+'%"></div></div>'
+      +'<span style="font-size:10px;color:var(--text-muted);min-width:26px;text-align:right">'+sh+'%</span>'
+      +'</div></td></tr>';
+  });
+  return '<table class="ct"><thead><tr>'
+    +'<th>Client</th><th class="r">Gross</th><th class="r">Fees</th><th class="r">Net</th>'
+    +'<th style="width:120px">Part</th></tr></thead><tbody>'
+    +rows.join('')
+    +'<tr class="tr"><td>TOTAL</td>'
+    +'<td class="mono">'+fN(gt)+'</td>'
+    +'<td class="mono red">'+fN(ft)+'</td>'
+    +'<td class="mono green">'+fN(nt)+'</td>'
+    +'<td></td></tr></tbody></table>';
+}
+
+function buildQTDTable(clients){
+  if(!clients||!clients.length) return '<div class="empty">Aucun client</div>';
+  var gt=0,ft=0,nt=0,mx=0;
+  clients.forEach(function(c){gt+=c.qtd_gross;ft+=c.qtd_fees;nt+=c.qtd_net;if(c.qtd_gross>mx)mx=c.qtd_gross;});
+  var rows=clients.map(function(c){
+    var pct=mx>0?(c.qtd_gross/mx*100).toFixed(1):0, sh=gt>0?(c.qtd_gross/gt*100).toFixed(0):0;
+    var nm=c.client.length>38?c.client.slice(0,37)+'\u2026':c.client;
+    return '<tr><td class="name" title="'+c.client+'">'+nm+'</td>'
+      +'<td class="mono">'+fN(c.qtd_gross)+'</td>'
+      +'<td class="mono red">'+(c.qtd_fees?fN(c.qtd_fees):'\u2014')+'</td>'
+      +'<td class="mono green">'+fN(c.qtd_net)+'</td>'
+      +'<td style="padding:9px 14px 9px 8px"><div class="bw"><div class="bb">'
+      +'<div class="bf" style="width:'+pct+'%;background:#6b3fa0"></div></div>'
+      +'<span style="font-size:10px;color:var(--text-muted);min-width:26px;text-align:right">'+sh+'%</span>'
+      +'</div></td></tr>';
+  });
+  return '<table class="ct"><thead><tr>'
+    +'<th>Client</th><th class="r">Gross QTD</th><th class="r">Fees</th><th class="r">Net QTD</th>'
+    +'<th style="width:120px">Part</th></tr></thead><tbody>'
+    +rows.join('')
+    +'<tr class="tr"><td>TOTAL QTD</td>'
+    +'<td class="mono">'+fN(gt)+'</td>'
+    +'<td class="mono red">'+fN(ft)+'</td>'
+    +'<td class="mono green">'+fN(nt)+'</td>'
+    +'<td></td></tr></tbody></table>';
+}
+
+// ─────────────────────────────────────────────────
+// CHART
+// ─────────────────────────────────────────────────
+function destroyChart(){
+  if(chart){ try{chart.destroy();}catch(e){} chart=null; }
+}
+
+function renderChart(evo,c1,c2){
+  var wrap=document.getElementById('chartArea');
+  if(!wrap) return;
+  c1=c1||'#8a6a1a'; c2=c2||'#276e47';
+  destroyChart();
+  if(!evo||!evo.length){
+    wrap.innerHTML='<div class="empty">Pas de donn\u00e9es</div>';
+    return;
+  }
+  wrap.innerHTML='<div class="chart-wrap"><canvas id="lc"></canvas></div>';
+  var canvas=document.getElementById('lc');
+  if(!canvas) return;
+  try{
+    chart=new Chart(canvas.getContext('2d'),{
+      type:'line',
+      data:{
+        labels:evo.map(function(d){return d.date.slice(5);}),
+        datasets:[
+          {label:'Cumulatif',data:evo.map(function(d){return d.cumul;}),
+           borderColor:c1,backgroundColor:'rgba(138,106,26,.08)',
+           borderWidth:2.5,pointRadius:4,pointBackgroundColor:c1,
+           tension:0.35,fill:true,yAxisID:'y'},
+          {label:'Daily',data:evo.map(function(d){return d.daily;}),
+           borderColor:c2,backgroundColor:'rgba(39,110,71,.05)',
+           borderWidth:1.5,pointRadius:3,tension:0.2,
+           fill:false,yAxisID:'y2',borderDash:[4,3]}
+        ]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        interaction:{mode:'index',intersect:false},
+        plugins:{
+          legend:{position:'bottom',labels:{font:{size:11},padding:14,boxWidth:14,boxHeight:2}},
+          tooltip:{callbacks:{label:function(c){return ' '+c.dataset.label+': '+fN(c.parsed.y);}}}
+        },
+        scales:{
+          x:{grid:{color:'rgba(0,0,0,.04)'},ticks:{font:{size:10},color:'#9a9690'}},
+          y:{position:'left',grid:{color:'rgba(0,0,0,.04)'},
+             ticks:{font:{size:10},color:c1,
+                    callback:function(v){return v>=1000?(v/1000).toFixed(0)+'k\u20ac':v+'\u20ac';}}},
+          y2:{position:'right',grid:{drawOnChartArea:false},
+              ticks:{font:{size:10},color:c2,
+                     callback:function(v){return v>=1000?(v/1000).toFixed(0)+'k\u20ac':v+'\u20ac';}}}
+        }
+      }
+    });
+  }catch(e){ console.error('Chart error:',e); }
+}
+
+// ─────────────────────────────────────────────────
+// RENDER ALL
+// ─────────────────────────────────────────────────
+function renderAll(){
+  renderKPIs();
+  if(tab==='qtd'){
+    var qtd=getQTDData();
+    var cards=qtd.months.map(function(mo){
+      var sc=mo.locked===true?'var(--green)':mo.locked===false?'var(--gold)':'var(--text-muted)';
+      var si=mo.locked===true?'\uD83D\uDD12':mo.locked===false?'\u270F\uFE0F':'\u25CB';
+      var sl=mo.locked===true?'Cl\u00f4tur\u00e9':mo.locked===false?'En cours':'Non import\u00e9';
+      var net=mo.data?(mo.data[profile]||{}).mtd_net:null;
+      return '<div style="background:var(--bg2);border:1px solid var(--border);'
+        +'border-radius:var(--radius);padding:14px 16px;">'
+        +'<div style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;'
+        +'color:var(--text-muted);font-weight:600;margin-bottom:4px;">'+mo.label+'</div>'
+        +(net!==null
+          ?'<div style="font-size:20px;font-weight:600;color:var(--green);">'+fN(net)+'</div>'
+          :'<div style="font-size:15px;color:var(--text-muted);">\u2014</div>')
+        +'<div style="font-size:9px;color:'+sc+';margin-top:4px;">'+si+' '+sl+'</div>'
+        +'</div>';
+    }).join('');
+    document.getElementById('content').innerHTML=
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:20px;">'
+      +cards+'</div>'
+      +'<div class="grid">'
+      +'<div class="card"><div class="ch">'
+      +'<span class="ct2">PnL par client \u2014 QTD</span>'
+      +'<span class="cbadge" style="color:#6b3fa0;">Q'+qtd.quarter+' '+qtd.year+'</span>'
+      +'</div><div>'+buildQTDTable(qtd.clients)+'</div></div>'
+      +'<div class="card"><div class="ch">'
+      +'<span class="ct2">\u00c9volution QTD</span>'
+      +'<span class="cbadge" style="color:#6b3fa0;">'+qtd.allEvolution.length+' jours</span>'
+      +'</div><div class="chart-area" id="chartArea"></div></div>'
+      +'</div>';
+    setTimeout(function(){renderChart(qtd.allEvolution,'#6b3fa0','#276e47');},50);
+    return;
+  }
+  var br=DATA[profile]||{}, isD=(tab==='daily'), cl=br.clients||[];
+  document.getElementById('content').innerHTML=
+    '<div class="grid">'
+    +'<div class="card"><div class="ch">'
+    +'<span class="ct2">PnL par client \u2014 '+(isD?'Aujourd\u2019hui':'MTD')+'</span>'
+    +'<span class="cbadge">'+profile.split(' ')[0]+'</span>'
+    +'</div><div>'+buildTable(cl,isD)+'</div></div>'
+    +'<div class="card"><div class="ch">'
+    +'<span class="ct2">\u00c9volution cumulative MTD</span>'
+    +'<span class="cbadge" style="color:var(--gold);">Cumul + Daily</span>'
+    +'</div><div class="chart-area" id="chartArea"></div></div>'
+    +'</div>';
+  setTimeout(function(){renderChart(br.daily_evolution||[]);},50);
+}
+
+// ─────────────────────────────────────────────────
+// XLS IMPORT
+// ─────────────────────────────────────────────────
+function handleFilePick(e){ var f=e.target.files[0]; e.target.value=''; if(f) processFile(f); }
+
+function processFile(file){
+  if(typeof XLSX==='undefined'){ showToast('Librairies en cours de chargement...'); return; }
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      var wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array'});
+      var ws=wb.Sheets['Daily_Recap'];
+      if(!ws){ showToast('Feuille Daily_Recap introuvable'); return; }
+      var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:true});
+      var FIVE=['Jonathan Buenavida','Jeremy Cohen','Julien Rouach','Olivier Levy-Bencheton','Uriel Kutnowski'];
+      var nb={};
+      var sec=-1;
+      for(var i=0;i<rows.length;i++){
+        if(rows[i]&&rows[i].join&&String(rows[i].join('|')).includes('Estimate Client P&L')){sec=i+3;break;}
+      }
+      if(sec<0){ showToast('Section Estimate Client P&L introuvable'); return; }
+      function pf(v){return(v!==null&&v!==undefined&&!isNaN(parseFloat(v)))?parseFloat(v):0;}
+      var cur=null;
+      for(var i=sec;i<rows.length;i++){
+        var row=rows[i]; if(!row||row[2]==null) continue;
+        var raw=String(row[2]),lead=raw.length-raw.trimStart().length,name=raw.trim();
+        if(!name||name==='null') continue;
+        var dg=pf(row[9]),df=pf(row[16]),dn=pf(row[22]),mg=pf(row[23]),mf=pf(row[25]),mn=pf(row[27]);
+        if(lead===0){
+          cur=(FIVE.indexOf(name)>=0)?name:null;
+          if(cur) nb[cur]={day_gross:dg,day_fees:df,day_net:dn,mtd_gross:mg,mtd_fees:mf,mtd_net:mn,clients:{},daily_evolution:[]};
+          continue;
+        }
+        if(cur&&lead>0){
+          var cn=name.split(' - ')[0].trim();
+          var cc=nb[cur].clients;
+          if(!cc[cn]) cc[cn]={day_gross:0,day_fees:0,day_net:0,mtd_gross:0,mtd_fees:0,mtd_net:0};
+          cc[cn].day_gross+=dg; cc[cn].day_fees+=df; cc[cn].day_net+=dn;
+          cc[cn].mtd_gross+=mg; cc[cn].mtd_fees+=mf; cc[cn].mtd_net+=mn;
+        }
+      }
+      // Daily evolution
+      var ws2=wb.Sheets['Client MTD Summary'];
+      var r2=ws2?XLSX.utils.sheet_to_json(ws2,{header:1,defval:''}):[];
+      var hm=-1;
+      for(var i=0;i<r2.length;i++){
+        if(r2[i]&&r2[i].includes('Trade Date')&&r2[i].includes('Brokerage EUR')){hm=i;break;}
+      }
+      if(hm>=0){
+        var h=r2[hm],iTD=h.indexOf('Trade Date'),iRc=h.indexOf('Profit Recipient'),iBr=h.indexOf('Brokerage EUR');
+        var ag={};
+        for(var i=hm+1;i<r2.length;i++){
+          var rr=r2[i],rec=String(rr[iRc]||'').trim(),bro=parseFloat(String(rr[iBr]||'').replace(/,/g,''))||0;
+          if(!rec||bro<=0) continue;
+          var rd=rr[iTD],ds='';
+          if(typeof rd==='number'){
+            var dd=XLSX.SSF.parse_date_code(rd);
+            ds=dd.y+'-'+String(dd.m).padStart(2,'0')+'-'+String(dd.d).padStart(2,'0');
+          } else ds=String(rd).slice(0,10);
+          if(!ds||ds.includes('NaN')) continue;
+          if(!ag[rec]) ag[rec]={};
+          ag[rec][ds]=(ag[rec][ds]||0)+bro;
+        }
+        FIVE.forEach(function(nm){
+          if(!nb[nm]) return;
+          var de=ag[nm]||{};
+          var sorted=Object.entries(de).sort(function(a,b){return a[0].localeCompare(b[0]);});
+          var cu=0;
+          nb[nm].daily_evolution=sorted.map(function(x){
+            cu+=x[1];return{date:x[0],daily:Math.round(x[1]*100)/100,cumul:Math.round(cu*100)/100};
+          });
+        });
+      }
+      FIVE.forEach(function(nm){
+        if(!nb[nm]) return;
+        nb[nm].clients=Object.entries(nb[nm].clients).map(function(x){
+          return{client:x[0],
+            day_gross:Math.round(x[1].day_gross*100)/100,day_fees:Math.round(x[1].day_fees*100)/100,day_net:Math.round(x[1].day_net*100)/100,
+            mtd_gross:Math.round(x[1].mtd_gross*100)/100,mtd_fees:Math.round(x[1].mtd_fees*100)/100,mtd_net:Math.round(x[1].mtd_net*100)/100};
+        }).sort(function(a,b){return b.mtd_gross-a.mtd_gross;});
+      });
+      // Detect month/year
+      var parsed=parseDateFromName(file.name), month, year;
+      if(parsed){ month=parsed.month; year=parsed.year; }
+      else{
+        var sb=Object.values(nb)[0];
+        if(sb&&sb.daily_evolution&&sb.daily_evolution.length){
+          var d=sb.daily_evolution[0].date; year=parseInt(d.slice(0,4)); month=parseInt(d.slice(5,7));
+        } else { var now=new Date(); year=now.getFullYear(); month=now.getMonth()+1; }
+      }
+      var label=MONTHS_FR[month-1]+' '+year;
+      // Check if already closed
+      var existing=getMonthData(year,month);
+      if(existing&&existing.closed){
+        if(!confirm(label+' est cl\u00f4tur\u00e9. Rouvrir et remplacer ?')) return;
+      }
+      // Save — preserve closed state if user confirmed above
+      var wasClosed=existing&&existing.closed;
+      setMonthData(year,month,{
+        data:nb, label:label, month:month, year:year,
+        closed:false, closedAt:null
+      });
+      DATA=nb;
+      currentYear=year; currentMonth=month;
+      barYear=year;
+      document.getElementById('plbl').textContent=label+' (en cours)';
+      syncShared(); renderMonthBar(); updateCloseBtns(); renderAll();
+      showToast('\u2713 '+label+' import\u00e9 \u2014 '+Object.values(nb)[0].clients.length+' clients');
+    }catch(err){
+      showToast('Erreur: '+err.message);
+      console.error(err);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ─────────────────────────────────────────────────
+// DRAG & DROP
+// ─────────────────────────────────────────────────
+function initDragDrop(){
+  var overlay=document.getElementById('dropOverlay');
+  var depth=0;
+  function hasFiles(e){
+    if(!e.dataTransfer||!e.dataTransfer.types) return false;
+    return Array.prototype.indexOf.call(e.dataTransfer.types,'Files')>=0;
+  }
+  document.addEventListener('dragenter',function(e){
+    if(!hasFiles(e)) return;
+    e.preventDefault(); depth++;
+    if(depth===1) overlay.classList.add('show');
+  },false);
+  document.addEventListener('dragleave',function(e){
+    if(!hasFiles(e)) return;
+    depth--; if(depth<=0){depth=0; overlay.classList.remove('show');}
+  },false);
+  document.addEventListener('dragover',function(e){
+    if(!hasFiles(e)) return;
+    e.preventDefault(); e.dataTransfer.dropEffect='copy';
+  },false);
+  document.addEventListener('drop',function(e){
+    e.preventDefault(); depth=0; overlay.classList.remove('show');
+    var dt=e.dataTransfer;
+    if(!dt||!dt.files||!dt.files.length) return;
+    var file=null;
+    for(var i=0;i<dt.files.length;i++){
+      if(/\.(xls|xlsx)$/i.test(dt.files[i].name)){file=dt.files[i];break;}
+    }
+    if(!file){ showToast('Fichier .xls ou .xlsx requis'); return; }
+    processFile(file);
+  },false);
+}
+
+// ─────────────────────────────────────────────────
+// TOAST
+// ─────────────────────────────────────────────────
+var _tt=null;
+function showToast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  if(_tt) clearTimeout(_tt);
+  _tt=setTimeout(function(){t.classList.remove('show');},3500);
+}
+
+// ─────────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────────
+window.addEventListener('load',function(){
+  var libs=[
+    'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'
+  ];
+  var loaded=0;
+  libs.forEach(function(src){
+    var s=document.createElement('script'); s.src=src;
+    s.onload=function(){if(++loaded===libs.length) init();};
+    s.onerror=function(){showToast('Erreur chargement librairies');};
+    document.head.appendChild(s);
+  });
+});
+
+function init(){
+  // Load the most recent imported month as default view
+  var all=getAllMonths();
+  if(all.length){
+    all.sort(function(a,b){ return (b.year*12+b.month)-(a.year*12+a.month); });
+    var latest=all[0];
+    DATA=latest.data;
+    currentYear=latest.year; currentMonth=latest.month;
+    barYear=latest.year;
+    document.getElementById('plbl').textContent=latest.label+(latest.closed?' \uD83D\uDD12':'');
+    showToast('Restaur\u00e9 : '+latest.label);
+  }
+  renderMonthBar();
+  updateCloseBtns();
+  renderAll();
+  initDragDrop();
+}
+
+</script>
+</body>
+</html>

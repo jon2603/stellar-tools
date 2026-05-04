@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Listed Options - Bloomberg</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--gold:#8a6a1a;--gold-dim:rgba(138,106,26,.10);--gold-border:rgba(138,106,26,.25);--bg:#f5f3ef;--bg2:#fff;--bg3:#f0ede8;--text:#1a1812;--text-dim:#5a5650;--text-muted:#9a9690;--green:#276e47;--red:#b83232;--blue:#2a5fa8;--purple:#5c3d9e;--border:rgba(0,0,0,.10);--radius:8px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+header{height:58px;background:var(--bg2);border-bottom:1px solid var(--gold-border);display:flex;align-items:center;justify-content:space-between;padding:0 34px}
+.brand{font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:600;color:var(--gold);letter-spacing:.06em}
+.status{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-muted);padding:5px 10px;border:1px solid var(--border);border-radius:999px}
+main{max-width:1280px;margin:0 auto;padding:28px 34px}
+.panel{background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:18px}
+.panel-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg3)}
+.panel-title{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:600}
+.panel-body{padding:18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:12px;align-items:end}
+.field.wide{grid-column:span 2}
+.field{display:flex;flex-direction:column;gap:6px}
+.field.hidden{display:none}
+label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);font-weight:600}
+input,select{height:38px;border:1px solid var(--border);border-radius:var(--radius);background:#fff;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:0 11px;outline:none}
+input:focus,select:focus{border-color:var(--gold)}
+button{height:38px;border:none;border-radius:var(--radius);background:var(--gold);color:white;font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;padding:0 18px;cursor:pointer;white-space:nowrap}
+button.secondary{background:var(--bg3);color:var(--text-dim);border:1px solid var(--border)}
+button:disabled{opacity:.55;cursor:default}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.actions{display:flex;gap:10px;align-items:center;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
+.tabs{display:flex;gap:8px;margin-bottom:14px}
+.tab{height:34px;background:var(--bg3);color:var(--text-dim);border:1px solid var(--border)}
+.tab.active{background:var(--gold);color:#fff;border-color:var(--gold)}
+.quick{display:grid;grid-template-columns:1fr auto;gap:10px;margin-bottom:14px}
+.quick input{height:40px}
+.ticker-box{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--gold);background:var(--gold-dim);border:1px solid var(--gold-border);padding:7px 10px;border-radius:8px;max-width:520px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cards{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px}
+.cards.adjusted{grid-template-columns:repeat(5,1fr);background:#1f2f2a;border:1px solid rgba(39,110,71,.35);border-radius:10px;padding:12px}
+.kpi{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--gold);border-radius:8px;padding:14px 15px;min-width:0}
+.kpi.blue{border-left-color:var(--blue)}.kpi.green{border-left-color:var(--green)}.kpi.red{border-left-color:var(--red)}.kpi.purple{border-left-color:var(--purple)}
+.kpi.mid-price{background:#fffdf6;border-color:rgba(138,106,26,.34);border-left:5px solid var(--gold);box-shadow:0 6px 18px rgba(138,106,26,.12)}
+.kpi.mid-price .kpi-label{color:var(--gold)}
+.kpi.mid-price .kpi-val{font-size:23px;font-weight:700;color:var(--gold)}
+.kpi.adjusted-price{background:#f7fff9;border-color:rgba(39,110,71,.40);border-left:5px solid var(--green);box-shadow:0 8px 20px rgba(23,71,45,.16)}
+.kpi.adjusted-price .kpi-label{color:#276e47}
+.kpi.adjusted-price .kpi-val{font-size:26px;font-weight:700;color:#17472d}
+.kpi.adjusted-price.adjusted-mid{background:#fffdf6;border-color:rgba(138,106,26,.45);border-left-color:var(--gold);box-shadow:0 8px 22px rgba(138,106,26,.18)}
+.kpi.adjusted-price.adjusted-mid .kpi-label{color:var(--gold)}
+.kpi.adjusted-price.adjusted-mid .kpi-val{color:var(--gold)}
+.kpi-label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);font-weight:600;margin-bottom:5px}
+.kpi-val{font-family:'JetBrains Mono',monospace;font-size:19px;font-weight:500;overflow:hidden;text-overflow:ellipsis}
+.kpi-sub{font-size:11px;color:var(--text-muted);margin-top:4px}
+.legs{width:100%;border-collapse:collapse;font-size:12px}
+.legs th{padding:8px 10px;text-align:left;color:var(--text-muted);font-size:10px;text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border);background:var(--bg3)}
+.legs td{padding:8px 10px;border-bottom:1px solid var(--border);font-family:'JetBrains Mono',monospace}
+.legs td:first-child{font-family:'DM Sans',sans-serif}
+.error{display:none;margin-top:14px;padding:10px 12px;background:rgba(184,50,50,.08);border:1px solid rgba(184,50,50,.25);border-radius:8px;color:var(--red);font-size:12px}
+.note{font-size:12px;color:var(--text-muted);line-height:1.6}
+@media(max-width:1050px){.cards{grid-template-columns:1fr 1fr}.field.wide{grid-column:span 1}}
+@media(max-width:640px){main{padding:18px 14px}header{padding:0 16px}.grid,.cards,.quick{grid-template-columns:1fr}.actions{justify-content:stretch}.actions button,.quick button{width:100%}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">STELLAR SECURITIES</div>
+  <div class="status" id="bridge-status">Bridge: checking</div>
+</header>
+<main>
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <div class="panel-title">Listed Option Strategy Quote</div>
+        <div class="note">Bid/ask Bloomberg + greeks + ajustement sur future actif. SX7E utilise CAA Index par défaut.</div>
+      </div>
+      <div class="ticker-box" id="bbgTicker">-</div>
+    </div>
+    <div class="panel-body">
+      <div class="quick">
+        <input id="quickInput" placeholder="ex: Sx7e mar27 270 C (252.5) / SX7E Mar27 260 270 Call Ratio 1 by 1.5">
+        <button onclick="parseQuickAndLoad()">Parse & Load</button>
+      </div>
+      <div class="tabs">
+        <button class="tab active" id="indexTab" onclick="setAssetMode('index')">Index</button>
+        <button class="tab" id="singleTab" onclick="setAssetMode('single')">Single Stock</button>
+      </div>
+      <div class="grid">
+        <div class="field wide" id="underlyingField"><label>Index option root</label><input id="underlying" value="SX7E" placeholder="SX7E, SX5E, SPX"></div>
+        <div class="field wide hidden single-stock-field"><label>Stock reference</label><input id="stockRef" value="BNP FP Equity" placeholder="BNP FP Equity"></div>
+        <div class="field hidden single-stock-field"><label>Exchange</label><select id="stockExchange">
+          <option value="euronext">Euronext</option>
+          <option value="eurex">Eurex</option>
+        </select></div>
+        <div class="field hidden single-stock-field"><label>Option root</label><input id="optionRoot" value="BN1 FP" placeholder="BN1 FP or BNP GR"></div>
+        <div class="field wide"><label>Strategy</label><select id="strategy">
+          <option value="call">Call</option>
+          <option value="put">Put</option>
+          <option value="call_spread">Call Spread</option>
+          <option value="put_spread">Put Spread</option>
+          <option value="call_ratio">Call Ratio</option>
+          <option value="put_ratio">Put Ratio</option>
+          <option value="straddle">Straddle</option>
+          <option value="strangle">Strangle</option>
+          <option value="call_calendar">Call Calendar</option>
+          <option value="put_calendar">Put Calendar</option>
+        </select></div>
+        <div class="field" id="strike1Field"><label>Strike 1</label><input id="strike1" type="number" value="260" step="0.01"></div>
+        <div class="field" id="strike2Field"><label>Strike 2</label><input id="strike2" type="number" value="270" step="0.01"></div>
+        <div class="field" id="ratioField"><label>Ratio short</label><input id="ratioShort" type="number" value="2" step="0.1"></div>
+        <div class="field" id="mat1Field"><label>Mat 1</label><input id="mat1" value="Jun26" placeholder="Jun26"></div>
+        <div class="field" id="mat2Field"><label>Mat 2</label><input id="mat2" value="Sep26" placeholder="Sep26"></div>
+        <div class="field wide"><label>Reference ticker</label><input id="refTicker" value="CAA Index"></div>
+        <div class="field wide hidden single-stock-field" id="manualTickerField"><label>Manual option ticker</label><input id="manualTicker" placeholder="optional, one-leg Call/Put only"></div>
+        <div class="field"><label>Reference cible</label><input id="refSpot" type="number" step="0.01" placeholder="target ref"></div>
+      </div>
+      <div class="actions">
+        <button class="secondary" onclick="useLiveAsRef()">Use live as reference</button>
+        <button id="loadBtn" onclick="loadStrategy()">Load Bloomberg</button>
+      </div>
+      <div style="margin-top:10px" class="row">
+        <span class="note">Adjusted = Bloomberg + Net Delta x (Reference cible - Live future). Delta + : prix monte si future monte.</span>
+      </div>
+      <div class="error" id="err"></div>
+    </div>
+  </section>
+
+  <section class="cards">
+    <div class="kpi"><div class="kpi-label">Market Bid</div><div class="kpi-val" id="bid">-</div><div class="kpi-sub">strategy executable</div></div>
+    <div class="kpi mid-price"><div class="kpi-label">Market Mid</div><div class="kpi-val" id="mid">-</div><div class="kpi-sub">middle of spread</div></div>
+    <div class="kpi"><div class="kpi-label">Market Ask</div><div class="kpi-val" id="ask">-</div><div class="kpi-sub">strategy executable</div></div>
+    <div class="kpi blue"><div class="kpi-label">Live Future Ref</div><div class="kpi-val" id="liveRef">-</div><div class="kpi-sub" id="refTime">time -</div></div>
+    <div class="kpi purple"><div class="kpi-label">Open Interest</div><div class="kpi-val" id="openInterest">-</div><div class="kpi-sub">sum legs abs</div></div>
+  </section>
+
+  <section class="cards adjusted">
+    <div class="kpi adjusted-price"><div class="kpi-label">Adjusted Bid</div><div class="kpi-val" id="adjBid">-</div><div class="kpi-sub">to target ref</div></div>
+    <div class="kpi adjusted-price adjusted-mid"><div class="kpi-label">Adjusted Mid</div><div class="kpi-val" id="adjMid">-</div><div class="kpi-sub">middle of adjusted spread</div></div>
+    <div class="kpi adjusted-price"><div class="kpi-label">Adjusted Ask</div><div class="kpi-val" id="adjAsk">-</div><div class="kpi-sub">to target ref</div></div>
+    <div class="kpi"><div class="kpi-label">Reference cible</div><div class="kpi-val" id="refOut">-</div><div class="kpi-sub" id="moveText">move -</div></div>
+    <div class="kpi"><div class="kpi-label">Net Delta</div><div class="kpi-val" id="deltaOut">-</div><div class="kpi-sub">signed strategy</div></div>
+  </section>
+
+  <section class="cards">
+    <div class="kpi"><div class="kpi-label">Gamma</div><div class="kpi-val" id="gGamma">-</div><div class="kpi-sub">net</div></div>
+    <div class="kpi"><div class="kpi-label">Vega</div><div class="kpi-val" id="gVega">-</div><div class="kpi-sub">net</div></div>
+    <div class="kpi"><div class="kpi-label">Theta</div><div class="kpi-val" id="gTheta">-</div><div class="kpi-sub">net</div></div>
+    <div class="kpi"><div class="kpi-label">Rho</div><div class="kpi-val" id="gRho">-</div><div class="kpi-sub">net</div></div>
+    <div class="kpi blue"><div class="kpi-label">Avg IVOL Mid</div><div class="kpi-val" id="gVol">-</div><div class="kpi-sub">legs with vol</div></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><div class="panel-title">Legs Bloomberg</div><div class="note" id="strategyLabel">-</div></div>
+    <div class="panel-body">
+      <table class="legs">
+        <thead><tr><th>Leg</th><th>Ticker</th><th>Side</th><th>Bid</th><th>Ask</th><th>Mid</th><th>Delta</th><th>OI</th></tr></thead>
+        <tbody id="legsBody"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+<script>
+const API = 'http://127.0.0.1:8765';
+let assetMode = 'index';
+let state = null;
+function $(id){return document.getElementById(id);}
+function num(id){const n=Number($(id).value);return Number.isFinite(n)?n:null;}
+function fmt(v){if(v===null||v===undefined||v==='')return '-';const n=Number(v);return Number.isFinite(n)?n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):String(v);}
+function fmtPct(v){if(v===null||v===undefined||v==='')return '-';const n=Number(v);return Number.isFinite(n)?(n*100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+'%':String(v);}
+function setError(msg){$('err').textContent=msg||'';$('err').style.display=msg?'block':'none';}
+function thirdFriday(year, monthIndex){const d=new Date(year,monthIndex,1);let c=0;while(d.getMonth()===monthIndex){if(d.getDay()===5){c++;if(c===3)return d;}d.setDate(d.getDate()+1);}return new Date(year,monthIndex,15);}
+function parseMaturity(raw){const s=raw.trim();const direct=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);if(direct)return `${direct[1].padStart(2,'0')}/${direct[2].padStart(2,'0')}/${direct[3].slice(-2)}`;const months={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};const m=s.match(/^([a-z]{3})(\d{2,4})$/i);if(!m)throw new Error('Maturite invalide. Utilise Jun26 ou 06/19/26.');const y=m[2].length===2?2000+Number(m[2]):Number(m[2]);const d=thirdFriday(y,months[m[1].toLowerCase()]);return `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${String(d.getFullYear()).slice(-2)}`;}
+function cleanUnderlying(){return $('underlying').value.trim().replace(/\s+Index$/i,'').replace(/\s+Equity$/i,'');}
+function cleanOptionRoot(){return assetMode==='single'?$('optionRoot').value.trim().replace(/\s+Equity$/i,''):cleanUnderlying();}
+function defaultReferenceTicker(){if(assetMode==='single')return $('stockRef').value.trim()||'BNP FP Equity';const u=cleanUnderlying().toUpperCase();const map={SX7E:'CAA Index'};return map[u]||(/\s/.test($('underlying').value.trim())?$('underlying').value.trim()+' Equity':cleanUnderlying()+' Index');}
+function optTicker(cp,strike,mat){const k=Number(strike);const kt=Number.isInteger(k)?String(k):String(strike);const suffix=assetMode==='single'?'Equity':'Index';return `${cleanOptionRoot()} ${parseMaturity(mat)} ${cp}${kt} ${suffix}`;}
+function buildLegs(){
+  const s=$('strategy').value,k1=$('strike1').value,k2=$('strike2').value,m1=$('mat1').value,m2=$('mat2').value;
+  if(!k1)throw new Error('Strike 1 manquant.');
+  const ratio=Number($('ratioShort').value)||2;
+  const L=[];
+  if(s==='call') L.push({name:'Call',ticker:optTicker('C',k1,m1),qty:1});
+  if(s==='put') L.push({name:'Put',ticker:optTicker('P',k1,m1),qty:1});
+  if(s==='call_spread'){if(!k2)throw new Error('Strike 2 manquant.');L.push({name:'Long Call',ticker:optTicker('C',k1,m1),qty:1},{name:'Short Call',ticker:optTicker('C',k2,m1),qty:-1});}
+  if(s==='put_spread'){if(!k2)throw new Error('Strike 2 manquant.');L.push({name:'Long Put',ticker:optTicker('P',k1,m1),qty:1},{name:'Short Put',ticker:optTicker('P',k2,m1),qty:-1});}
+  if(s==='call_ratio'){if(!k2)throw new Error('Strike 2 manquant.');const low=Math.min(Number(k1),Number(k2)),high=Math.max(Number(k1),Number(k2));L.push({name:'Long Call low',ticker:optTicker('C',low,m1),qty:1},{name:`Short ${ratio} Call high`,ticker:optTicker('C',high,m1),qty:-ratio});}
+  if(s==='put_ratio'){if(!k2)throw new Error('Strike 2 manquant.');const low=Math.min(Number(k1),Number(k2)),high=Math.max(Number(k1),Number(k2));L.push({name:'Long Put high',ticker:optTicker('P',high,m1),qty:1},{name:`Short ${ratio} Put low`,ticker:optTicker('P',low,m1),qty:-ratio});}
+  if(s==='straddle') L.push({name:'Call',ticker:optTicker('C',k1,m1),qty:1},{name:'Put',ticker:optTicker('P',k1,m1),qty:1});
+  if(s==='strangle'){if(!k2)throw new Error('Strike 2 manquant.');L.push({name:'Put low',ticker:optTicker('P',k1,m1),qty:1},{name:'Call high',ticker:optTicker('C',k2,m1),qty:1});}
+  if(s==='call_calendar') L.push({name:'Long far Call',ticker:optTicker('C',k1,m2),qty:1},{name:'Short near Call',ticker:optTicker('C',k1,m1),qty:-1});
+  if(s==='put_calendar') L.push({name:'Long far Put',ticker:optTicker('P',k1,m2),qty:1},{name:'Short near Put',ticker:optTicker('P',k1,m1),qty:-1});
+  if(assetMode==='single'&&$('manualTicker').value.trim()&&L.length===1)L[0].ticker=$('manualTicker').value.trim();
+  return L;
+}
+async function fetchQuote(ticker){const r=await fetch(API+'/quote?ticker='+encodeURIComponent(ticker));const p=await r.json();if(!p.ok)throw new Error(p.error||'Bloomberg error');return p.data;}
+async function checkBridge(){const st=$('bridge-status');try{const r=await fetch(API+'/health');if(!r.ok)throw new Error('offline');st.textContent='Bridge: online';st.style.color='var(--green)';}catch(e){st.textContent='Bridge: offline';st.style.color='var(--red)';}}
+function fnum(q,names){const f=q&&q.fields?q.fields:{};for(const n of names){const v=Number(f[n]);if(Number.isFinite(v))return v;}return null;}
+function delta(q){let d=fnum(q,['OPT_DELTA','DELTA']);if(d===null)return null;if(Math.abs(d)>1.5)d/=100;return d;}
+function liveRef(){if(!state||!state.ref)return null;const mid=Number(state.ref.mid),last=Number(state.ref.last);return Number.isFinite(mid)?mid:Number.isFinite(last)?last:null;}
+function aggregate(legs){
+  const out={bid:0,ask:0,mid:0,delta:0,gamma:0,vega:0,theta:0,rho:0,volSum:0,volN:0,oi:0};
+  legs.forEach(l=>{const q=l.quote, qty=l.qty;const bid=Number(q.bid),ask=Number(q.ask),mid=Number(q.mid);out.bid+=qty>0?bid*qty:ask*qty;out.ask+=qty>0?ask*qty:bid*qty;out.mid+=Number.isFinite(mid)?mid*qty:0;[['delta',delta(q)],['gamma',fnum(q,['OPT_GAMMA','GAMMA'])],['vega',fnum(q,['OPT_VEGA','VEGA'])],['theta',fnum(q,['OPT_THETA','THETA'])],['rho',fnum(q,['OPT_RHO','RHO'])]].forEach(([k,v])=>{if(Number.isFinite(v))out[k]+=v*qty;});const vol=fnum(q,['IVOL_MID','IMPLIED_VOLATILITY_MID']);if(Number.isFinite(vol)){out.volSum+=vol;out.volN++;}const oi=fnum(q,['OPEN_INT','OPEN_INTEREST']);if(Number.isFinite(oi))out.oi+=Math.abs(oi);});
+  out.vol=out.volN?out.volSum/out.volN:null;return out;
+}
+function recalcAdjusted(){
+  if(!state)return;const ref=num('refSpot'),live=liveRef(),a=state.agg;$('refOut').textContent=fmt(ref);$('deltaOut').textContent=fmtPct(a.delta);
+  if(!Number.isFinite(ref)||!Number.isFinite(live)||!Number.isFinite(a.delta)){$('adjBid').textContent=$('adjAsk').textContent=$('adjMid').textContent='-';$('moveText').textContent='move -';return;}
+  const move=ref-live;$('moveText').textContent=`move ${fmt(ref)} - ${fmt(live)} = ${fmt(move)}`;
+  $('adjBid').textContent=fmt(a.bid+a.delta*move);$('adjAsk').textContent=fmt(a.ask+a.delta*move);$('adjMid').textContent=fmt(a.mid+a.delta*move);
+}
+function useLiveAsRef(){const l=liveRef();if(Number.isFinite(l)){$('refSpot').value=l;recalcAdjusted();}}
+function render(legs,ref,agg){
+  $('bid').textContent=fmt(agg.bid);$('ask').textContent=fmt(agg.ask);$('mid').textContent=fmt(agg.mid);$('liveRef').textContent=fmt(liveRef());$('refTime').textContent='time '+fmt(ref.fields.TIME);$('openInterest').textContent=fmt(agg.oi);$('gGamma').textContent=fmt(agg.gamma);$('gVega').textContent=fmt(agg.vega);$('gTheta').textContent=fmt(agg.theta);$('gRho').textContent=fmt(agg.rho);$('gVol').textContent=fmt(agg.vol);$('strategyLabel').textContent=$('strategy').selectedOptions[0].textContent;$('bbgTicker').textContent=legs.map(l=>l.ticker).join(' | ');
+  $('legsBody').innerHTML=legs.map(l=>`<tr><td>${l.name}</td><td>${l.ticker}</td><td>${l.qty>0?'Long':'Short'}</td><td>${fmt(l.quote.bid)}</td><td>${fmt(l.quote.ask)}</td><td>${fmt(l.quote.mid)}</td><td>${fmtPct(delta(l.quote))}</td><td>${fmt(fnum(l.quote,['OPEN_INT','OPEN_INTEREST']))}</td></tr>`).join('');
+  if(!$('refSpot').value&&Number.isFinite(liveRef()))$('refSpot').value=liveRef();recalcAdjusted();
+}
+async function loadStrategy(){
+  setError('');const btn=$('loadBtn');btn.disabled=true;btn.textContent='Loading';
+  try{const legs=buildLegs();const refTicker=$('refTicker').value.trim()||defaultReferenceTicker();$('refTicker').value=refTicker;const quotes=await Promise.all([...legs.map(l=>fetchQuote(l.ticker)),fetchQuote(refTicker)]);const ref=quotes.pop();legs.forEach((l,i)=>l.quote=quotes[i]);state={legs,ref,agg:aggregate(legs)};render(legs,ref,state.agg);}catch(e){setError(e.message+' Verifie les tickers et Bloomberg.');}finally{btn.disabled=false;btn.textContent='Load Bloomberg';checkBridge();}
+}
+function updateFieldVisibility(){
+  const s=$('strategy').value;
+  const needsStrike2=['call_spread','put_spread','call_ratio','put_ratio','strangle'].includes(s);
+  const needsRatio=['call_ratio','put_ratio'].includes(s);
+  const needsMat2=['call_calendar','put_calendar'].includes(s);
+  $('strike2Field').classList.toggle('hidden',!needsStrike2);
+  $('ratioField').classList.toggle('hidden',!needsRatio);
+  $('mat2Field').classList.toggle('hidden',!needsMat2);
+  $('underlyingField').classList.toggle('hidden',assetMode==='single');
+  document.querySelectorAll('.single-stock-field').forEach(el=>el.classList.toggle('hidden',assetMode!=='single'));
+  $('manualTickerField').classList.toggle('hidden',!(assetMode==='single'&&(s==='call'||s==='put')));
+}
+function applySingleStockPreset(){
+  const stock=$('stockRef').value.trim().toUpperCase();
+  if(stock.startsWith('BNP FP'))$('optionRoot').value=$('stockExchange').value==='eurex'?'BNP GR':'BN1 FP';
+}
+function setAssetMode(mode){
+  assetMode=mode;
+  $('indexTab').classList.toggle('active',mode==='index');
+  $('singleTab').classList.toggle('active',mode==='single');
+  if(mode==='single')applySingleStockPreset();
+  $('refTicker').value=defaultReferenceTicker();
+  refreshPreview();
+}
+function quickStrategy(text){
+  const t=text.toLowerCase();
+  if(/\b(call\s*(cal|calendar)|cc)\b/.test(t))return 'call_calendar';
+  if(/\b(put\s*(cal|calendar)|pc)\b/.test(t))return 'put_calendar';
+  if(/\b(call\s*ratio|ratio\s*call|c\s*ratio|cr)\b/.test(t))return 'call_ratio';
+  if(/\b(put\s*ratio|ratio\s*put|p\s*ratio|pr)\b/.test(t))return 'put_ratio';
+  if(/\b(call\s*spread|cs)\b/.test(t))return 'call_spread';
+  if(/\b(put\s*spread|ps)\b/.test(t))return 'put_spread';
+  if(/\b(straddle|std)\b/.test(t))return 'straddle';
+  if(/\b(strangle|stg)\b/.test(t))return 'strangle';
+  if(/\b(call|c)\b/.test(t))return 'call';
+  if(/\b(put|p)\b/.test(t))return 'put';
+  return 'call';
+}
+function quickMaturities(text){
+  const out=[];const re=/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s*[-\/]?\s*(\d{2,4})\b/ig;let m;
+  while((m=re.exec(text)))out.push((m[1].slice(0,3)+m[2]).replace(/\s+/g,''));
+  return out;
+}
+function quickNumbers(text){
+  const noDates=text
+    .replace(/\b\d{1,2}\/\d{1,2}\/\d{2,4}\b/g,' ')
+    .replace(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s*[-\/]?\s*\d{2,4}\b/ig,' ')
+    .replace(/\b\d+(?:\.\d+)?\s*(?:x|by|par)\s*\d+(?:\.\d+)?\b/ig,' ')
+    .replace(/\([^)]*\)/g,' ');
+  return (noDates.match(/\b-?\d+(?:\.\d+)?\b/g)||[]).map(Number).filter(Number.isFinite);
+}
+function quickRatio(text){
+  const m=text.match(/\b(?:1\s*)?(?:x|by|par)\s*(\d+(?:\.\d+)?)\b/i)||text.match(/\b1\s*(?:x|by|par)\s*(\d+(?:\.\d+)?)\b/i);
+  return m?Number(m[1]):null;
+}
+function quickUnderlying(text){
+  const t=text.toUpperCase();
+  if(/\bSX7E\b/.test(t))return {mode:'index',root:'SX7E'};
+  if(/\bSX5E\b/.test(t))return {mode:'index',root:'SX5E'};
+  if(/\bBN1\s+FP\b/.test(t))return {mode:'single',stock:'BNP FP Equity',root:'BN1 FP',exchange:'euronext'};
+  if(/\bBNP\s+GR\b/.test(t))return {mode:'single',stock:'BNP FP Equity',root:'BNP GR',exchange:'eurex'};
+  if(/\bBNP\s+FP\b/.test(t))return {mode:'single',stock:'BNP FP Equity',root:'BN1 FP',exchange:'euronext'};
+  const root=(t.match(/\b[A-Z0-9]{2,6}\b/)||[])[0];
+  return {mode:'index',root:root||cleanUnderlying()};
+}
+async function parseQuickAndLoad(){
+  setError('');
+  const text=$('quickInput').value.trim();
+  if(!text){setError('Quick input vide.');return;}
+  const refMatch=text.match(/\(([-+]?\d+(?:\.\d+)?)\)|\bref(?:erence)?\s*[:=]?\s*([-+]?\d+(?:\.\d+)?)/i);
+  const ref=refMatch?Number(refMatch[1]||refMatch[2]):null;
+  const parsed=quickUnderlying(text), strategy=quickStrategy(text), mats=quickMaturities(text), nums=quickNumbers(text), ratio=quickRatio(text);
+  setAssetMode(parsed.mode);
+  if(parsed.mode==='single'){
+    $('stockRef').value=parsed.stock||$('stockRef').value;
+    $('stockExchange').value=parsed.exchange||'euronext';
+    $('optionRoot').value=parsed.root||$('optionRoot').value;
+    $('manualTicker').value='';
+  }else{
+    $('underlying').value=parsed.root;
+  }
+  $('strategy').value=strategy;
+  if(mats[0])$('mat1').value=mats[0];
+  if(mats[1])$('mat2').value=mats[1];
+  if(nums[0]!==undefined)$('strike1').value=nums[0];
+  if(nums[1]!==undefined)$('strike2').value=nums[1];
+  $('ratioShort').value=Number.isFinite(ratio)?ratio:2;
+  if(Number.isFinite(ref))$('refSpot').value=ref;
+  $('refTicker').value=defaultReferenceTicker();
+  refreshPreview();
+  await loadStrategy();
+}
+function refreshPreview(changedId){
+  if(assetMode==='single'&&(changedId==='stockExchange'||changedId==='stockRef'))applySingleStockPreset();
+  updateFieldVisibility();
+  try{$('bbgTicker').textContent=buildLegs().map(l=>l.ticker).join(' | ');}catch(e){$('bbgTicker').textContent='-';}
+  if(['underlying','stockRef','stockExchange'].includes(changedId))$('refTicker').value=defaultReferenceTicker();
+}
+['underlying','stockRef','stockExchange','optionRoot','manualTicker','strategy','strike1','strike2','ratioShort','mat1','mat2'].forEach(id=>{
+  $(''+id).addEventListener('input',()=>refreshPreview(id));
+  $(''+id).addEventListener('change',()=>refreshPreview(id));
+});
+$('quickInput').addEventListener('keydown',e=>{if(e.key==='Enter')parseQuickAndLoad();});
+$('refSpot').addEventListener('input',recalcAdjusted);
+checkBridge();refreshPreview();
+</script>
+</body>
+</html>

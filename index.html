@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stellar Securities — Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --gold:#8a6a1a; --gold-light:#a07c22; --gold-dim:rgba(138,106,26,.12); --gold-border:rgba(138,106,26,.28);
+  --navy:#0a1628; --navy2:#0d1f3c; --navy3:#162440;
+  --bg:#f5f3ef; --bg2:#ffffff; --bg3:#f0ede8;
+  --text:#1a1812; --text-dim:#5a5650; --text-muted:#9a9690;
+  --green:#276e47; --red:#b83232;
+  --border:rgba(0,0,0,.08); --border-strong:rgba(0,0,0,.14);
+  --radius:10px; --shadow:0 2px 8px rgba(0,0,0,.07);
+  --shadow-lg:0 12px 40px rgba(0,0,0,.14);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+/* ── NOISE TEXTURE ── */
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:.4}
+
+/* ── LOGIN ── */
+#login-screen{position:fixed;inset:0;z-index:999;display:flex;align-items:center;justify-content:center;background:var(--bg)}
+
+.login-card{width:100%;max-width:400px;padding:44px 48px;background:var(--bg2);border:1px solid var(--gold-border);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.10)}
+.login-logo{text-align:center;margin-bottom:36px}
+.login-logo-mark{width:48px;height:48px;margin:0 auto 14px;border:1px solid var(--gold-border);border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--gold-dim)}
+.login-logo-mark svg{width:24px;height:24px;fill:var(--gold)}
+.login-title{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;color:var(--gold);letter-spacing:.08em;margin-bottom:4px}
+.login-sub{font-size:11px;color:var(--text-muted);letter-spacing:.12em;text-transform:uppercase}
+.login-field{margin-bottom:18px}
+.login-field label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);font-weight:500;margin-bottom:6px}
+.login-field input{width:100%;background:var(--bg3);border:1px solid var(--border-strong);border-radius:var(--radius);padding:11px 14px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);outline:none;transition:all .2s}
+.login-field input::placeholder{color:var(--text-muted)}
+.login-field input:focus{border-color:var(--gold);background:var(--bg2)}
+.login-submit{width:100%;margin-top:8px;background:var(--gold);color:#fff;border:none;padding:12px;border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:background .2s}
+.login-submit:hover{background:var(--gold-light)}
+.login-submit:disabled{opacity:.5;cursor:default}
+.login-error{display:none;margin-top:12px;padding:9px 14px;background:rgba(184,50,50,.08);border:1px solid rgba(184,50,50,.25);border-radius:var(--radius);font-size:12px;color:var(--red);text-align:center}
+.login-divider{margin:28px 0 20px;display:flex;align-items:center;gap:12px}
+.login-divider::before,.login-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.login-divider span{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em}
+
+/* ── APP ── */
+#app{display:none;min-height:100vh;flex-direction:column}
+#app.visible{display:flex}
+
+/* ── HEADER ── */
+.site-header{position:sticky;top:0;z-index:100;background:var(--bg2);border-bottom:1px solid var(--gold-border);padding:0 40px;height:60px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.header-brand{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:600;color:var(--gold);letter-spacing:.08em;display:flex;align-items:center;gap:10px}
+.header-brand-dot{width:6px;height:6px;border-radius:50%;background:var(--gold);opacity:.6}
+.header-nav{display:flex;gap:4px}
+.header-nav-btn{padding:7px 18px;border:none;background:transparent;color:var(--text-dim);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;border-radius:8px;transition:all .2s}
+.header-nav-btn:hover{background:var(--bg3);color:var(--text)}
+.header-nav-btn.active{background:var(--gold-dim);color:var(--gold);border:1px solid var(--gold-border);font-weight:500}
+.header-right{display:flex;align-items:center;gap:14px}
+.header-user{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-muted);padding:4px 12px;border:1px solid var(--border-strong);border-radius:20px}
+.header-logout{background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);padding:5px 14px;border-radius:20px;font-size:12px;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif}
+.header-logout:hover{border-color:rgba(184,50,50,.3);color:var(--red)}
+
+/* ── PAGES ── */
+.page{display:none;flex:1}
+.page.active{display:block}
+
+/* ── DASHBOARD ── */
+.dashboard{padding:56px 40px}
+.dash-hero{text-align:center;margin-bottom:64px}
+.dash-hero-eyebrow{font-size:10px;text-transform:uppercase;letter-spacing:.2em;color:var(--text-muted);margin-bottom:16px;font-family:'JetBrains Mono',monospace}
+.dash-hero-title{font-family:'Cormorant Garamond',serif;font-size:48px;font-weight:300;color:var(--text);line-height:1.1;margin-bottom:12px}
+.dash-hero-title em{font-style:italic;color:var(--gold)}
+.dash-hero-sub{font-size:14px;color:var(--text-muted);letter-spacing:.04em}
+
+.dash-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:20px;max-width:1340px;margin:0 auto}
+.tool-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:32px 28px;cursor:pointer;transition:all .3s;position:relative;overflow:hidden;text-decoration:none;display:block;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.tool-card::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 80% 20%,rgba(138,106,26,.08) 0%,transparent 60%);opacity:0;transition:opacity .3s}
+.tool-card:hover{border-color:var(--gold-border);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.1)}
+.tool-card:hover::before{opacity:1}
+.tool-card.bonus-card{border-color:var(--gold-border);background:var(--gold-dim)}
+.tool-card-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:22px;font-size:20px}
+.tool-card-icon.trs{background:rgba(42,95,168,.15);border:1px solid rgba(42,95,168,.25)}
+.tool-card-icon.exotic{background:rgba(92,61,158,.15);border:1px solid rgba(92,61,158,.25)}
+.tool-card-icon.email{background:rgba(42,95,168,.12);border:1px solid rgba(42,95,168,.28)}
+.tool-card-icon.bonus{background:rgba(138,106,26,.15);border:1px solid rgba(138,106,26,.25)}
+.tool-card-icon.pricer{background:rgba(31,47,42,.12);border:1px solid rgba(39,110,71,.28)}
+.tool-card-label{font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--text-muted);margin-bottom:8px;font-family:'JetBrains Mono',monospace}
+.tool-card-title{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;color:var(--text);margin-bottom:10px;line-height:1.2}
+.tool-card-desc{font-size:13px;color:var(--text-dim);line-height:1.6}
+.tool-card-arrow{position:absolute;bottom:24px;right:24px;width:32px;height:32px;border-radius:50%;border:1px solid var(--border-strong);display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:14px;transition:all .3s}
+.tool-card:hover .tool-card-arrow{border-color:var(--gold-border);color:var(--gold);transform:translate(2px,-2px)}
+.tool-card-icon.pnl{background:rgba(39,110,71,.15);border:1px solid rgba(39,110,71,.25)}
+.tool-card.pnl-card{border-color:rgba(39,110,71,.25)}
+.tool-card.pnl-card::before{background:radial-gradient(circle at 80% 20%,rgba(39,110,71,.08) 0%,transparent 60%)}
+.tool-card.pnl-card:hover{border-color:rgba(39,110,71,.5)}
+.pnl-live-data{margin-top:12px}
+.pnl-live-row{display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;border-bottom:1px solid var(--border)}
+.pnl-live-row:last-child{border-bottom:none}
+.pnl-live-label{font-size:10px;color:var(--text-muted)}
+.pnl-live-val{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500}
+.pnl-live-val.green{color:var(--green)}
+.pnl-live-val.gold{color:var(--gold)}
+.pnl-live-val.red{color:var(--red)}
+.tool-card-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;background:rgba(138,106,26,.2);border:1px solid var(--gold-border);color:var(--gold);margin-top:14px}
+
+/* ── ARCHIVE ── */
+.archive-page{padding:36px 40px;background:var(--bg);min-height:100vh}
+.archive-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}
+.archive-title{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:600;color:var(--text)}
+.archive-sub{font-size:12px;color:var(--text-muted);margin-top:4px}
+.archive-filters{display:flex;gap:10px;margin-bottom:22px;flex-wrap:wrap;align-items:center}
+.arch-select{background:var(--bg2);border:1px solid var(--border-strong);color:var(--text);padding:8px 14px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;cursor:pointer}
+.arch-select:focus{border-color:var(--gold)}
+.arch-input{background:var(--bg2);border:1px solid var(--border-strong);color:var(--text);padding:8px 14px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;width:220px}
+.arch-input::placeholder{color:var(--text-muted)}
+.arch-input:focus{border-color:var(--gold)}
+.archive-table{width:100%;border-collapse:collapse}
+.archive-table thead tr{border-bottom:2px solid var(--gold-border);background:var(--bg3)}
+.archive-table th{padding:10px 14px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--gold);font-family:'JetBrains Mono',monospace;font-weight:600}
+.archive-table td{padding:12px 14px;font-size:13px;color:var(--text-dim);border-bottom:1px solid var(--border)}
+.archive-table tr:hover td{background:var(--bg3)}
+.archive-table td.type-trs{color:#60a5fa}
+.archive-table td.type-exotic{color:#c084fc}
+.arch-badge{display:inline-block;padding:2px 9px;border-radius:12px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.arch-badge.trs{background:rgba(42,95,168,.2);color:#93bbf7;border:1px solid rgba(42,95,168,.3)}
+.arch-badge.exotic{background:rgba(92,61,158,.2);color:#c4a0f7;border:1px solid rgba(92,61,158,.3)}
+.arch-empty{text-align:center;padding:60px 20px;color:var(--text-muted)}
+.arch-empty-icon{font-size:36px;margin-bottom:12px}
+.arch-empty-text{font-size:14px}
+.arch-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:28px}
+.arch-stat{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px 20px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.arch-stat-label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:6px;font-family:'JetBrains Mono',monospace;font-weight:600}
+.arch-stat-value{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:600;color:var(--text)}
+.arch-stat-value.gold{color:var(--gold)}
+
+/* ── TOOL IFRAME ── */
+.tool-frame{display:none;width:100%;border:none;flex:1}
+.tool-frame.active{display:block}
+.tool-wrapper{display:none;flex-direction:column;flex:1;height:calc(100vh - 60px)}
+.tool-wrapper.active{display:flex}
+.tool-topbar{background:var(--bg2);border-bottom:1px solid var(--gold-border);padding:8px 20px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.tool-topbar-back{background:transparent;border:1px solid var(--border-strong);color:var(--text-dim);padding:5px 14px;border-radius:8px;font-size:12px;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px}
+.tool-topbar-back:hover{border-color:var(--gold-border);color:var(--gold)}
+.tool-topbar-title{font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:600;color:var(--text)}
+.tool-topbar-badge{font-family:'JetBrains Mono',monospace;font-size:10px;padding:2px 10px;border-radius:12px;border:1px solid var(--border-strong);color:var(--text-muted)}
+
+/* ── PNL CARD LIVE DATA ── */
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(138,106,26,.25);border-radius:3px}
+
+/* TOAST */
+#toast{position:fixed;bottom:24px;right:24px;background:var(--text);color:#fff;padding:11px 20px;border-radius:var(--radius);font-size:13px;opacity:0;transform:translateY(8px);transition:all .3s;pointer-events:none;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,.15)}
+#toast.show{opacity:1;transform:translateY(0)}
+
+@media(max-width:768px){
+  .dash-grid{grid-template-columns:1fr 1fr}
+  .site-header{padding:0 16px}
+  .dashboard,.archive-page{padding:32px 16px}
+  .header-nav{display:none}
+  .arch-stats{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-mark">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      </div>
+      <div class="login-title">STELLAR SECURITIES</div>
+      <div class="login-sub">by Market Securities</div>
+    </div>
+    <div class="login-divider"><span>Secure Access</span></div>
+    <div class="login-field">
+      <label>Identifiant</label>
+      <input type="text" id="login-user" placeholder="votre identifiant" autocomplete="username" autocapitalize="none">
+    </div>
+    <div class="login-field">
+      <label>Mot de passe</label>
+      <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="login-submit" id="login-btn" onclick="doLogin()">Se connecter</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+
+  <!-- HEADER -->
+  <header class="site-header">
+    <div class="header-brand">
+      <div class="header-brand-dot"></div>
+      STELLAR SECURITIES
+    </div>
+    <nav class="header-nav">
+      <button class="header-nav-btn active" onclick="showPage('dashboard',this)">Dashboard</button>
+      <button class="header-nav-btn" onclick="showPage('archive',this)">Archive Confirmations</button>
+    </nav>
+    <div class="header-right">
+      <div class="header-user" id="header-username">—</div>
+      <button class="header-logout" onclick="doLogout()">Déconnexion</button>
+    </div>
+  </header>
+
+  <!-- DASHBOARD -->
+  <div id="page-dashboard" class="page active">
+    <div class="dashboard">
+      <div class="dash-hero">
+        <div class="dash-hero-eyebrow">Stellar Securities Portal</div>
+        <div class="dash-hero-title">Welcome to <em>your</em><br>trading desk</div>
+        <div class="dash-hero-sub">Select a tool to get started</div>
+      </div>
+      <div class="dash-grid">
+        <!-- TRS -->
+        <div class="tool-card" onclick="openTool('trs')">
+          <div class="tool-card-icon trs">📋</div>
+          <div class="tool-card-label">Confirmation</div>
+          <div class="tool-card-title">TRS<br>Confirmation</div>
+          <div class="tool-card-desc">Generate and export TRS trade confirmation documents with basket details and reset schedules.</div>
+          <div class="tool-card-arrow">→</div>
+        </div>
+        <!-- EXOTIC -->
+        <div class="tool-card" onclick="openTool('exotic')">
+          <div class="tool-card-icon exotic">⚡</div>
+          <div class="tool-card-label">Confirmation</div>
+          <div class="tool-card-title">Exotic<br>CvC / PvP</div>
+          <div class="tool-card-desc">Generate Exotic trade confirmations for client vs client and principal vs principal structures.</div>
+          <div class="tool-card-arrow">→</div>
+        </div>
+        <!-- EXOTIC EMAIL -->
+        <div class="tool-card" onclick="openTool('email')">
+          <div class="tool-card-icon email">✉</div>
+          <div class="tool-card-label">Quote Request</div>
+          <div class="tool-card-title">Exotic<br>Email</div>
+          <div class="tool-card-desc">Build aligned exotic quote emails, select traders, and open Outlook with BCC, subject and template body.</div>
+          <div class="tool-card-arrow">→</div>
+        </div>
+        <!-- VANILLA PRICER -->
+        <div class="tool-card" onclick="openTool('pricer')">
+          <div class="tool-card-icon pricer">ƒ</div>
+          <div class="tool-card-label">Bloomberg</div>
+          <div class="tool-card-title">Vanilla<br>Pricer</div>
+          <div class="tool-card-desc">Price listed vanilla options and strategies with Bloomberg bid/ask, greeks, open interest and adjusted reference.</div>
+          <div class="tool-card-arrow">→</div>
+        </div>
+        <!-- PNL DASHBOARD -->
+        <div class="tool-card pnl-card" onclick="openTool('pnl')">
+          <div class="tool-card-icon pnl">📈</div>
+          <div class="tool-card-label" id="pnl-card-period">PnL Dashboard</div>
+          <div class="tool-card-title">PnL<br>Dashboard</div>
+          <div id="pnl-card-body">
+            <div class="tool-card-desc">Importez votre fichier XLS pour voir le PnL MTD, QTD et l'évolution par broker.</div>
+          </div>
+          <div class="tool-card-arrow">→</div>
+        </div>
+        <!-- BONUS -->
+        <div class="tool-card bonus-card" onclick="openTool('bonus')">
+          <div class="tool-card-icon bonus">💰</div>
+          <div class="tool-card-label">Private</div>
+          <div class="tool-card-title">Bonus<br>Calculator</div>
+          <div class="tool-card-desc">VPS quarterly bonus calculation with NBC waterfall, staff costs, FX rates and carry forward.</div>
+          <div class="tool-card-badge">🔒 Accès privé</div>
+          <div class="tool-card-arrow">→</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ARCHIVE -->
+  <div id="page-archive" class="page">
+    <div class="archive-page">
+      <div class="archive-header">
+        <div>
+          <div class="archive-title">Archive Confirmations</div>
+          <div class="archive-sub">Historique de toutes les confirmations générées</div>
+        </div>
+        <button onclick="loadArchive()" style="background:var(--gold-dim);border:1px solid var(--gold-border);color:var(--gold);padding:8px 18px;border-radius:8px;cursor:pointer;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500">↻ Actualiser</button>
+      </div>
+      <div class="arch-stats">
+        <div class="arch-stat"><div class="arch-stat-label">Total confirmations</div><div class="arch-stat-value gold" id="arch-total">—</div></div>
+        <div class="arch-stat"><div class="arch-stat-label">TRS ce mois</div><div class="arch-stat-value" id="arch-trs-month">—</div></div>
+        <div class="arch-stat"><div class="arch-stat-label">Exotic ce mois</div><div class="arch-stat-value" id="arch-exotic-month">—</div></div>
+      </div>
+      <div class="archive-filters">
+        <select class="arch-select" id="arch-filter-type" onchange="renderArchiveTable()">
+          <option value="">Tous types</option>
+          <option value="TRS">TRS</option>
+          <option value="Exotic">Exotic</option>
+        </select>
+        <select class="arch-select" id="arch-filter-month" onchange="renderArchiveTable()">
+          <option value="">Tous les mois</option>
+        </select>
+        <input type="text" class="arch-input" id="arch-search" placeholder="Rechercher contrepartie..." oninput="renderArchiveTable()">
+      </div>
+      <table class="archive-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Type</th>
+            <th>Contrepartie</th>
+            <th>Détails</th>
+            <th>Généré par</th>
+          </tr>
+        </thead>
+        <tbody id="archive-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TOOL WRAPPERS (iframes) -->
+  <div id="wrapper-trs" class="tool-wrapper">
+    <div class="tool-topbar">
+      <button class="tool-topbar-back" onclick="closeTool('trs')">← Retour</button>
+      <div class="tool-topbar-title">TRS Confirmation Generator</div>
+      <div class="tool-topbar-badge">v13</div>
+    </div>
+    <iframe id="frame-trs" class="tool-frame active" src="trs.html"></iframe>
+  </div>
+
+  <div id="wrapper-exotic" class="tool-wrapper">
+    <div class="tool-topbar">
+      <button class="tool-topbar-back" onclick="closeTool('exotic')">← Retour</button>
+      <div class="tool-topbar-title">Exotic Trade Confirmation — CvC / PvP</div>
+      <div class="tool-topbar-badge">CvC/PvP</div>
+    </div>
+    <iframe id="frame-exotic" class="tool-frame active" src="exotic.html"></iframe>
+  </div>
+
+  <div id="wrapper-email" class="tool-wrapper">
+    <div class="tool-topbar">
+      <button class="tool-topbar-back" onclick="closeTool('email')">← Retour</button>
+      <div class="tool-topbar-title">Exotic Quote Email Builder</div>
+      <div class="tool-topbar-badge">Outlook</div>
+    </div>
+    <iframe id="frame-email" class="tool-frame active" src="exotic_email_builder.html"></iframe>
+  </div>
+
+  <div id="wrapper-bonus" class="tool-wrapper">
+    <div class="tool-topbar">
+      <button class="tool-topbar-back" onclick="closeTool('bonus')">← Retour</button>
+      <div class="tool-topbar-title">VPS Bonus Calculator</div>
+      <div class="tool-topbar-badge">v7</div>
+    </div>
+    <iframe id="frame-bonus" class="tool-frame active" src="bonus.html"></iframe>
+  </div>
+
+  <div id="wrapper-pnl" class="tool-wrapper">
+    <div class="tool-topbar">
+      <button class="tool-topbar-back" onclick="closeTool('pnl')">← Retour</button>
+      <div class="tool-topbar-title">PnL Dashboard</div>
+      <div class="tool-topbar-badge">v5</div>
+    </div>
+    <iframe id="frame-pnl" class="tool-frame active" src="pnl_dashboard__4_.html"></iframe>
+  </div>
+
+  <div id="wrapper-pricer" class="tool-wrapper">
+    <div class="tool-topbar">
+      <button class="tool-topbar-back" onclick="closeTool('pricer')">← Retour</button>
+      <div class="tool-topbar-title">Vanilla Options Pricer</div>
+      <div class="tool-topbar-badge">Bloomberg</div>
+    </div>
+    <iframe id="frame-pricer" class="tool-frame active" src="vanilla_pricer.html"></iframe>
+  </div>
+
+</div><!-- end app -->
+
+<div id="toast"></div>
+
+<script>
+// ══ SUPABASE ══
+const SUPA_URL = 'https://ndcjgdapqccovopqyayt.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kY2pnZGFwcWNjb3ZvcHF5YXl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NDAyNTksImV4cCI6MjA5MzAxNjI1OX0.dICBeImd8TzL9xpi9zGQLuLe4BybNUfHs-tzS8XcedU';
+
+const supa = {
+  async query(table, filters={}, order='') {
+    let url = `${SUPA_URL}/rest/v1/${table}?select=*`;
+    Object.entries(filters).forEach(([k,v]) => url += `&${k}=eq.${encodeURIComponent(v)}`);
+    if (order) url += `&order=${order}`;
+    const r = await fetch(url, { headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` } });
+    return r.json();
+  },
+  async insert(table, data) {
+    const r = await fetch(`${SUPA_URL}/rest/v1/${table}`, {
+      method: 'POST',
+      headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify(data)
+    });
+    return r.ok;
+  }
+};
+
+// ══ AUTH ══
+let currentUser = null;
+
+async function doLogin() {
+  const user = document.getElementById('login-user').value.trim().toLowerCase();
+  const pass = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-error');
+  const btn = document.getElementById('login-btn');
+  errEl.style.display = 'none';
+  if (!user || !pass) { errEl.textContent = 'Remplis les deux champs.'; errEl.style.display='block'; return; }
+  btn.textContent = 'Connexion…'; btn.disabled = true;
+  try {
+    const rows = await supa.query('profiles', { username: user });
+    if (!rows || rows.length === 0 || rows[0].password !== pass) {
+      errEl.textContent = 'Identifiants incorrects.'; errEl.style.display='block';
+      btn.textContent = 'Se connecter'; btn.disabled = false; return;
+    }
+    currentUser = rows[0];
+    document.getElementById('login-screen').style.display = 'none';
+    const app = document.getElementById('app'); app.classList.add('visible');
+    document.getElementById('header-username').textContent = user.charAt(0).toUpperCase()+user.slice(1);
+    showToast(`Bienvenue ${user.charAt(0).toUpperCase()+user.slice(1)} !`);
+    loadPnlRecap();
+  } catch(e) {
+    errEl.textContent = 'Erreur réseau. Réessaie.'; errEl.style.display='block';
+    btn.textContent = 'Se connecter'; btn.disabled = false;
+  }
+}
+
+function doLogout() {
+  currentUser = null;
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-user').value = '';
+  document.getElementById('login-pass').value = '';
+  document.getElementById('login-btn').textContent = 'Se connecter';
+  document.getElementById('login-btn').disabled = false;
+  // Hide all tools
+  ['trs','exotic','email','bonus','pnl','pricer'].forEach(t => {
+    document.getElementById(`wrapper-${t}`).classList.remove('active');
+  });
+  showPage('dashboard', document.querySelector('.header-nav-btn'));
+}
+
+// ══ NAVIGATION ══
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tool-wrapper').forEach(w => w.classList.remove('active'));
+  document.querySelectorAll('.header-nav-btn').forEach(b => b.classList.remove('active'));
+  const pg = document.getElementById(`page-${name}`);
+  if (pg) pg.classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (name === 'archive') loadArchive();
+}
+
+function openTool(tool) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tool-wrapper').forEach(w => w.classList.remove('active'));
+  document.querySelectorAll('.header-nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`wrapper-${tool}`).classList.add('active');
+}
+
+function closeTool(tool) {
+  document.getElementById(`wrapper-${tool}`).classList.remove('active');
+  showPage('dashboard', document.querySelector('.header-nav-btn'));
+}
+
+// ══ ARCHIVE ══
+let archiveData = [];
+
+async function loadArchive() {
+  try {
+    const rows = await supa.query('confirmations', {}, 'created_at.desc');
+    archiveData = rows || [];
+    updateArchiveStats();
+    populateMonthFilter();
+    renderArchiveTable();
+  } catch(e) {
+    archiveData = [];
+    renderArchiveTable();
+  }
+}
+
+function updateArchiveStats() {
+  document.getElementById('arch-total').textContent = archiveData.length;
+  const now = new Date();
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const trsMonth = archiveData.filter(r => r.type === 'TRS' && r.created_at?.startsWith(thisMonth)).length;
+  const exoticMonth = archiveData.filter(r => r.type === 'Exotic' && r.created_at?.startsWith(thisMonth)).length;
+  document.getElementById('arch-trs-month').textContent = trsMonth;
+  document.getElementById('arch-exotic-month').textContent = exoticMonth;
+}
+
+function populateMonthFilter() {
+  const months = [...new Set(archiveData.map(r => r.created_at?.substring(0,7)).filter(Boolean))].sort().reverse();
+  const sel = document.getElementById('arch-filter-month');
+  sel.innerHTML = '<option value="">Tous les mois</option>' + months.map(m => {
+    const [y, mo] = m.split('-');
+    const label = new Date(y, mo-1).toLocaleDateString('fr-FR', {month:'long', year:'numeric'});
+    return `<option value="${m}">${label}</option>`;
+  }).join('');
+}
+
+function renderArchiveTable() {
+  const typeFilter = document.getElementById('arch-filter-type').value;
+  const monthFilter = document.getElementById('arch-filter-month').value;
+  const search = document.getElementById('arch-search').value.toLowerCase();
+  let data = archiveData;
+  if (typeFilter) data = data.filter(r => r.type === typeFilter);
+  if (monthFilter) data = data.filter(r => r.created_at?.startsWith(monthFilter));
+  if (search) data = data.filter(r => (r.counterparty||'').toLowerCase().includes(search) || (r.details||'').toLowerCase().includes(search));
+  const tbody = document.getElementById('archive-body');
+  if (!data.length) {
+    tbody.innerHTML = `<tr><td colspan="5"><div class="arch-empty"><div class="arch-empty-icon">📂</div><div class="arch-empty-text">Aucune confirmation archivée</div></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = data.map(r => {
+    const d = new Date(r.created_at);
+    const dateStr = d.toLocaleDateString('fr-FR', {day:'2-digit', month:'short', year:'numeric'});
+    const timeStr = d.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+    const typeClass = r.type === 'TRS' ? 'trs' : 'exotic';
+    return `<tr>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:12px">${dateStr} <span style="color:rgba(255,255,255,.3)">${timeStr}</span></td>
+      <td><span class="arch-badge ${typeClass}">${r.type||'—'}</span></td>
+      <td style="color:rgba(255,255,255,.8);font-weight:500">${r.counterparty||'—'}</td>
+      <td style="font-size:12px;color:rgba(255,255,255,.4)">${r.details||'—'}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.3)">${r.generated_by||'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ══ UTILS ══
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+
+// ══ PNL RECAP ══
+const PNL_LS_KEY = 'stellar_pnl_v5_imports';
+const BROKERS = ['Jonathan Buenavida','Jeremy Cohen','Julien Rouach','Olivier Levy-Bencheton','Uriel Kutnowski'];
+const BROKER_SHORT = {'Jonathan Buenavida':'Jonathan','Jeremy Cohen':'Jeremy','Julien Rouach':'Julien','Olivier Levy-Bencheton':'Olivier','Uriel Kutnowski':'Uriel'};
+
+function fmtPnl(v) {
+  if (!v && v !== 0) return '—';
+  const abs = Math.abs(Math.round(v));
+  if (abs >= 1000) return (v < 0 ? '-' : '') + (abs/1000).toFixed(1) + 'k €';
+  return (v < 0 ? '-' : '') + abs + ' €';
+}
+function fmtPnlFull(v) {
+  return new Intl.NumberFormat('fr-FR',{minimumFractionDigits:0,maximumFractionDigits:0}).format(Math.round(v)) + '\u00a0€';
+}
+
+function loadPnlRecap() {
+  let imports = [];
+  try { imports = JSON.parse(localStorage.getItem(PNL_LS_KEY) || '[]'); } catch(e) {}
+
+  const cardBody  = document.getElementById('pnl-card-body');
+  const periodEl  = document.getElementById('pnl-card-period');
+
+  if (!imports.length) {
+    periodEl.textContent = 'PnL Dashboard';
+    cardBody.innerHTML = `<div class="tool-card-desc">Importez votre fichier XLS pour voir le PnL MTD et l'évolution par broker.</div>`;
+    return;
+  }
+
+  // Most recent import
+  const sorted = [...imports].sort((a,b) => (b.year*12+b.month) - (a.year*12+a.month));
+  const latest  = sorted[0];
+  const data    = latest.data;
+
+  periodEl.textContent = latest.label;
+
+  // Desk reference broker
+  const ref       = data['Jonathan Buenavida'] || data[BROKERS[0]] || {};
+  const gross     = ref.mtd_gross || 0;
+  const fees      = ref.mtd_fees  || 0;
+  const net       = ref.mtd_net   || 0;
+  const dayNet    = ref.day_net   || 0;
+  const clients   = (ref.clients  || []).length;
+
+  cardBody.innerHTML = `
+    <div class="pnl-live-data">
+      <div class="pnl-live-period">${latest.label} · ${clients} clients</div>
+      <div class="pnl-live-row">
+        <span class="pnl-live-label">Gross MTD</span>
+        <span class="pnl-live-val gold">${fmtPnl(gross)}</span>
+      </div>
+      <div class="pnl-live-row">
+        <span class="pnl-live-label">Fees</span>
+        <span class="pnl-live-val red">−${fmtPnl(Math.abs(fees))}</span>
+      </div>
+      <div class="pnl-live-row">
+        <span class="pnl-live-label">Net MTD</span>
+        <span class="pnl-live-val green">${fmtPnl(net)}</span>
+      </div>
+      <div class="pnl-live-row">
+        <span class="pnl-live-label">Daily (T-1)</span>
+        <span class="pnl-live-val ${dayNet >= 0 ? 'green' : 'red'}">${fmtPnl(dayNet)}</span>
+      </div>
+    </div>`;
+}
+
+// Reload recap when PnL tool is closed (data may have been imported)
+const _origCloseTool = window.closeTool || closeTool;
+function closeTool(tool) {
+  document.getElementById(`wrapper-${tool}`).classList.remove('active');
+  showPage('dashboard', document.querySelector('.header-nav-btn'));
+  if (tool === 'pnl') setTimeout(loadPnlRecap, 300);
+}
+
+// ══ ENTER KEY ══
+document.getElementById('login-pass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+document.getElementById('login-user').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+
+// ══ LISTEN FOR ARCHIVE SAVE FROM IFRAMES ══
+window.addEventListener('message', async (e) => {
+  if (e.data?.type === 'save_confirmation' && currentUser) {
+    await supa.insert('confirmations', {
+      type: e.data.confirmationType,
+      counterparty: e.data.counterparty,
+      details: e.data.details,
+      generated_by: currentUser.username,
+      created_at: new Date().toISOString()
+    });
+  }
+});
+</script>
+</body>
+</html>

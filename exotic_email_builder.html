@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stellar Exotic Email Builder</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--gold:#8a6a1a;--gold-dim:rgba(138,106,26,.10);--gold-border:rgba(138,106,26,.25);--bg:#f5f3ef;--bg2:#fff;--bg3:#f0ede8;--text:#1a1812;--text-dim:#5a5650;--text-muted:#9a9690;--green:#276e47;--red:#b83232;--blue:#2a5fa8;--border:rgba(0,0,0,.10);--radius:8px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+header{height:58px;background:var(--bg2);border-bottom:1px solid var(--gold-border);display:flex;align-items:center;justify-content:space-between;padding:0 34px}
+.brand{font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:600;color:var(--gold);letter-spacing:.06em}
+main{max-width:1280px;margin:0 auto;padding:28px 34px}
+.panel{background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:18px}
+.panel-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg3)}
+.panel-title{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:600}
+.panel-body{padding:18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;align-items:end}
+.field{display:flex;flex-direction:column;gap:6px}
+.field.wide{grid-column:span 2}
+label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);font-weight:600}
+input,select,textarea{border:1px solid var(--border);border-radius:var(--radius);background:#fff;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:10px 11px;outline:none}
+input,select{height:38px}
+textarea{min-height:210px;font-family:'JetBrains Mono',monospace;line-height:1.45;resize:vertical}
+input:focus,select:focus,textarea:focus{border-color:var(--gold)}
+button{height:38px;border:none;border-radius:var(--radius);background:var(--gold);color:white;font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;padding:0 18px;cursor:pointer;white-space:nowrap}
+button.secondary{background:var(--bg3);color:var(--text-dim);border:1px solid var(--border)}
+.template-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px}
+.template-card h3{font-family:'Cormorant Garamond',serif;color:var(--gold);font-size:16px;margin-bottom:10px}
+.actions{display:flex;gap:10px;align-items:center;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
+.note{font-size:12px;color:var(--text-muted);line-height:1.5}
+.subject{font-family:'JetBrains Mono',monospace;background:#fffdf6;border:1px solid var(--gold-border);border-left:4px solid var(--gold);border-radius:8px;padding:12px;word-break:break-word}
+.email-preview{background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.email-preview table{width:100%;border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:12px}
+.email-preview td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+.email-preview tr:last-child td{border-bottom:none}
+.email-preview td:first-child{width:170px;background:#fffdf6;color:var(--gold);font-weight:600}
+.trader-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px}
+.trader{display:flex;gap:9px;align-items:flex-start;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px}
+.trader input{height:auto;margin-top:2px}
+.trader-name{font-weight:600;font-size:13px}
+.trader-email{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-muted);margin-top:2px;word-break:break-all}
+.legs-wrap{margin-top:16px;background:#fffdf6;border:1px solid var(--gold-border);border-left:5px solid var(--gold);border-radius:10px;padding:14px}
+.legs-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.legs-title{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:600;color:var(--gold)}
+.legs-hint{font-size:11px;color:var(--text-muted)}
+.legs{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.leg-card{background:#fff;border:1px solid rgba(138,106,26,.25);border-radius:9px;padding:12px;box-shadow:0 4px 14px rgba(138,106,26,.08)}
+.leg-card label{display:flex;align-items:center;gap:8px;color:var(--gold);font-size:11px;margin-bottom:7px}
+.leg-num{width:22px;height:22px;border-radius:50%;background:var(--gold);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:11px}
+.leg-card input{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:400;text-transform:uppercase}
+.toast{position:fixed;right:20px;bottom:20px;background:#17472d;color:#fff;padding:10px 14px;border-radius:8px;font-size:13px;display:none}
+@media(max-width:700px){main{padding:18px 14px}header{padding:0 16px}.field.wide{grid-column:span 1}.actions{justify-content:stretch}.actions button{width:100%}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">STELLAR SECURITIES</div>
+  <div class="note">Exotic Quote Email</div>
+</header>
+<main>
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <div class="panel-title">Quote Template</div>
+        <div class="note">Remplis les champs, choisis les traders, puis ouvre Outlook.</div>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="grid">
+        <div class="template-card">
+          <h3>1. Structure</h3>
+          <div class="field"><label>ProductType</label><select id="productType">
+          <option>Call vs Call</option>
+          <option>Put vs Put</option>
+          </select></div>
+          <input id="expiry" type="hidden" value="11/06/2027">
+          <div class="field" style="margin-top:10px"><label>Expiry</label><input id="expiryPicker" type="date"></div>
+          <div class="field" style="margin-top:10px"><label>Total Legs</label><input id="totalLegs" type="number" min="1" max="6" value="2"></div>
+        </div>
+        <div class="template-card">
+          <h3>2. Economics</h3>
+          <div class="field"><label>Currency</label><input id="quanto" value="USD" list="currencyList"><datalist id="currencyList">
+            <option value="USD"><option value="EUR"><option value="GBP"><option value="JPY"><option value="CHF"><option value="AUD"><option value="CAD"><option value="HKD"><option value="SGD">
+          </datalist></div>
+          <div class="field" style="margin-top:10px"><label>Strike</label><input id="strike" value="105%"></div>
+          <div class="grid" style="margin-top:10px;grid-template-columns:1fr 1fr">
+            <div class="field"><label>Bid</label><input id="bid" value="0.80%"></div>
+            <div class="field"><label>Ask</label><input id="ask" value="0.80%"></div>
+          </div>
+          <div class="field" style="margin-top:10px"><label>QuoteWithHedge</label><select id="hedge"><option>N</option><option>Y</option></select></div>
+        </div>
+        <div class="template-card">
+          <h3>3. Email</h3>
+          <div class="field"><label>From</label><input id="from" value="exo@stellar-securities.com"></div>
+          <div class="note" style="margin-top:10px">Outlook classique ouvre un email prêt à envoyer avec BCC et sujet. Le corps est formaté en texte aligné.</div>
+        </div>
+      </div>
+      <div class="legs-wrap">
+        <div class="legs-head">
+          <div>
+            <div class="legs-title">Underlying Legs</div>
+            <div class="legs-hint">Choisis ou tape les indices qui doivent apparaître dans le sujet et le corps du mail.</div>
+          </div>
+        </div>
+        <div class="legs" id="legs"></div>
+        <datalist id="indexList">
+          <option value="NKY"><option value="SPX"><option value="SX5E"><option value="SX7E"><option value="NDX"><option value="FTSE"><option value="UKX"><option value="HSI"><option value="RTY"><option value="CAC"><option value="DAX"><option value="SMI">
+        </datalist>
+      </div>
+      <div class="actions">
+        <button class="secondary" onclick="selectAllTraders()">Select all</button>
+        <button class="secondary" onclick="clearTraders()">Clear</button>
+        <button onclick="refreshEmail()">Refresh Email</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div class="panel-title">Trader List</div>
+      <div class="note">Equivalent HTML de l'onglet Liste.</div>
+    </div>
+    <div class="panel-body">
+      <div class="trader-list" id="traderList"></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div class="panel-title">Email Preview</div>
+      <div class="note">Le sujet inclut maintenant tous les Leg remplis.</div>
+    </div>
+    <div class="panel-body">
+      <div class="field">
+        <label>Subject</label>
+        <div class="subject" id="subjectOut">-</div>
+      </div>
+      <div class="grid" style="margin-top:12px">
+        <div class="field wide"><label>BCC</label><input id="bccOut" readonly></div>
+      </div>
+      <div class="field" style="margin-top:12px">
+        <label>HTML Body Preview</label>
+        <div class="email-preview" id="bodyHtmlOut"></div>
+      </div>
+      <div class="field" style="margin-top:12px">
+        <label>Plain Body Backup</label>
+        <textarea id="bodyOut" readonly></textarea>
+      </div>
+      <div class="actions">
+        <button onclick="openOutlook()">Open Outlook Email</button>
+      </div>
+    </div>
+  </section>
+</main>
+<div class="toast" id="toast">Copied</div>
+<script>
+const defaultTraders=[
+  ['pvgequitybrokerquotes@bofa.com','BofA Securities Europe SA',false],
+  ['eqd.global.exo.quotes@uk.bnpparibas.com','BNP Paribas SA',false],
+  ['peqbqm@morganstanley.com','MS',false],
+  ['asia.exo.quotes@morganstanley.com','MS ASIA',false],
+  ['lxtindex@morganstanley.com','MS',false],
+  ['eisexoticquotation@ca-cib.com','Credit Agricole',false],
+  ['l.gt.nam.rapid.solutions@citi.com','CITIGROUP Global Markets Limited',false],
+  ['Exotics-Broker-Quotes@gs.com','Goldman Sachs International',true],
+  ['ukfinbia.mailbox@cibc.co.uk','CIBC',false],
+  ['hbfr-trading-exo-auto@hsbc.com','HSBC Bank Plc',false],
+  ['complex.equity@mediobanca.com','Mediobanca',false],
+  ['Correl_Quoting_Bot@jpmorgan.com','JP Morgan Securities PLC',false],
+  ['GELPEMEACorrelationQuotes@rbccm.com','RBC Europe Limited',false],
+  ['romain.bengui@natixis.com','Natixis',false],
+  ['LD-M-SED-Index@natixis.com','Natixis',false],
+  ['hkindexderivtrading@natixis.com','NATIXIS ASIA',false],
+  ['olivier.levybencheton@stellar-securities.com;uriel.kutnowski@stellar-securities.com;jeremy.cohen@stellar-securities.com;jonathan.buenavida@stellar-securities.com;julien.rouach@stellar-securities.com','STELLAR TEAM',true],
+  ['pcgpricetest@barclays.com','Barclays',false],
+  ['EFSEuropeSSTrading@barclays.com','Barclays',false],
+  ['exo-broker-prod@ny.email.gs.com','Goldman Sachs International',true],
+  ['equityratesstructured@unicredit.de','Unicredito',false],
+  ['mad-eqty-exo-ind.group@bbva.com','BBVA',false],
+  ['jan.spolenak@db.com','DBK',false]
+];
+const storedTraders=JSON.parse(localStorage.getItem('stellar_exotic_email_traders')||'null');
+let traders=normalizeTraders(storedTraders||defaultTraders,!storedTraders);
+function $(id){return document.getElementById(id);}
+function titleMonth(s){return s?s.slice(0,1).toUpperCase()+s.slice(1,3).toLowerCase():'';}
+function normalizeTraders(list,isDefault){
+  const stellar=['olivier.levybencheton@stellar-securities.com','uriel.kutnowski@stellar-securities.com','jeremy.cohen@stellar-securities.com','jonathan.buenavida@stellar-securities.com','julien.rouach@stellar-securities.com'];
+  const selected=list.some(t=>String(t[0]).includes('@stellar-securities.com')&&t[2]);
+  const nonStellar=list.filter(t=>!String(t[0]).includes('@stellar-securities.com'));
+  return [...nonStellar,[stellar.join(';'),'STELLAR TEAM',isDefault?true:selected]];
+}
+function formatExpirySubject(raw){
+  const s=String(raw||'').trim();
+  if(!s)return '';
+  let d,m,y;
+  if(/^\d{8}$/.test(s)){d=s.slice(0,2);m=s.slice(2,4);y=s.slice(6,8);}
+  else if(/^\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}$/.test(s)){const p=s.replaceAll('-','/').split('/');d=p[0].padStart(2,'0');m=p[1].padStart(2,'0');y=p[2].slice(-2);}
+  else return s;
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return d+months[Number(m)-1]+y;
+}
+function formatExpiryBody(raw){
+  const s=String(raw||'').trim();
+  if(!s)return '';
+  if(/^\d{8}$/.test(s))return s;
+  if(/^\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}$/.test(s)){
+    const p=s.replaceAll('-','/').split('/');
+    return p[0].padStart(2,'0')+p[1].padStart(2,'0')+(p[2].length===2?'20'+p[2]:p[2]);
+  }
+  return s;
+}
+function productShort(s){
+  const t=String(s||'').trim().toLowerCase();
+  if(t==='put vs put')return 'PvP';
+  if(t==='call vs call')return 'CvC';
+  if(t==='put vs call')return 'PVC';
+  if(t==='call vs put')return 'CVP';
+  return t.split(/\s+/).filter(w=>w!=='vs').map(w=>w[0]||'').join('').toUpperCase();
+}
+function formatStrikePct(s){
+  s=String(s||'').trim();
+  if(!s)return '';
+  if(/^\d*\.?\d+$/.test(s)){
+    const n=Number(s);
+    if(n>0&&n<1)return Math.round(n*100)+'%';
+  }
+  return s.endsWith('%')?s:s+'%';
+}
+function formatQuotePct(s){
+  s=String(s||'').trim();
+  if(!s)return '';
+  return s.endsWith('%')?s:s+'%';
+}
+function stripPct(s){return String(s||'').trim().replace(/%$/,'');}
+function legValues(){
+  const total=Math.max(1,Math.min(6,Number($('totalLegs').value)||1));
+  const out=[];
+  for(let i=1;i<=total;i++){const v=$('leg'+i)?.value.trim();if(v)out.push(v.toUpperCase());}
+  return out;
+}
+function buildSubject(){
+  const legs=legValues().join('/');
+  const exp=formatExpirySubject($('expiry').value);
+  const ptype=productShort($('productType').value);
+  const q=$('quanto').value.trim()?('q'+$('quanto').value.trim().toUpperCase()):'';
+  return `STELLAR - Exotic Quote | ${legs} ${exp} ${ptype} ${q} ${formatStrikePct($('strike').value)} [${stripPct(formatQuotePct($('bid').value))}/${stripPct(formatQuotePct($('ask').value))}]`.replace(/\s+/g,' ').trim();
+}
+function buildRows(){
+  return [
+    ['ProductType',$('productType').value],
+    ['Expiry',formatExpiryBody($('expiry').value)],
+    ['TotalLegs',$('totalLegs').value],
+    ...legValues().map((v,i)=>['Leg'+(i+1),v]),
+    ['QuantoCurrency',$('quanto').value],
+    ['Strike',formatStrikePct($('strike').value)],
+    ['Bid',formatQuotePct($('bid').value)],
+    ['Ask',formatQuotePct($('ask').value)],
+    ['QuoteWithHedge',$('hedge').value]
+  ];
+}
+function buildBody(){
+  const rows=buildRows();
+  const max=Math.max(...rows.map(r=>r[0].length));
+  return rows.map(([k,v])=>`[${k}]${' '.repeat(max-k.length+4)}[${v}]`).join('\n');
+}
+function htmlEncode(s){return String(s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');}
+function buildHtmlBody(){
+  const rows=buildRows().map(([k,v])=>`<tr><td>${htmlEncode(k)}</td><td>${htmlEncode(v)}</td></tr>`).join('');
+  return `<html><body style="font-family:Arial,sans-serif;font-size:10pt;color:#111"><table cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-family:Consolas,'Courier New',monospace;font-size:10.5pt">${rows}</table></body></html>`;
+}
+function buildPreviewTable(){
+  return `<table>${buildRows().map(([k,v])=>`<tr><td>[${htmlEncode(k)}]</td><td>[${htmlEncode(v)}]</td></tr>`).join('')}</table>`;
+}
+function renderLegs(){
+  const total=Math.max(1,Math.min(6,Number($('totalLegs').value)||1));
+  $('legs').innerHTML='';
+  const defaults=['NKY','SPX','SX5E','SX7E','NDX','FTSE'];
+  for(let i=1;i<=total;i++){
+    const div=document.createElement('div');
+    div.className='leg-card';
+    div.innerHTML=`<label><span class="leg-num">${i}</span> Leg ${i}</label><input id="leg${i}" value="${defaults[i-1]||''}" list="indexList">`;
+    $('legs').appendChild(div);
+    div.querySelector('input').addEventListener('input',refreshEmail);
+  }
+  refreshEmail();
+}
+function renderTraders(){
+  $('traderList').innerHTML=traders.map((t,i)=>`<label class="trader"><input type="checkbox" ${t[2]?'checked':''} onchange="traders[${i}][2]=this.checked;saveTraders();refreshEmail()"><span><div class="trader-name">${t[1]||t[0]}</div><div class="trader-email">${t[0]}</div></span></label>`).join('');
+}
+function selectedBcc(){return traders.filter(t=>t[2]).map(t=>t[0]).join(';');}
+function saveTraders(){localStorage.setItem('stellar_exotic_email_traders',JSON.stringify(traders));}
+function selectAllTraders(){traders=traders.map(t=>[t[0],t[1],true]);saveTraders();renderTraders();refreshEmail();}
+function clearTraders(){traders=traders.map(t=>[t[0],t[1],false]);saveTraders();renderTraders();refreshEmail();}
+function syncExpiryFromPicker(){
+  const v=$('expiryPicker').value;
+  if(!v)return;
+  const [y,m,d]=v.split('-');
+  $('expiry').value=`${d}/${m}/${y}`;
+  refreshEmail();
+}
+function syncPickerFromExpiry(){
+  const s=$('expiry').value.trim();
+  let d,m,y;
+  if(/^\d{8}$/.test(s)){d=s.slice(0,2);m=s.slice(2,4);y=s.slice(4,8);}
+  else if(/^\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}$/.test(s)){const p=s.replaceAll('-','/').split('/');d=p[0].padStart(2,'0');m=p[1].padStart(2,'0');y=p[2].length===2?'20'+p[2]:p[2];}
+  else return;
+  $('expiryPicker').value=`${y}-${m}-${d}`;
+}
+function refreshEmail(){
+  $('subjectOut').textContent=buildSubject();
+  $('bccOut').value=selectedBcc();
+  $('bodyOut').value=buildBody();
+  $('bodyHtmlOut').innerHTML=buildPreviewTable();
+}
+async function copyTicket(){
+  const text=`Subject: ${buildSubject()}\nBCC: ${selectedBcc()}\n\n${buildBody()}`;
+  const html=`<div><b>Subject:</b> ${htmlEncode(buildSubject())}</div><div><b>BCC:</b> ${htmlEncode(selectedBcc())}</div><br>${buildHtmlBody()}`;
+  try{
+    await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([text],{type:'text/plain'})})]);
+    showToast('HTML format copied');
+  }catch(e){
+    await navigator.clipboard.writeText(text);
+    showToast('Plain format copied');
+  }
+}
+function openOutlook(){
+  refreshEmail();
+  const body=buildBody();
+  const url=`mailto:?bcc=${encodeURIComponent(selectedBcc())}&subject=${encodeURIComponent(buildSubject())}&body=${encodeURIComponent(body)}`;
+  window.location.href=url;
+}
+function foldHeaderLine(name,value){
+  const raw=`${name}: ${String(value||'')}`;
+  return raw.replace(/(.{1,72})(\s|$)/g,'$1\r\n ').trim();
+}
+function downloadEml(){
+  refreshEmail();
+  const html=buildHtmlBody();
+  const eml=[
+    foldHeaderLine('From',$('from').value.trim()),
+    foldHeaderLine('Bcc',selectedBcc()),
+    foldHeaderLine('Subject',buildSubject()),
+    'MIME-Version: 1.0',
+    'Content-Type: text/html; charset=utf-8',
+    'Content-Transfer-Encoding: 8bit',
+    '',
+    html
+  ].join('\r\n');
+  const blob=new Blob([eml],{type:'message/rfc822'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='stellar_exotic_quote.eml';
+  document.body.appendChild(a);
+  a.click();
+  URL.revokeObjectURL(a.href);
+  a.remove();
+  showToast('Outlook .eml created');
+}
+function showToast(msg){$('toast').textContent=msg;$('toast').style.display='block';setTimeout(()=>$('toast').style.display='none',1800);}
+$('expiryPicker').addEventListener('change',syncExpiryFromPicker);
+['from','productType','expiry','totalLegs','quanto','strike','bid','ask','hedge'].forEach(id=>{
+  $(id).addEventListener('input',id==='totalLegs'?renderLegs:refreshEmail);
+  $(id).addEventListener('change',id==='totalLegs'?renderLegs:refreshEmail);
+});
+renderLegs();
+renderTraders();
+syncPickerFromExpiry();
+refreshEmail();
+</script>
+</body>
+</html>

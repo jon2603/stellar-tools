@@ -1,0 +1,1857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TRS Confirmation Generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --gold:#8a6a1a; --gold-light:#a07c22; --gold-dim:rgba(138,106,26,.10); --gold-border:rgba(138,106,26,.25);
+  --bg:#f5f3ef; --bg2:#ffffff; --bg3:#f0ede8; --bg4:#e8e4dc;
+  --text:#1a1812; --text-dim:#5a5650; --text-muted:#9a9690;
+  --green:#276e47; --green-dim:rgba(39,110,71,.08); --green-border:rgba(39,110,71,.25);
+  --red:#b83232; --red-dim:rgba(184,50,50,.08); --red-border:rgba(184,50,50,.25);
+  --blue:#2a5fa8;
+  --border:rgba(0,0,0,.09); --border-strong:rgba(0,0,0,.15);
+  --radius:8px; --shadow:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  /* keep legacy vars mapped */
+  --navy:#1a2e4a; --mid:#2a4a6e; --steel:#2a5fa8; --grey:#f0ede8; --white:#fff; --accent:#8a6a1a; --danger:#b83232; --ok:#276e47;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+.app-header{background:var(--bg2);border-bottom:1px solid var(--gold-border);padding:12px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:var(--shadow);}
+.app-header h1{font-family:'Cormorant Garamond',serif;color:var(--gold);font-size:17px;font-weight:600;letter-spacing:.08em;}
+.app-header span{color:var(--text-muted);font-size:11px;font-family:'JetBrains Mono',monospace;letter-spacing:2px;}
+.app-body{display:grid;grid-template-columns:460px 1fr;min-height:calc(100vh - 50px);}
+
+/* FORM */
+.form-panel{background:var(--bg3);border-right:1px solid var(--border-strong);overflow-y:auto;padding:18px 16px 30px;}
+.sec-label{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:3px;color:var(--gold);text-transform:uppercase;margin:18px 0 8px;padding-bottom:5px;border-bottom:1px solid var(--gold-border);}
+.sec-label:first-child{margin-top:0;}
+.field{margin-bottom:8px;}
+.field label{display:block;font-size:10px;color:var(--text-muted);margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em;}
+.field input,.field select,.field textarea{width:100%;background:var(--bg2);border:1px solid var(--border-strong);border-radius:4px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;padding:7px 9px;outline:none;transition:border-color .2s;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--gold);background:var(--bg2);}
+.field textarea{resize:vertical;font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1.5;}
+.field select option{background:var(--bg2);color:var(--text);}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.rate-row{display:grid;grid-template-columns:140px 1fr 40px;gap:6px;align-items:end;}
+
+/* COUNTERPARTIES */
+.cpty-section{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:8px;}
+.cpty-add-row{display:flex;gap:6px;margin-bottom:8px;}
+.cpty-add-row input{flex:1;background:var(--bg3);border:1px solid var(--border-strong);border-radius:4px;color:var(--text);font-size:12px;padding:6px 9px;outline:none;}
+.cpty-add-row input:focus{border-color:var(--gold);}
+.cpty-count{font-size:10px;color:var(--text-muted);margin-bottom:6px;font-family:'JetBrains Mono',monospace;}
+
+/* DR RATES TABLE */
+.dr-edit-table{width:100%;border-collapse:collapse;margin-top:6px;}
+.dr-edit-table th{font-size:9px;color:var(--text-muted);padding:3px 6px;font-family:'JetBrains Mono',monospace;letter-spacing:1px;text-align:left;border-bottom:1px solid var(--border);}
+.dr-edit-table td{padding:3px 4px;border-bottom:1px solid var(--border);}
+.dr-inp{background:var(--bg2);border:1px solid var(--border-strong);border-radius:3px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px;padding:3px 7px;width:100%;outline:none;}
+.dr-inp:focus{border-color:var(--gold);}
+.dr-lbl{color:var(--text-dim);font-size:11px;padding-left:6px;}
+.btn-dr-add{margin-top:6px;background:none;border:1px dashed var(--gold-border);color:var(--gold);font-size:11px;padding:4px 12px;border-radius:4px;cursor:pointer;font-family:'DM Sans',sans-serif;width:100%;transition:all .2s;}
+.btn-dr-add:hover{background:var(--gold-dim);}
+.sc-row{display:grid;grid-template-columns:120px 1fr 26px;gap:5px;align-items:center;margin-bottom:5px;}
+.sc-row input{background:var(--bg2);border:1px solid var(--border-strong);border-radius:4px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:11px;padding:5px 7px;outline:none;width:100%;}
+.sc-row input:focus{border-color:var(--gold);}
+.sc-row input.sc-lbl{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--gold);}
+.sc-row .sc-del{background:none;border:1px solid var(--red-border);color:var(--red);border-radius:4px;cursor:pointer;font-size:12px;padding:2px 6px;transition:all .2s;}
+.sc-row .sc-del:hover{background:var(--red-dim);}
+
+/* PASTE */
+.paste-zone{background:var(--bg2);border:1px dashed var(--gold-border);border-radius:5px;padding:9px;margin-bottom:7px;}
+.paste-zone p{font-size:10px;color:var(--text-muted);margin-bottom:5px;line-height:1.5;}
+.paste-zone p strong{color:var(--gold);}
+
+/* BASKET TABLE */
+.bk-wrap{overflow-x:auto;margin-top:6px;}
+table.bk-prev{width:100%;border-collapse:collapse;font-size:10px;min-width:520px;}
+table.bk-prev th{font-size:8px;letter-spacing:1px;color:var(--text-muted);text-align:left;padding:3px 5px;border-bottom:1px solid var(--border);font-family:'JetBrains Mono',monospace;white-space:nowrap;}
+table.bk-prev td{padding:3px 5px;border-bottom:1px solid var(--border);vertical-align:middle;color:var(--text-dim);}
+table.bk-prev td.mono{font-family:'JetBrains Mono',monospace;font-size:9px;}
+table.bk-prev td.num{text-align:right;font-family:'JetBrains Mono',monospace;}
+table.bk-prev tr.tot td{color:var(--gold);font-weight:600;border-top:1px solid var(--gold-border);font-family:'JetBrains Mono',monospace;}
+.isin-inp{background:var(--bg2);border:1px solid var(--border-strong);border-radius:3px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:9px;padding:2px 5px;width:110px;outline:none;}
+.isin-inp:focus{border-color:var(--gold);}
+.isin-inp.missing{border-color:var(--red-border);background:var(--red-dim);}
+.isin-inp.ok{border-color:var(--green-border);}
+
+/* RESET TABLE */
+table.reset-prev{width:100%;border-collapse:collapse;font-size:10px;margin-top:5px;}
+table.reset-prev th{font-size:8px;color:var(--text-muted);padding:3px 5px;border-bottom:1px solid var(--border);font-family:'JetBrains Mono',monospace;letter-spacing:1px;text-align:left;}
+table.reset-prev td{padding:3px 5px;border-bottom:1px solid var(--border);font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-dim);}
+.vd-inp{background:var(--bg2);border:1px solid var(--border-strong);border-radius:3px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:9px;padding:2px 5px;width:95px;outline:none;}
+.vd-inp:focus{border-color:var(--gold);}
+.period-lbl{color:var(--gold);font-weight:600;}
+
+/* TENOR TABS */
+.tenor-tabs{display:flex;gap:5px;margin-bottom:8px;}
+.tenor-tab{flex:1;padding:6px;text-align:center;border:1px solid var(--border-strong);border-radius:4px;font-size:11px;color:var(--text-muted);cursor:pointer;transition:all .2s;background:var(--bg2);}
+.tenor-tab.active{border-color:var(--gold);color:var(--gold);background:var(--gold-dim);}
+
+/* BUTTONS */
+.btn-parse{width:100%;padding:7px;background:var(--gold-dim);border:1px solid var(--gold-border);color:var(--gold);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;border-radius:4px;cursor:pointer;margin-bottom:5px;transition:all .2s;}
+.btn-parse:hover{background:rgba(138,106,26,.18);}
+.btn-small{padding:6px 11px;background:var(--gold-dim);border:1px solid var(--gold-border);color:var(--gold);font-size:11px;font-weight:600;border-radius:4px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;transition:all .2s;}
+.btn-small:hover{background:rgba(138,106,26,.18);}
+.btn-row{display:flex;gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid var(--border);}
+.btn{flex:1;padding:10px;border:none;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;}
+.btn-preview{background:var(--bg4);color:var(--text-dim);border:1px solid var(--border-strong);}
+.btn-preview:hover{background:var(--bg4);color:var(--text);}
+.btn-pdf{background:var(--gold);color:#fff;}
+.btn-pdf:hover{background:var(--gold-light);transform:translateY(-1px);}
+.btn-excel{background:var(--green-dim);color:var(--green);border:1px solid var(--green-border);}
+.btn-excel:hover{background:rgba(39,110,71,.15);}
+
+/* PREVIEW */
+.preview-panel{background:var(--bg4);overflow-y:auto;display:flex;align-items:flex-start;justify-content:center;padding:28px;}
+.preview-placeholder{text-align:center;color:var(--text-muted);margin-top:90px;}
+.preview-placeholder p{font-size:13px;margin-top:12px;}
+.status-line{font-size:10px;color:var(--text-muted);margin-bottom:4px;}
+.warn{color:#b5601a;background:rgba(181,96,26,.09);border-radius:3px;padding:1px 5px;font-size:9px;}
+
+/* ─── DOCUMENT ─── */
+#confirmation-doc{width:794px;background:#fff;box-shadow:0 8px 40px rgba(0,0,0,.12);border-radius:2px;overflow:hidden;font-family:'DM Sans',sans-serif;}
+.doc-title{background:var(--navy);color:#fff;text-align:center;padding:16px;}
+.doc-title h2{font-family:'Cormorant Garamond',serif;font-size:17px;letter-spacing:2px;margin-bottom:3px;}
+.doc-title p{font-size:10px;color:#c8a96e;letter-spacing:3px;font-family:'JetBrains Mono',monospace;}
+.d-sec{background:var(--mid);color:#fff;font-size:9px;letter-spacing:3px;text-transform:uppercase;padding:5px 11px;font-weight:600;font-family:'JetBrains Mono',monospace;}
+.kv-t{width:100%;border-collapse:collapse;}
+.kv-t tr:nth-child(odd) td{background:#f8f6f2;}
+.kv-t tr:nth-child(even) td{background:#fff;}
+.kv-t td{padding:6px 11px;font-size:9px;border-bottom:1px solid #ede9e0;}
+.kv-t td.lbl{width:36%;font-weight:700;color:var(--navy);font-family:'JetBrains Mono',monospace;font-size:8.5px;letter-spacing:.5px;}
+.bkt{width:100%;border-collapse:collapse;}
+.bkt th{background:var(--steel);color:#fff;font-size:8.5px;padding:5px 6px;text-align:center;font-family:'JetBrains Mono',monospace;letter-spacing:.8px;border-right:1px solid rgba(255,255,255,.2);}
+.bkt td{font-size:8.5px;padding:4px 6px;border-bottom:1px solid #ede9e0;border-right:1px solid #f0ede8;text-align:center;}
+.bkt td.tl{text-align:left;}
+.bkt tr:nth-child(odd) td{background:#f8f6f2;}
+.bkt tr:nth-child(even) td{background:#fff;}
+.bkt tr.tot td{background:var(--navy)!important;color:#fff;font-weight:700;font-size:7.5px;font-family:'JetBrains Mono',monospace;}
+.reset-t{width:100%;border-collapse:collapse;}
+.reset-t th{background:var(--steel);color:#fff;font-size:8.5px;padding:4px 9px;font-family:'JetBrains Mono',monospace;letter-spacing:.8px;text-align:center;}
+.reset-t td{font-size:8.5px;padding:4px 9px;border-bottom:1px solid #ede9e0;text-align:center;font-family:'JetBrains Mono',monospace;}
+.reset-t tr:nth-child(odd) td{background:#f8f6f2;}
+.reset-t tr:nth-child(even) td{background:#fff;}
+.reset-t td.ev{font-weight:700;color:var(--navy);}
+.dr-t{width:100%;border-collapse:collapse;}
+.dr-t th{background:var(--steel);color:#fff;font-size:8.5px;padding:4px 11px;font-family:'JetBrains Mono',monospace;letter-spacing:.8px;text-align:center;}
+.dr-t td{font-size:8.5px;padding:4px 11px;border-bottom:1px solid #ede9e0;text-align:center;}
+.dr-t tr:nth-child(odd) td{background:#f8f6f2;}
+.dr-t tr:nth-child(even) td{background:#fff;}
+.dr-t td.cty{font-weight:700;color:var(--navy);text-align:left;}
+.dt-t{width:100%;border-collapse:collapse;}
+.dt-t th{background:var(--steel);color:#fff;font-size:8.5px;padding:4px;font-family:'JetBrains Mono',monospace;text-align:center;letter-spacing:.8px;}
+.dt-t td{font-size:8.5px;padding:4px;text-align:center;border-bottom:1px solid #ede9e0;}
+.dt-t tr:nth-child(odd) td{background:#f8f6f2;}
+.dt-t tr:nth-child(even) td{background:#fff;}
+.dt-t td.ev{font-weight:700;color:var(--navy);font-family:'JetBrains Mono',monospace;}
+.cf-block{background:#f8f6f2;padding:7px 11px;font-size:7px;color:var(--text);line-height:1.6;border-bottom:1px solid #ede9e0;}
+.cf-block strong{color:var(--navy);font-family:'JetBrains Mono',monospace;}
+.spacer{height:4px;}
+.doc-footer{background:var(--navy);color:rgba(255,255,255,.4);font-size:6px;padding:7px 11px;text-align:center;font-family:'JetBrains Mono',monospace;letter-spacing:1px;}
+</style>
+</head>
+<body>
+<div class="app-header">
+  <h1>TRS · Confirmation Generator</h1>
+  <span>EQUITY DERIVATIVES</span>
+</div>
+
+<div class="app-body">
+<!-- ═══ FORM ═══ -->
+<div class="form-panel">
+
+  <!-- COUNTERPARTIES -->
+  <div class="sec-label">Counterparties</div>
+  <div class="cpty-section">
+    <div class="cpty-add-row">
+      <input id="cptyInput" placeholder="Nom de la contrepartie..." onkeydown="if(event.key==='Enter')addCpty()"/>
+      <button class="btn-small" onclick="addCpty()">+ Add</button>
+    </div>
+    <div class="cpty-count" id="cptyCount"></div>
+    <select id="cptyListSel" size="4" style="width:100%;background:var(--bg2);border:1px solid var(--border-strong);border-radius:4px;color:var(--text);font-size:11px;padding:4px;"></select>
+    <div style="display:flex;gap:6px;margin-top:6px;">
+      <button class="btn-small" style="flex:1;" onclick="removeCpty()">🗑 Supprimer</button>
+    </div>
+  </div>
+  <div class="field-row">
+    <div class="field"><label>Buyer of Swap</label><input id="buyer" list="cpty-dl" placeholder="Sélectionner ou saisir..."/></div>
+    <div class="field"><label>Seller of Swap</label><input id="seller" list="cpty-dl" placeholder="Sélectionner ou saisir..."/></div>
+    <datalist id="cpty-dl"></datalist>
+  </div>
+
+  <!-- GENERAL -->
+  <div class="sec-label">General</div>
+  <div class="field-row">
+    <div class="field"><label>Trade Date</label><input id="tradeDate"/></div>
+    <div class="field"><label>Subtitle / Ref</label><input id="subtitle" value="Custom Basket TRS"/></div>
+  </div>
+
+  <!-- ECONOMIC TERMS -->
+  <div class="sec-label">Economic Terms</div>
+  <div class="field">
+    <label>Financing Rate</label>
+    <div class="rate-row">
+      <input id="refRate" list="refRate-dl" value="ESTR" placeholder="ESTR, SOFR..."/>
+      <datalist id="refRate-dl">
+        <option value="ESTR"/>
+        <option value="SOFR"/>
+        <option value="SONIA"/>
+        <option value="EURIBOR 3M"/>
+        <option value="EURIBOR 6M"/>
+        <option value="Fed Funds"/>
+        <option value="TONAR"/>
+        <option value="CORRA"/>
+        <option value="Fixed Rate"/>
+      </datalist>
+      <input id="spread" type="number" step="0.5" value="50" placeholder="bps"/>
+      <span style="color:rgba(255,255,255,.4);font-size:11px;line-height:2.6;">bps</span>
+    </div>
+  </div>
+  <div class="field-row">
+    <div class="field">
+      <label>Swap Currency</label>
+      <select id="swapCcy" onchange="updateFeesLabel()" style="width:100%;background:var(--bg2);border:1px solid var(--border-strong);border-radius:4px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;padding:7px 9px;outline:none;">
+        <option value="EUR">EUR</option>
+        <option value="GBP">GBP</option>
+        <option value="USD">USD</option>
+        <option value="CHF">CHF</option>
+        <option value="SEK">SEK</option>
+        <option value="DKK">DKK</option>
+        <option value="NOK">NOK</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Settlement</label>
+      <input id="settlement" list="settlement-dl" value="Cash" placeholder="Cash, Physical..."/>
+      <datalist id="settlement-dl">
+        <option value="Cash"/>
+        <option value="Physical"/>
+        <option value="Cash with Physical Option"/>
+      </datalist>
+    </div>
+  </div>
+  <div class="field-row">
+    <div class="field">
+      <label>Breakable</label>
+      <input id="breakab" list="breakab-dl" value="Applicable" placeholder="Applicable..."/>
+      <datalist id="breakab-dl">
+        <option value="Applicable"/>
+        <option value="Non Applicable"/>
+        <option value="OET (Option Early Termination)"/>
+      </datalist>
+    </div>
+  </div>
+  <div class="field-row">
+    <div class="field"><label>Equity Settlement</label><input id="eqSettle" value="T+2"/></div>
+    <div class="field"><label>Right of Substitution</label><input id="rightSub" value="Applicable"/></div>
+  </div>
+  <div class="field-row">
+    <div class="field"><label>Dividend Currency</label><input id="divCcy" value="Paid in issuer payment currency"/></div>
+    <div class="field">
+    <label>Cashflow &amp; Reshuffle Terms</label>
+    <textarea id="cashflowText" rows="3" style="width:100%;background:var(--bg2);border:1px solid var(--border-strong);border-radius:4px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:11px;padding:7px 9px;outline:none;resize:vertical;">Substitutions settled on an isonotional basis; cashflows to be settled at maturity on the corresponding value date following the trade date.</textarea>
+  </div>
+  <div class="sec-label">Brokerage Fees</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+    <div class="field" style="margin-bottom:0;">
+      <label>Fee Rate (bps)</label>
+      <input id="feeRate" type="number" step="0.5" value="1" placeholder="bps" oninput="feesManualOverride=false;calcFees()"/>
+    </div>
+    <div class="field" style="margin-bottom:0;">
+      <label>Notional Traded (mln)</label>
+      <input id="notionalManual" type="number" placeholder="ex: 200" oninput="feesManualOverride=false;calcFees()"/>
+    </div>
+    <div class="field" style="margin-bottom:0;">
+      <label>Tenor (fees)</label>
+      <select id="feesTenor" onchange="feesManualOverride=false;calcFees()" style="width:100%;background:var(--bg2);border:1px solid var(--border-strong);border-radius:4px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;padding:7px 9px;outline:none;">
+        <option value="">—</option>
+        <option value="1">1 Month</option>
+        <option value="2">2 Months</option>
+        <option value="3">3 Months</option>
+        <option value="4">4 Months</option>
+        <option value="5">5 Months</option>
+        <option value="6">6 Months</option>
+        <option value="7">7 Months</option>
+        <option value="8">8 Months</option>
+        <option value="9">9 Months</option>
+        <option value="10">10 Months</option>
+        <option value="11">11 Months</option>
+        <option value="12">12 Months</option>
+      </select>
+    </div>
+    <div class="field" style="margin-bottom:0;">
+      <label id="feesLabel">Brokerage Fees (EUR) <span style="color:var(--gold);font-size:9px;opacity:.7;">— auto</span></label>
+      <input id="fees" type="number" value="" placeholder="calculé auto" oninput="feesManualOverride=true" style="font-size:12px;font-weight:400;font-family:'DM Sans',sans-serif;"/>
+    </div>
+  </div>
+  </div>
+  <div class="sec-label">Composition Rules â Editable</div>
+  <div class="field"><label>Composition</label><input id="compo" value="Weekly rebalancing, client-driven"/></div>
+  <div class="field-row">
+    <div class="field"><label>Max Financials</label><input id="maxFin" value="30% of basket"/></div>
+    <div class="field"><label>Max Position Size</label><input id="maxPos" value="1x ADV (30-day)"/></div>
+  </div>
+  <div class="field">
+    <label>Lookback Period</label><input id="lookback" value="2 Business Days"/>
+  </div>
+
+  <!-- DR RATES (editable) -->
+  <div class="sec-label">Dividend Rates (DR) - Editable</div>
+  <table class="dr-edit-table" id="drTable">
+    <thead><tr><th>Country</th><th>DR Rate (%)</th><th></th></tr></thead>
+    <tbody id="drBody"></tbody>
+  </table>
+  <button class="btn-dr-add" onclick="addDrRow()">+ Add Country</button>
+
+  <!-- SPECIAL CONDITIONS -->
+  <div class="sec-label">Special Conditions</div>
+  <div id="special-conditions-list"></div>
+  <button class="btn-dr-add" onclick="addSpecialCondition()">+ Add Special Condition</button>
+
+  <!-- TENOR -->
+  <div class="sec-label">Tenor &amp; Key Dates</div>
+  <div class="field">
+    <label>Tenor</label>
+    <select id="tenor" onchange="calcExpiry();syncFeesTenor();feesManualOverride=false;calcFees()" style="width:100%;background:var(--bg2);border:1px solid var(--border-strong);border-radius:4px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;padding:7px 9px;outline:none;">
+      <option value="Custom">Custom Dates</option>
+      <option value="1 Month">1 Month</option>
+      <option value="2 Months">2 Months</option>
+      <option value="3 Months">3 Months</option>
+      <option value="4 Months">4 Months</option>
+      <option value="5 Months">5 Months</option>
+      <option value="6 Months">6 Months</option>
+      <option value="7 Months">7 Months</option>
+      <option value="8 Months">8 Months</option>
+      <option value="9 Months">9 Months</option>
+      <option value="10 Months">10 Months</option>
+      <option value="11 Months">11 Months</option>
+      <option value="12 Months">12 Months</option>
+    </select>
+  </div>
+  <!-- OET -->
+  <div class="field" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+    <label style="margin-bottom:0;display:flex;align-items:center;gap:6px;cursor:pointer;">
+      <input type="checkbox" id="oetEnabled" onchange="toggleOET()"
+        style="width:14px;height:14px;accent-color:var(--accent);cursor:pointer;"/>
+      <span style="font-size:10px;color:rgba(255,255,255,.45);">OET (Option Early Termination)</span>
+    </label>
+    <div id="oet-box" style="display:none;flex:1;">
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;">
+        <label style="font-size:10px;color:rgba(255,255,255,.45);display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap;">
+          <input type="radio" name="oetMode" value="months" checked onchange="toggleOETMode()" style="accent-color:var(--accent);cursor:pointer;"/> Tenor
+        </label>
+        <label style="font-size:10px;color:rgba(255,255,255,.45);display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap;">
+          <input type="radio" name="oetMode" value="custom" onchange="toggleOETMode()" style="accent-color:var(--accent);cursor:pointer;"/> Custom Date
+        </label>
+      </div>
+      <div id="oet-months-box">
+        <select id="oetMonths" onchange="calcExpiry()"
+          style="width:100%;background:var(--bg2);border:1px solid var(--gold-border);border-radius:4px;color:var(--gold);font-family:'DM Sans',sans-serif;font-size:12px;padding:6px 9px;outline:none;">
+          <option value="1M">Option starts at 1M</option>
+          <option value="2M">Option starts at 2M</option>
+          <option value="3M">Option starts at 3M</option>
+          <option value="4M">Option starts at 4M</option>
+          <option value="5M">Option starts at 5M</option>
+          <option value="6M">Option starts at 6M</option>
+          <option value="7M">Option starts at 7M</option>
+          <option value="8M">Option starts at 8M</option>
+          <option value="9M">Option starts at 9M</option>
+          <option value="10M">Option starts at 10M</option>
+          <option value="11M">Option starts at 11M</option>
+          <option value="12M">Option starts at 12M</option>
+        </select>
+      </div>
+      <div id="oet-custom-box" style="display:none;">
+        <div class="field-row" style="margin-top:4px;">
+          <div class="field"><label>OET Trade Date</label><input id="oetCustomTD" placeholder="23-Apr-2026" onchange="calcOETCustom()"/></div>
+          <div class="field"><label>OET Value Date</label><input id="oetCustomVD" placeholder="auto T+2"/></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Hidden OET computed dates -->
+  <input type="hidden" id="oetTD"/>
+  <input type="hidden" id="oetVD"/>
+  <!-- OET DETAIL FIELDS — shown when OET is checked -->
+  <div id="oet-detail-block" style="display:none;margin-top:4px;">
+    <div class="sec-label" style="margin-top:8px;">OET — Clause Details</div>
+    <div class="field">
+      <label>Buyer Right</label>
+      <textarea id="oetBuyerRight" rows="2" style="width:100%;background:var(--bg2);border:1px solid var(--border-strong);border-radius:4px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:11px;padding:7px 9px;outline:none;resize:vertical;">Buyer has the unilateral right to early terminate the TRS at the OET date.</textarea>
+    </div>
+    <div class="field">
+      <label>Re-Rate Right</label>
+      <textarea id="oetReRate" rows="2" style="width:100%;background:var(--bg2);border:1px solid var(--border-strong);border-radius:4px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:11px;padding:7px 9px;outline:none;resize:vertical;">Both parties have the right to re-rate the swap spread at the OET date (for the remaining term).</textarea>
+    </div>
+    <div class="field">
+      <label>Fallback</label>
+      <textarea id="oetFallback" rows="2" style="width:100%;background:var(--bg2);border:1px solid var(--border-strong);border-radius:4px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:11px;padding:7px 9px;outline:none;resize:vertical;">If an agreement on the spread cannot be reached at the OET date, the Buyer must exercise their right to break the TRS.</textarea>
+    </div>
+  </div>
+  <!-- RESET TICK BOX -->
+  <div class="field" style="margin-bottom:4px;">
+    <label style="display:flex;align-items:center;gap:7px;cursor:pointer;">
+      <input type="checkbox" id="hasResets" onchange="toggleHasResets()"
+        style="width:14px;height:14px;accent-color:var(--accent);cursor:pointer;"/>
+      <span style="font-size:10px;color:rgba(255,255,255,.55);">This trade has resets</span>
+    </label>
+  </div>
+
+  <!-- RESET BLOCK — hidden by default -->
+  <div id="reset-block" style="display:none;">
+    <div class="field">
+      <label>Reset Frequency</label>
+      <select id="resetFreq" onchange="if(document.getElementById('autoResets')&&document.getElementById('autoResets').checked)generateResets();" style="width:100%;background:var(--bg2);border:1px solid var(--border-strong);border-radius:4px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;padding:7px 9px;outline:none;">
+        <option value="Monthly">Monthly</option>
+        <option value="Quarterly">Quarterly</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- KEY DATES TABS — always visible -->
+  <div class="tenor-tabs">
+    <div class="tenor-tab active" id="tab-simple" onclick="switchTenor('simple')">Simple (Start / Expiry)</div>
+    <div class="tenor-tab" id="tab-reset" onclick="switchTenor('reset')">Long Tenor + Reset Calendar</div>
+  </div>
+  <div id="tenor-simple">
+    <div class="field-row">
+      <div class="field"><label>Start Trade Date</label><input id="startTD" onchange="calcExpiry()"/></div>
+      <div class="field"><label>Start Value Date</label><input id="startVD"/></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Expiry Trade Date</label><input id="expiryTD"/></div>
+      <div class="field"><label>Expiry Value Date</label><input id="expiryVD"/></div>
+    </div>
+  </div>
+  <div id="tenor-reset" style="display:none;">
+    <div class="field-row">
+      <div class="field"><label>Start Trade Date</label><input id="startTD2" onchange="calcExpiry()"/></div>
+      <div class="field"><label>Start Value Date</label><input id="startVD2"/></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Final Expiry TD</label><input id="expiryTD2"/></div>
+      <div class="field"><label>Final Expiry VD</label><input id="expiryVD2"/></div>
+    </div>
+    <!-- Calendar section — only shown if hasResets checked -->
+    <div id="reset-calendar-zone" style="display:none;margin-top:4px;">
+      <div class="field">
+        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;margin-bottom:6px;">
+          <input type="checkbox" id="autoResets" onchange="toggleAutoResets()"
+            style="width:14px;height:14px;accent-color:var(--accent);cursor:pointer;"/>
+          <span style="font-size:10px;color:rgba(255,255,255,.6);">Auto-generate from Reset Frequency</span>
+        </label>
+      </div>
+      <div id="reset-manual-zone">
+        <div class="paste-zone" style="margin-top:4px;">
+          <p>Colle le calendrier depuis Excel.<br/>
+          <strong>1 colonne</strong> → Reset Date uniquement (Value Date = T+2 auto)<br/>
+          <strong>2 colonnes</strong> → Reset Date · Value Date<br/>
+          <strong>3 colonnes</strong> → Period · Reset Date · Value Date</p>
+          <textarea id="resetPaste" rows="5" placeholder="25-Mar-2026&#10;25-Jun-2026&#10;25-Sep-2026&#10;..."></textarea>
+        </div>
+        <button class="btn-parse" onclick="parseResets()">⬆ Importer le Calendrier</button>
+      </div>
+      <div id="reset-auto-zone" style="display:none;">
+        <button class="btn-parse" onclick="generateResets()" style="width:100%;">⚡ Générer le Calendrier</button>
+      </div>
+      <div id="resetPreviewWrap" style="display:none;">
+        <div class="status-line" id="resetStatus"></div>
+        <div style="overflow-x:auto;"><table class="reset-prev" id="resetPreviewTable"></table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BASKET -->
+  <div class="sec-label">Basket - Paste from Excel / Bloomberg</div>
+  <div class="paste-zone">
+    <p>Colle ton basket depuis Excel.<br/>
+    Format : <strong>NAME · SIZE · PRICE · CCY · TOTAL</strong><br/>
+    ISIN manquants → éditables directement dans le tableau.</p>
+    <textarea id="pasteArea" rows="6" placeholder="BBVA SQ&#9;407637&#9;19.98&#9;EUR&#9;8144587.26&#10;MC FP&#9;53532&#9;554.6&#9;EUR&#10;..."></textarea>
+  </div>
+  <button class="btn-parse" onclick="parseBasket()">⬆ Importer le Basket</button>
+  <div id="basketPreviewWrap" style="display:none;">
+    <div class="status-line" id="basketStatus"></div>
+    <div class="bk-wrap"><table class="bk-prev" id="basketPreviewTable"></table></div>
+    <div style="font-size:9px;color:rgba(255,255,255,.3);margin-top:4px;">ISIN en rouge → cliquez pour saisir manuellement</div>
+  </div>
+
+  <!-- ACTIONS -->
+  <div class="btn-row">
+    <button class="btn btn-preview" onclick="generatePreview()">👁 Preview</button>
+    <button class="btn btn-pdf" onclick="savePDF()">⬇ PDF</button>
+    <button class="btn btn-excel" onclick="exportExcel()">📊 Excel</button>
+  </div>
+</div>
+
+<!-- ═══ PREVIEW ═══ -->
+<div class="preview-panel">
+  <div class="preview-placeholder" id="placeholder">
+    <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+      <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+    </svg>
+    <p>Importe ton basket puis clique <strong style="color:var(--gold);">Preview</strong></p>
+  </div>
+  <div id="confirmation-doc" style="display:none;"></div>
+</div>
+</div>
+
+<script>
+// ═══════════════════════════════════
+// ISIN DATABASE - CAC40 + SX5E + DAX40 + AEX25 + BEL20 + IBEX35
+// ═══════════════════════════════════
+const ISIN_DB = {
+  // ── CAC40 ──,
+  "AC FP":  {isin:"FR0000120404",name:"Accor"},
+  "ACA FP":  {isin:"FR0000045072",name:"Crédit Agricole"},
+  "AI FP":  {isin:"FR0000120073",name:"Air Liquide"},
+  "AIR FP":  {isin:"NL0000235190",name:"Airbus"},
+  "BN FP":  {isin:"FR0000120644",name:"Danone"},
+  "BNP FP":  {isin:"FR0000131104",name:"BNP Paribas"},
+  "BVI FP":  {isin:"FR0006174348",name:"Bureau Veritas"},
+  "CA FP":  {isin:"FR0000120172",name:"Carrefour"},
+  "CAP FP":  {isin:"FR0000125338",name:"Capgemini"},
+  "CS FP":  {isin:"FR0000120628",name:"AXA"},
+  "DG FP":  {isin:"FR0000125486",name:"Vinci"},
+  "DSY FP":  {isin:"FR0014003TT8",name:"Dassault Systèmes"},
+  "EL FP":  {isin:"FR0000121667",name:"EssilorLuxottica"},
+  "EN FP":  {isin:"FR0000130452",name:"Bouygues"},
+  "ENGI FP":  {isin:"FR0010208488",name:"Engie"},
+  "ERF FP":  {isin:"FR0014000MR3",name:"Eurofins Scientific"},
+  "GLE FP":  {isin:"FR0000130809",name:"Société Générale"},
+  "HO FP":  {isin:"FR0000121329",name:"Thales"},
+  "KER FP":  {isin:"FR0000121485",name:"Kering"},
+  "LR FP":  {isin:"FR0010307819",name:"Legrand"},
+  "MC FP":  {isin:"FR0000121014",name:"LVMH"},
+  "ML FP":  {isin:"FR001400AJ45",name:"Michelin"},
+  "MT NA":  {isin:"LU1598757687",name:"ArcelorMittal"},
+  "OR FP":  {isin:"FR0000120321",name:"L\'Oréal"},
+  "ORA FP":  {isin:"FR0000133308",name:"Orange"},
+  "PUB FP":  {isin:"FR0000130577",name:"Publicis Groupe"},
+  "RI FP":  {isin:"FR0000120693",name:"Pernod Ricard"},
+  "RMS FP":  {isin:"FR0000052292",name:"Hermès"},
+  "RNO FP":  {isin:"FR0000131906",name:"Renault"},
+  "SAF FP":  {isin:"FR0000073272",name:"Safran"},
+  "SAN FP":  {isin:"FR0000120578",name:"Sanofi"},
+  "SGO FP":  {isin:"FR0000125007",name:"Saint-Gobain"},
+  "STLAP FP":  {isin:"NL00150001Q9",name:"Stellantis"},
+  "STMPA FP":  {isin:"NL0000226223",name:"STMicroelectronics"},
+  "SU FP":  {isin:"FR0000121972",name:"Schneider Electric"},
+  "TEP FP":  {isin:"FR0000051807",name:"Teleperformance"},
+  "TTE FP":  {isin:"FR0000120271",name:"TotalEnergies"},
+  "URW FP":  {isin:"FR0013326246",name:"Unibail-Rodamco-Westfield"},
+  "VIE FP":  {isin:"FR0000124141",name:"Veolia"},
+  "WLN FP":  {isin:"FR0011981968",name:"Worldline"},
+  // ── SX5E ──,
+  "ABI BB":  {isin:"BE0974293251",name:"Anheuser-Busch InBev"},
+  "AD NA":  {isin:"NL0011794037",name:"Ahold Delhaize"},
+  "ADS GY":  {isin:"DE000A1EWWW0",name:"Adidas"},
+  "ADYEN NA":  {isin:"NL0012969182",name:"Adyen"},
+  "ALV GY":  {isin:"DE0008404005",name:"Allianz"},
+  "ASML NA":  {isin:"NL0010273215",name:"ASML"},
+  "BAS GY":  {isin:"DE000BASF111",name:"BASF"},
+  "BAYN GY":  {isin:"DE000BAY0017",name:"Bayer"},
+  "BBVA SM":  {isin:"ES0113211835",name:"BBVA"},
+  "BMW GY":  {isin:"DE0005190003",name:"BMW"},
+  "CRH LN":  {isin:"IE0001827041",name:"CRH"},
+  "DB1 GY":  {isin:"DE0005810055",name:"Deutsche Börse"},
+  "DHL GY":  {isin:"DE0005552004",name:"Deutsche Post"},
+  "DTE GY":  {isin:"DE0005557508",name:"Deutsche Telekom"},
+  "ENEL IM":  {isin:"IT0003128367",name:"Enel"},
+  "ENI IM":  {isin:"IT0003132476",name:"Eni"},
+  "IBE SM":  {isin:"ES0144580Y14",name:"Iberdrola"},
+  "IFX GY":  {isin:"DE0006231004",name:"Infineon"},
+  "INGA NA":  {isin:"NL0011821202",name:"ING Groep"},
+  "ISP IM":  {isin:"IT0000072618",name:"Intesa Sanpaolo"},
+  "ITX SM":  {isin:"ES0148396007",name:"Inditex"},
+  "MUV2 GY":  {isin:"DE0008430026",name:"Munich Re"},
+  "NOKIA FH":  {isin:"FI0009000681",name:"Nokia"},
+  "PHIA NA":  {isin:"NL0000009538",name:"Philips"},
+  "PRX NA":  {isin:"NL0013654783",name:"Prosus"},
+  "SAP GY":  {isin:"DE0007164600",name:"SAP"},
+  "SIE GY":  {isin:"DE0007236101",name:"Siemens"},
+  "UCG IM":  {isin:"IT0005239360",name:"UniCredit"},
+  "VIV FP":  {isin:"FR0000127771",name:"Vivendi"},
+  "VNA GY":  {isin:"DE000A1ML7J1",name:"Vonovia"},
+  "VOW3 GY":  {isin:"DE0007664039",name:"Volkswagen"},
+  "WKL NA":  {isin:"NL0000395903",name:"Wolters Kluwer"},
+  // ── DAX40 ──,
+  "1COV GY":  {isin:"DE0006062144",name:"Covestro"},
+  "BEI GY":  {isin:"DE0005200000",name:"Beiersdorf"},
+  "BNR GY":  {isin:"DE000A1DAHH0",name:"Brenntag"},
+  "CBK GY":  {isin:"DE000CBK1001",name:"Commerzbank"},
+  "CON GY":  {isin:"DE0005439004",name:"Continental"},
+  "DBK GY":  {isin:"DE0005140008",name:"Deutsche Bank"},
+  "DTG GY":  {isin:"DE000DTR0CK8",name:"Daimler Truck"},
+  "ENR GY":  {isin:"DE000ENER6Y0",name:"Siemens Energy"},
+  "EOAN GY":  {isin:"DE000ENAG999",name:"E.ON"},
+  "FME GY":  {isin:"DE0005785802",name:"Fresenius Medical Care"},
+  "FRE GY":  {isin:"DE0005785604",name:"Fresenius"},
+  "HEI GY":  {isin:"DE0006047004",name:"Heidelberg Materials"},
+  "HEN3 GY":  {isin:"DE0006048432",name:"Henkel"},
+  "MBG GY":  {isin:"DE0007100000",name:"Mercedes-Benz Group"},
+  "MRK GY":  {isin:"DE0006599905",name:"Merck KGaA"},
+  "MTX GY":  {isin:"DE000A0D9PT0",name:"MTU Aero Engines"},
+  "PAH3 GY":  {isin:"DE000PAH0038",name:"Porsche Automobil Holding"},
+  "PUM GY":  {isin:"DE0006969603",name:"Puma"},
+  "QIA GY":  {isin:"NL0015002CX3",name:"Qiagen"},
+  "RHM GY":  {isin:"DE0007030009",name:"Rheinmetall"},
+  "RWE GY":  {isin:"DE0007037129",name:"RWE"},
+  "SHL GY":  {isin:"DE000SHL1006",name:"Siemens Healthineers"},
+  "SRT3 GY":  {isin:"DE0007165631",name:"Sartorius"},
+  "SY1 GY":  {isin:"DE000SYM9999",name:"Symrise"},
+  "ZAL GY":  {isin:"DE000ZAL1111",name:"Zalando"},
+  // ── AEX25 ──,
+  "ABN NA":  {isin:"NL0011540547",name:"ABN AMRO"},
+  "AGN NA":  {isin:"NL0000303709",name:"Aegon"},
+  "AKZA NA":  {isin:"NL0013267909",name:"Akzo Nobel"},
+  "ASRNL NA":  {isin:"NL0011872643",name:"ASR Nederland"},
+  "BESI NA":  {isin:"NL0012866412",name:"BE Semiconductor"},
+  "DSFIR NA":  {isin:"CH1216478797",name:"DSM-Firmenich"},
+  "EXOR NA":  {isin:"NL0012059018",name:"Exor"},
+  "HEIA NA":  {isin:"NL0000009165",name:"Heineken"},
+  "IMCD NA":  {isin:"NL0010801007",name:"IMCD"},
+  "KPN NA":  {isin:"NL0000009082",name:"KPN"},
+  "LIGHT NA":  {isin:"NL0011821392",name:"Signify"},
+  "NN NA":  {isin:"NL0010773842",name:"NN Group"},
+  "RAND NA":  {isin:"NL0000379121",name:"Randstad"},
+  "REN NA":  {isin:"GB00B2B0DG97",name:"RELX"},
+  "SHELL NA":  {isin:"GB00BP6MXD84",name:"Shell"},
+  "UMG NA":  {isin:"NL0015000IY2",name:"Universal Music Group"},
+  "UNA NA":  {isin:"GB00B10RZP78",name:"Unilever"},
+  // ── BEL20 ──,
+  "ACKB BB":  {isin:"BE0003764785",name:"Ackermans & van Haaren"},
+  "AED BB":  {isin:"BE0003851681",name:"Aedifica"},
+  "AGS BB":  {isin:"BE0974264930",name:"Ageas"},
+  "APAM NA":  {isin:"LU0569974404",name:"Aperam"},
+  "COFB BB":  {isin:"BE0003593044",name:"Cofinimmo"},
+  "DIE BB":  {isin:"BE0974259880",name:"D\'Ieteren Group"},
+  "ELI BB":  {isin:"BE0003822393",name:"Elia Group"},
+  "GBLB BB":  {isin:"BE0003797140",name:"Groupe Bruxelles Lambert"},
+  "GLPG NA":  {isin:"BE0003818359",name:"Galapagos"},
+  "KBC BB":  {isin:"BE0003565737",name:"KBC Group"},
+  "LOTB BB":  {isin:"BE0003604155",name:"Lotus Bakeries"},
+  "MELE BB":  {isin:"BE0165385973",name:"Melexis"},
+  "PROX BB":  {isin:"BE0003810273",name:"Proximus"},
+  "SOF BB":  {isin:"BE0003717312",name:"Sofina"},
+  "SOLB BB":  {isin:"BE0003470755",name:"Solvay"},
+  "SYENS BB":  {isin:"BE0974464977",name:"Syensqo"},
+  "UCB BB":  {isin:"BE0003739530",name:"UCB"},
+  "UMI BB":  {isin:"BE0974320526",name:"Umicore"},
+  "WDP BB":  {isin:"BE0974349814",name:"Warehouses De Pauw"},
+  // ── IBEX35 ──
+  "SAN SM":  {isin:"ES0113900J37",name:"Santander"},
+  "IBE SM":  {isin:"ES0144580Y14",name:"Iberdrola"},
+  "BBVA SM": {isin:"ES0113211835",name:"BBVA"},
+  "ITX SM":  {isin:"ES0148396007",name:"Inditex"},
+  "CABK SM": {isin:"ES0140609019",name:"CaixaBank"},
+  "FER SM":  {isin:"NL0015001FS8",name:"Ferrovial SE"},
+  "AMS SM":  {isin:"ES0109067019",name:"Amadeus IT"},
+  "AENA SM": {isin:"ES0105046017",name:"Aena"},
+  "ACS SM":  {isin:"ES0167050915",name:"ACS Const."},
+  "IAG SM":  {isin:"ES0177542018",name:"Int. Airlines Group"},
+  "TEF SM":  {isin:"ES0178430E18",name:"Telefonica"},
+  "CLNX SM": {isin:"ES0105066007",name:"Cellnex"},
+  "REP SM":  {isin:"ES0173516115",name:"Repsol"},
+  "SAB SM":  {isin:"ES0113860A34",name:"B. Sabadell"},
+  "ELE SM":  {isin:"ES0130670112",name:"Endesa"},
+  "BKT SM":  {isin:"ES0113679I37",name:"Bankinter"},
+  "ANA SM":  {isin:"ES0125220311",name:"Acciona"},
+  "RED SM":  {isin:"ES0173093024",name:"Redeia Corp."},
+  "MAP SM":  {isin:"ES0124244E34",name:"Mapfre"},
+  "MRL SM":  {isin:"ES0105025003",name:"Merlin Prop."},
+  "IDR SM":  {isin:"ES0118594417",name:"Indra A"},
+  "MTS SM":  {isin:"LU1598757687",name:"ArcelorMittal"},
+  "UNI SM":  {isin:"ES0180907000",name:"Unicaja"},
+  "NTGY SM": {isin:"ES0116870314",name:"Naturgy"},
+  "GRF SM":  {isin:"ES0171996087",name:"Grifols"},
+  "FDR SM":  {isin:"ES0137650018",name:"Fluidra"},
+  "ENG SM":  {isin:"ES0130960018",name:"Enagas"},
+  "LOG SM":  {isin:"ES0105027009",name:"Logista"},
+  "SCYR SM": {isin:"ES0182870214",name:"Sacyr"},
+  "ACX SM":  {isin:"ES0132105018",name:"Acerinox"},
+  "PUIG SM": {isin:"ES0105777017",name:"Puig Brands"},
+  "COL SM":  {isin:"ES0139140174",name:"Colonial SFL"},
+  "ROVI SM": {isin:"ES0157261019",name:"Laborat. Rovi"},
+  "SLR SM":  {isin:"ES0165386014",name:"Solaria"},
+  "ANE SM":  {isin:"ES0105563003",name:"Acciona Energia"}
+};
+
+// ═══════════════════════════════════
+// DR RATES STATE
+// ═══════════════════════════════════
+let drRates = [
+  {country:"France",     rate:"75.000%"},
+  {country:"Spain",      rate:"81.000%"},
+  {country:"Germany",    rate:"73.625%"},
+  {country:"Belgium",    rate:"70.000%"},
+  {country:"Netherlands",rate:"85.000%"},
+];
+
+function renderDrTable() {
+  const tbody = document.getElementById('drBody');
+  tbody.innerHTML = drRates.map((r,i) => `
+    <tr>
+      <td><input class="dr-inp" value="${r.country}" onchange="drRates[${i}].country=this.value" style="width:110px;"/></td>
+      <td><input class="dr-inp" value="${r.rate}" onchange="drRates[${i}].rate=this.value" style="width:80px;text-align:right;"/></td>
+      <td><button onclick="removeDrRow(${i})" style="background:none;border:none;color:rgba(231,76,60,.6);cursor:pointer;font-size:14px;padding:0 4px;">×</button></td>
+    </tr>
+  `).join('');
+}
+
+function addDrRow() {
+  drRates.push({country:"",rate:"0.000%"});
+  renderDrTable();
+}
+
+function removeDrRow(i) {
+  drRates.splice(i,1);
+  renderDrTable();
+}
+
+function getDrRates() {
+  // Sync any in-place edits
+  document.querySelectorAll('#drBody tr').forEach((tr,i) => {
+    const inps = tr.querySelectorAll('input');
+    if (inps[0] && drRates[i]) drRates[i].country = inps[0].value;
+    if (inps[1] && drRates[i]) drRates[i].rate    = inps[1].value;
+  });
+  return drRates;
+}
+
+// ═══════════════════════════════════
+// DATE HELPERS
+// ═══════════════════════════════════
+function nextBusinessDay(date) {
+  // Move forward until we hit a weekday (Mon-Fri)
+  // Basic version: skips weekends. Can be extended with holiday list.
+  const d = new Date(date);
+  while (d.getDay() === 0 || d.getDay() === 6) {
+    d.setDate(d.getDate() + 1);
+  }
+  return d;
+}
+
+function prevBusinessDay(date) {
+  const d = new Date(date);
+  while (d.getDay() === 0 || d.getDay() === 6) {
+    d.setDate(d.getDate() - 1);
+  }
+  return d;
+}
+
+function addBusinessDaysT2(date) {
+  // Add 2 business days (skip weekends)
+  const d = new Date(date);
+  let added = 0;
+  while (added < 2) {
+    d.setDate(d.getDate() + 1);
+    if (d.getDay() !== 0 && d.getDay() !== 6) added++;
+  }
+  return d;
+}
+
+function fmtDate(d) {
+  return d.toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'numeric'}).replace(/ /g,'-');
+}
+
+let feesManualOverride = false;
+
+function updateFeesLabel(){
+  const ccy = document.getElementById('swapCcy') ? document.getElementById('swapCcy').value : 'EUR';
+  const lbl = document.getElementById('feesLabel');
+  if(lbl) lbl.innerHTML = 'Brokerage Fees (' + ccy + ') <span id="feesCalcHint" style="color:var(--gold);font-size:9px;opacity:.7;">— auto</span>';
+  calcFees();
+}
+
+function calcFees(){
+  if(feesManualOverride) return;
+  const bps = parseFloat(document.getElementById('feeRate')?.value) || 0;
+  // Prefer manual feesTenor, fallback to main tenor selector
+  const feesTenorVal = document.getElementById('feesTenor')?.value;
+  const mainTenorStr = document.getElementById('tenor')?.value || '';
+  const tenorNum = feesTenorVal ? parseFloat(feesTenorVal) : (parseFloat(mainTenorStr) || 0);
+  // Notional: manual input is in MILLIONS, basket is in raw units
+  const basketNot = parsedBasket.reduce((s,r) => s + r.total, 0);
+  const manualMln = parseFloat(document.getElementById('notionalManual')?.value) || 0;
+  const rawNot = basketNot || (manualMln * 1000000);
+  if(!rawNot || !bps || !tenorNum) return;
+  const roundedNot = Math.round(rawNot / 1000000) * 1000000;
+  const fees = Math.round(roundedNot * (bps / 10000) * (tenorNum / 12));
+  const inp = document.getElementById('fees');
+  if(inp) inp.value = fees;
+}
+
+function syncFeesTenor(){
+  const mainTenorStr = document.getElementById('tenor')?.value || '';
+  if (mainTenorStr === 'Custom') return; // don't auto-sync for custom
+  const tenorNum = parseFloat(mainTenorStr) || 0;
+  const sel = document.getElementById('feesTenor');
+  if(sel && tenorNum && !sel.value) sel.value = String(tenorNum);
+}
+
+function toggleOET() {
+  const enabled = document.getElementById('oetEnabled').checked;
+  document.getElementById('oet-box').style.display = enabled ? 'flex' : 'none';
+  document.getElementById('oet-detail-block').style.display = enabled ? 'block' : 'none';
+  calcExpiry();
+}
+
+function toggleOETMode() {
+  const mode = document.querySelector('input[name="oetMode"]:checked').value;
+  document.getElementById('oet-months-box').style.display = mode === 'months' ? 'block' : 'none';
+  document.getElementById('oet-custom-box').style.display = mode === 'custom' ? 'block' : 'none';
+  if (mode === 'months') {
+    calcExpiry();
+  } else {
+    calcOETCustom();
+  }
+}
+
+function calcOETCustom() {
+  const tdRaw = document.getElementById('oetCustomTD').value.trim();
+  if (!tdRaw) return;
+  const parseD = s => { const d = new Date(s.replace(/-/g,' ')); return isNaN(d) ? null : d; };
+  const td = parseD(tdRaw);
+  if (!td) return;
+  document.getElementById('oetTD').value = fmtDate(td);
+  // Auto-calc VD as T+2 if not manually set
+  const vdRaw = document.getElementById('oetCustomVD').value.trim();
+  if (vdRaw) {
+    const vd = parseD(vdRaw);
+    if (vd) document.getElementById('oetVD').value = fmtDate(vd);
+    else document.getElementById('oetVD').value = fmtDate(addBusinessDaysT2(td));
+  } else {
+    const vd = addBusinessDaysT2(td);
+    document.getElementById('oetVD').value = fmtDate(vd);
+    document.getElementById('oetCustomVD').value = fmtDate(vd);
+  }
+}
+
+function getTenorLabel() {
+  const tenor = document.getElementById('tenor').value; // e.g. "6 Months" or "Custom"
+  const oetEnabled = document.getElementById('oetEnabled').checked;
+  if (tenor === 'Custom') {
+    // Build label from actual dates
+    const startTD = tenorMode === 'reset' ? g('startTD2') : g('startTD');
+    const expiryTD = tenorMode === 'reset' ? g('expiryTD2') : g('expiryTD');
+    const label = `Custom (${startTD} → ${expiryTD})`;
+    if (!oetEnabled) return label;
+    return `${label} — OET ${g('oetTD')}`;
+  }
+  if (!oetEnabled) return tenor;
+  const oetMode = document.querySelector('input[name="oetMode"]:checked')?.value || 'months';
+  if (oetMode === 'custom') {
+    return `${tenor} (OET ${g('oetTD')})`;
+  }
+  const oet = document.getElementById('oetMonths').value;
+  return `${tenor} (OET ${oet})`;
+}
+
+function calcExpiry() {
+  // Read start trade date (or today as fallback)
+  const startRaw = document.getElementById('startTD') ? document.getElementById('startTD').value : '';
+  const startRaw2 = document.getElementById('startTD2') ? document.getElementById('startTD2').value : '';
+
+  const parseDate = str => {
+    if (!str) return new Date();
+    const d = new Date(str.replace(/-/g,' '));
+    return isNaN(d) ? new Date() : d;
+  };
+
+  const tenorVal = document.getElementById('tenor').value; // e.g. "3 Months" or "Custom"
+  const isCustomTenor = tenorVal === 'Custom';
+  const months = isCustomTenor ? 0 : (parseInt(tenorVal) || 1);
+
+  if (!isCustomTenor) {
+    // Simple mode — auto-calc expiry
+    const start = parseDate(startRaw || document.getElementById('tradeDate').value);
+    let expiry = new Date(start);
+    expiry.setMonth(expiry.getMonth() + months);
+    expiry = nextBusinessDay(expiry);
+    const expiryVD = addBusinessDaysT2(expiry);
+    document.getElementById('expiryTD').value = fmtDate(expiry);
+    document.getElementById('expiryVD').value = fmtDate(expiryVD);
+
+    // Long tenor mode
+    const start2 = parseDate(startRaw2 || document.getElementById('tradeDate').value);
+    let expiry2 = new Date(start2);
+    expiry2.setMonth(expiry2.getMonth() + months);
+    expiry2 = nextBusinessDay(expiry2);
+    const expiryVD2 = addBusinessDaysT2(expiry2);
+    document.getElementById('expiryTD2').value = fmtDate(expiry2);
+    document.getElementById('expiryVD2').value = fmtDate(expiryVD2);
+  }
+  // If Custom, leave expiry fields as user-entered (don't overwrite)
+
+  // OET date
+  const oetEnabled = document.getElementById('oetEnabled').checked;
+  const oetMode = document.querySelector('input[name="oetMode"]:checked')?.value || 'months';
+  if (oetEnabled) {
+    if (oetMode === 'custom') {
+      // Custom OET — use calcOETCustom
+      calcOETCustom();
+    } else {
+      // Tenor-based OET = start date + OET months
+      const oetVal = document.getElementById('oetMonths').value; // e.g. "3M"
+      const oetM = parseInt(oetVal) || 1;
+      const oetBase = tenorMode === 'reset'
+        ? parseDate(document.getElementById('startTD2').value || document.getElementById('tradeDate').value)
+        : parseDate(document.getElementById('startTD').value  || document.getElementById('tradeDate').value);
+      let oetDate = new Date(oetBase);
+      oetDate.setMonth(oetDate.getMonth() + oetM);
+      oetDate = nextBusinessDay(oetDate);
+      const oetVD = addBusinessDaysT2(oetDate);
+      document.getElementById('oetTD').value = fmtDate(oetDate);
+      document.getElementById('oetVD').value = fmtDate(oetVD);
+    }
+  } else {
+    document.getElementById('oetTD').value = '';
+    document.getElementById('oetVD').value = '';
+  }
+  // Re-generate reset calendar if auto mode active
+  if(document.getElementById('autoResets') && document.getElementById('autoResets').checked){
+    setTimeout(generateResets, 30);
+  }
+}
+
+// ═══════════════════════════════════
+// STATE
+// ═══════════════════════════════════
+let counterparties = JSON.parse(localStorage.getItem('trs_cpty')||'["Client Name S.A.","Broker Dealer Ltd"]');
+let specialConditions = []; // [{label, value}]
+
+function addSpecialCondition(label='', value='') {
+  specialConditions.push({label, value});
+  renderSpecialConditions();
+}
+
+function removeSpecialCondition(i) {
+  specialConditions.splice(i, 1);
+  renderSpecialConditions();
+}
+
+function renderSpecialConditions() {
+  const container = document.getElementById('special-conditions-list');
+  if (!container) return;
+  container.innerHTML = specialConditions.map((sc, i) => `
+    <div class="sc-row">
+      <input class="sc-lbl" placeholder="Label (ex: Lock-up)" value="${sc.label.replace(/"/g,'&quot;')}"
+        oninput="specialConditions[${i}].label=this.value"/>
+      <input placeholder="Value / description" value="${sc.value.replace(/"/g,'&quot;')}"
+        oninput="specialConditions[${i}].value=this.value"/>
+      <button class="sc-del" onclick="removeSpecialCondition(${i})">✕</button>
+    </div>`).join('');
+}
+
+function getSpecialConditionsHTML() {
+  return specialConditions.filter(sc => sc.label || sc.value).map(sc =>
+    `<tr><td class="lbl">${sc.label.toUpperCase()}</td><td>${sc.value}</td></tr>`
+  ).join('');
+}
+let parsedBasket   = [];
+let parsedResets   = [];
+let tenorMode      = 'simple';
+
+// ═══════════════════════════════════
+// INIT
+// ═══════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  const fmt = d => d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}).replace(/ /g,'-');
+  const today = new Date(), t2 = new Date(today); t2.setDate(t2.getDate()+2);
+  document.getElementById('tradeDate').value = fmt(today);
+  document.getElementById('startTD').value   = fmt(today);
+  document.getElementById('startVD').value   = fmt(t2);
+  document.getElementById('startTD2').value  = fmt(today);
+  document.getElementById('startVD2').value  = fmt(t2);
+
+  // Auto-calc expiry based on tenor dropdown
+  calcExpiry();
+  renderCptyAll();
+  renderDrTable();
+});
+
+// ═══════════════════════════════════
+// COUNTERPARTIES
+// ═══════════════════════════════════
+function saveCpty(){localStorage.setItem('trs_cpty',JSON.stringify(counterparties));}
+function addCpty(){
+  const inp=document.getElementById('cptyInput'),v=inp.value.trim();
+  if(!v||counterparties.includes(v)){inp.value='';return;}
+  counterparties.push(v);inp.value='';saveCpty();renderCptyAll();
+}
+function removeCpty(){
+  const val=document.getElementById('cptyListSel').value;
+  if(!val)return;
+  counterparties=counterparties.filter(c=>c!==val);saveCpty();renderCptyAll();
+}
+function renderCptyAll(){
+  const list=document.getElementById('cptyListSel');
+  list.innerHTML=counterparties.map(c=>`<option value="${escH(c)}">${c}</option>`).join('');
+  document.getElementById('cptyCount').textContent=`${counterparties.length} contrepartie(s) enregistrée(s)`;
+  // Update datalist suggestions for buyer/seller free-text inputs
+  const dl=document.getElementById('cpty-dl');
+  if(dl) dl.innerHTML=counterparties.map(c=>`<option value="${escH(c)}"/>`).join('');
+}
+function escH(s){return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
+
+// ═══════════════════════════════════
+// TENOR TABS
+// ═══════════════════════════════════
+function switchTenor(mode){
+  tenorMode=mode;
+  document.getElementById('tab-simple').className='tenor-tab'+(mode==='simple'?' active':'');
+  document.getElementById('tab-reset').className ='tenor-tab'+(mode==='reset' ?' active':'');
+  document.getElementById('tenor-simple').style.display=mode==='simple'?'block':'none';
+  document.getElementById('tenor-reset').style.display =mode==='reset' ?'block':'none';
+  // Show calendar zone only if resets enabled
+  const calZone = document.getElementById('reset-calendar-zone');
+  const hasR = document.getElementById('hasResets');
+  if(calZone && hasR) calZone.style.display = (mode==='reset' && hasR.checked) ? 'block' : 'none';
+}
+
+// ═══════════════════════════════════
+// RESET CALENDAR
+// ═══════════════════════════════════
+function addBizDays(dateStr,n){
+  let d;
+  if(/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) d=new Date(dateStr);
+  else if(/^\d{2}[\/\-]\d{2}[\/\-]\d{4}$/.test(dateStr)){const[a,b,c]=dateStr.split(/[\/\-]/);d=new Date(`${c}-${b}-${a}`);}
+  else d=new Date(Date.parse(dateStr));
+  if(isNaN(d))return dateStr+'+T2';
+  let added=0;
+  while(added<n){d.setDate(d.getDate()+1);if(d.getDay()!==0&&d.getDay()!==6)added++;}
+  return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}).replace(/ /g,'-');
+}
+
+function toggleHasResets(){
+  const has = document.getElementById('hasResets').checked;
+  // Show/hide freq dropdown
+  document.getElementById('reset-block').style.display = has ? 'block' : 'none';
+  // Show/hide calendar zone inside long tenor tab
+  const calZone = document.getElementById('reset-calendar-zone');
+  if(calZone) calZone.style.display = has ? 'block' : 'none';
+  // Clear resets if unchecked
+  if(!has){
+    parsedResets = [];
+    const pw = document.getElementById('resetPreviewWrap');
+    if(pw) pw.style.display = 'none';
+  }
+}
+
+function toggleAutoResets(){
+  const auto = document.getElementById('autoResets').checked;
+  document.getElementById('reset-manual-zone').style.display = auto ? 'none' : 'block';
+  document.getElementById('reset-auto-zone').style.display   = auto ? 'block' : 'none';
+  if(auto) generateResets();
+}
+
+function generateResets(){
+  // Read start date + tenor + reset frequency
+  const startRaw = document.getElementById('startTD2').value || document.getElementById('startTD').value;
+  const parseD = s => { const d = new Date(s.replace(/-/g,' ')); return isNaN(d)?new Date():d; };
+  const start = parseD(startRaw);
+
+  const tenorVal = document.getElementById('tenor').value; // "6 Months"
+  const totalMonths = parseInt(tenorVal) || 1;
+
+  const freqRaw = document.getElementById('resetFreq').value.trim().toLowerCase();
+  const freqMonths = freqRaw.includes('quarter') ? 3 : 1;
+
+  parsedResets = [];
+  let current = new Date(start);
+  let period = 1;
+  while(true){
+    current = new Date(current);
+    current.setMonth(current.getMonth() + freqMonths);
+    // Stop if we've gone past or reached maturity
+    const expRaw = document.getElementById('expiryTD2').value;
+    const expiry = parseD(expRaw);
+    if(current >= expiry) break;
+    const resetDate = nextBusinessDay(current);
+    const valueDate = addBusinessDaysT2(resetDate);
+    parsedResets.push({
+      period: `Period ${period}`,
+      resetDate: fmtDate(resetDate),
+      valueDate: fmtDate(valueDate),
+      autoVD: true
+    });
+    period++;
+  }
+
+  if(!parsedResets.length){
+    alert('Aucun reset généré — vérifiez le tenor et la fréquence.');
+    return;
+  }
+
+  // Show preview
+  const autoCount = parsedResets.length;
+  document.getElementById('resetStatus').innerHTML =
+    `⚡ ${autoCount} resets générés automatiquement (${document.getElementById('resetFreq').value})`;
+  document.getElementById('resetPreviewTable').innerHTML = `
+    <thead><tr><th>Period</th><th>Reset Date</th><th>Value Date</th></tr></thead>
+    <tbody>${parsedResets.map(r=>`
+      <tr><td>${r.period}</td><td>${r.resetDate}</td><td>${r.valueDate}</td></tr>`).join('')}
+    </tbody>`;
+  document.getElementById('resetPreviewWrap').style.display='block';
+}
+
+function parseResets(){
+  const raw=document.getElementById('resetPaste').value.trim();
+  if(!raw){alert('Colle le calendrier.');return;}
+  const lines=raw.split('\n').map(l=>l.trim()).filter(l=>l);
+  parsedResets=[];
+  let si=/period|date|reset/i.test(lines[0])?1:0;
+  lines.slice(si).forEach((line,i)=>{
+    const parts=line.split(/\t+/).map(p=>p.trim());
+    if(parts.length===1) parsedResets.push({period:`Period ${i+1}`,resetDate:parts[0],valueDate:addBizDays(parts[0],2),autoVD:true});
+    else if(parts.length===2) parsedResets.push({period:`Period ${i+1}`,resetDate:parts[0],valueDate:parts[1],autoVD:false});
+    else if(parts.length>=3) parsedResets.push({period:parts[0],resetDate:parts[1],valueDate:parts[2],autoVD:false});
+  });
+  if(!parsedResets.length){alert('Aucune ligne valide.');return;}
+  const autoCount=parsedResets.filter(r=>r.autoVD).length;
+  document.getElementById('resetStatus').innerHTML=
+    `✅ ${parsedResets.length} reset(s)`+(autoCount?` · <span style="color:var(--accent)">${autoCount} VD calculées T+2</span>`:'');
+  document.getElementById('resetPreviewTable').innerHTML=`
+    <thead><tr><th>Period</th><th>Reset Date</th><th>Value Date (éditable)</th></tr></thead>
+    <tbody>${parsedResets.map((r,i)=>`
+      <tr>
+        <td class="period-lbl">${r.period}</td>
+        <td>${r.resetDate}</td>
+        <td><input class="vd-inp" data-idx="${i}" value="${r.valueDate}" onchange="parsedResets[${i}].valueDate=this.value"/></td>
+      </tr>`).join('')}
+    </tbody>`;
+  document.getElementById('resetPreviewWrap').style.display='block';
+}
+
+// ═══════════════════════════════════
+// BASKET PARSER
+// ═══════════════════════════════════
+function parseNum(s){
+  if(!s) return 0;
+  let str = String(s).replace(/\s*EUR$/i,'').trim();
+  // Detect EU format: comma as decimal separator (e.g. "19,98" or "1.234.567,89")
+  const hasComma = str.includes(',');
+  const hasDot   = str.includes('.');
+  if(hasComma && hasDot){
+    // Both present: whichever comes last is the decimal separator
+    if(str.lastIndexOf(',') > str.lastIndexOf('.')){
+      // EU: 1.234.567,89 -> remove dots, replace comma with dot
+      str = str.replace(/\./g,'').replace(',','.');
+    } else {
+      // US: 1,234,567.89 -> remove commas
+      str = str.replace(/,/g,'');
+    }
+  } else if(hasComma && !hasDot){
+    // Only comma: could be thousands (1,000) or decimal (19,98)
+    const parts = str.split(',');
+    if(parts.length===2 && parts[1].length<=2){
+      // Decimal separator: 19,98 -> 19.98
+      str = str.replace(',','.');
+    } else {
+      // Thousands separator: 1,000 -> 1000
+      str = str.replace(/,/g,'');
+    }
+  }
+  // Remove remaining spaces (thousand sep)
+  str = str.replace(/\s/g,'');
+  return parseFloat(str)||0;
+}
+function fmtNum(n,dec=2){return Number(n).toLocaleString('fr-FR',{minimumFractionDigits:dec,maximumFractionDigits:dec});}
+// Smart price format: shows decimals only if needed, up to 3 max
+function fmtPrice(n){
+  const num = Number(n);
+  if(num === Math.floor(num)) return num.toLocaleString('fr-FR'); // no decimals if integer
+  // Count actual decimal places (up to 3)
+  const s = num.toFixed(3);
+  const dec = s.replace(/0+$/,'').split('.')[1]||'';
+  return num.toLocaleString('fr-FR',{minimumFractionDigits:dec.length,maximumFractionDigits:3});
+}
+
+function parseBasket(){
+  const raw=document.getElementById('pasteArea').value.trim();
+  if(!raw){alert('Colle ton basket.');return;}
+  const lines=raw.split('\n').map(l=>l.trim()).filter(l=>l);
+  parsedBasket=[];
+  let si=/name|ticker|stock/i.test(lines[0])?1:0;
+  lines.slice(si).forEach(line=>{
+    const parts=line.split(/\t+/).map(p=>p.trim());
+    if(parts.length<2)return;
+    // Clean Bloomberg tickers: "MC FP Equity" -> "MC FP", strip trailing words
+    let ticker=parts[0].toUpperCase().trim();
+    ticker=ticker.replace(/\s+(equity|index|comdty|curncy|govt|corp)$/i,'').trim();
+    const size=parseNum(parts[1]),price=parseNum(parts[2]);
+    const ccy=parts[3]?parts[3].replace(/[^A-Z]/gi,'').toUpperCase()||'EUR':'EUR';
+    let total=parts[4]?parseNum(parts[4]):size*price;
+    if(!total)total=size*price;
+    // Multi-strategy ISIN matching
+const keys = Object.keys(ISIN_DB);
+// Build first-token index once (e.g. "BBVA" -> "BBVA SM")
+const firstTokenMap = {};
+keys.forEach(k => { const t = k.split(' ')[0]; if(!firstTokenMap[t]) firstTokenMap[t] = ISIN_DB[k]; });
+
+let match = ISIN_DB[ticker]; // 1. exact match
+if(!match) match = keys.map(k=>({k,v:ISIN_DB[k]})).find(e=>ticker.startsWith(e.k))?.v || null; // 2. paste has extra suffix e.g. "BBVA SM Equity"
+if(!match) match = keys.map(k=>({k,v:ISIN_DB[k]})).find(e=>e.k.startsWith(ticker+' '))?.v || null; // 3. paste missing suffix e.g. "BBVA"
+if(!match){ const firstTok = ticker.split(' ')[0]; match = firstTokenMap[firstTok] || null; } // 4. first token only — handles "BBVA SQ" -> "BBVA SM"
+    parsedBasket.push({ticker,name:match?match.name:ticker,isin:match?match.isin:'',isinFound:!!match,size,price,ccy,total});
+  });
+  if(!parsedBasket.length){alert('Aucune ligne valide.');return;}
+  renderBasketPreview();
+}
+
+function readIsinInputs(){
+  document.querySelectorAll('.isin-inp').forEach(inp=>{
+    const idx=parseInt(inp.dataset.idx);
+    if(!isNaN(idx))parsedBasket[idx].isin=inp.value.trim();
+  });
+}
+
+function renderBasketPreview(){
+  const totalNot=parsedBasket.reduce((s,r)=>s+r.total,0);
+  const found=parsedBasket.filter(r=>r.isinFound).length,missing=parsedBasket.length-found;
+  document.getElementById('basketStatus').innerHTML=
+    `✅ ${parsedBasket.length} lignes · ISIN auto : <strong style="color:var(--accent)">${found}</strong>/${parsedBasket.length}`
+    +(missing?` · <span class="warn">⚠ ${missing} à compléter</span>`:' · <span style="color:var(--ok);font-size:9px;">✔ Complet</span>');
+  const rows=parsedBasket.map((r,i)=>`
+    <tr>
+      <td class="mono">${r.ticker}</td>
+      <td style="color:rgba(255,255,255,.85);max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.name}">${r.name}</td>
+      <td><input class="isin-inp ${r.isinFound?'ok':'missing'}" data-idx="${i}" value="${r.isin}" placeholder="FR000..."/></td>
+      <td class="num">${fmtNum(r.size,0)}</td>
+      <td class="num">${fmtPrice(r.price)}</td>
+      <td class="num">${fmtNum(r.total)}</td>
+    </tr>`).join('')+`<tr class="tot"><td colspan="5" style="text-align:right;padding-right:6px;">TOTAL NOTIONAL</td><td>${fmtNum(totalNot)}</td></tr>`;
+  document.getElementById('basketPreviewTable').innerHTML=`
+    <thead><tr><th>Ticker</th><th>Name</th><th>ISIN</th><th>Size</th><th>Price</th><th>Total EUR</th></tr></thead>
+    <tbody>${rows}</tbody>`;
+  document.getElementById('basketPreviewWrap').style.display='block';
+  feesManualOverride=false; calcFees();
+}
+
+// ═══════════════════════════════════
+// GENERATE PREVIEW
+// ═══════════════════════════════════
+function g(id){return document.getElementById(id).value.trim();}
+function eh(s){
+  return String(s||'')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+
+function buildDocHTML(){
+  readIsinInputs();
+  const dr=getDrRates();
+  const totalNot=parsedBasket.reduce((s,r)=>s+r.total,0);
+  const today=new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  const refRate=g('refRate'),spread=g('spread');
+  const rateLabel=refRate.toLowerCase()==='fixed rate'||refRate.toLowerCase()==='fixed'?`${eh(spread)} bps (Fixed)`:`${eh(refRate)} + ${eh(spread)} bps`;
+
+  const bktRows=parsedBasket.map(r=>`
+    <tr>
+      <td><strong>${r.ticker}</strong></td>
+      <td class="tl">${r.name}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:6.5px;">${r.isin||'-'}</td>
+      <td>${fmtNum(r.size,0)}</td>
+      <td>${fmtPrice(r.price)}</td>
+      <td><strong>${fmtNum(r.total)}</strong></td>
+    </tr>`).join('');
+
+  const drRows=dr.filter(d=>d.country).map(d=>`<tr><td class="cty">${d.country}</td><td>${d.rate}</td></tr>`).join('');
+
+  let datesBlock='';
+  // Helper: parse a date string for sorting
+  const parseForSort = s => { const d=new Date((s||'').replace(/-/g,' ')); return isNaN(d)?0:d.getTime(); };
+
+  if(tenorMode==='simple'){
+    const oetEnabled = document.getElementById('oetEnabled').checked && g('oetTD');
+    datesBlock=`
+      <div class="d-sec">Key Dates</div>
+      <table class="dt-t">
+        <thead><tr><th>Date</th><th>Value Date</th><th>Event</th></tr></thead>
+        <tbody>
+          <tr><td>${g('startTD')}</td><td>${g('startVD')}</td><td class="ev">Start Date</td></tr>
+          ${oetEnabled ? `<tr style="background:#fffbf0;"><td style="color:#c8a96e;font-weight:700;">${g('oetTD')}</td><td style="color:#c8a96e;font-weight:700;">${g('oetVD')}</td><td class="ev" style="color:#c8a96e;">OET — Option Early Termination</td></tr>` : ''}
+          <tr style="background:#fff3f3;"><td style="font-weight:700;color:#c0392b;">${g('expiryTD')}</td><td style="font-weight:700;color:#c0392b;">${g('expiryVD')}</td><td class="ev" style="color:#c0392b;font-weight:700;">MATURITY DATE</td></tr>
+        </tbody>
+      </table>`;
+  } else {
+    // Build chronologically sorted list of all intermediate events
+    const oetEnabled = document.getElementById('oetEnabled').checked && g('oetTD');
+    const oetTime = oetEnabled ? parseForSort(g('oetTD')) : Infinity;
+
+    // Combine resets + OET into one sorted list
+    let midEvents = [];
+    parsedResets.forEach(r => {
+      midEvents.push({time: parseForSort(r.resetDate), td: r.resetDate, vd: r.valueDate, label: r.period, type:'reset'});
+    });
+    if(oetEnabled){
+      midEvents.push({time: parseForSort(g('oetTD')), td: g('oetTD'), vd: g('oetVD'), label:'OET', type:'oet'});
+    }
+    midEvents.sort((a,b)=>a.time-b.time);
+
+    // Merge OET into reset row if same date
+    const mergedEvents = [];
+    for(let i=0;i<midEvents.length;i++){
+      const ev = midEvents[i];
+      if(ev.type==='oet'){
+        // Check if previous or next event is a reset on the same date
+        const sameReset = mergedEvents.length && mergedEvents[mergedEvents.length-1].type==='reset' && mergedEvents[mergedEvents.length-1].time===ev.time;
+        if(sameReset){ mergedEvents[mergedEvents.length-1].type='reset+oet'; }
+        else { mergedEvents.push(ev); }
+      } else {
+        // Check if next event is OET on same date
+        const nextIsOET = i+1<midEvents.length && midEvents[i+1].type==='oet' && midEvents[i+1].time===ev.time;
+        if(nextIsOET){ mergedEvents.push({...ev, type:'reset+oet'}); i++; }
+        else { mergedEvents.push(ev); }
+      }
+    }
+
+    const midRowsHTML = mergedEvents.length ? mergedEvents.map((ev,i)=>{
+      if(ev.type==='reset+oet') return `
+        <tr style="background:#fffbf0;">
+          <td style="color:#c8a96e;font-weight:700;">${ev.td}</td>
+          <td style="color:#c8a96e;font-weight:700;">${ev.vd}</td>
+          <td class="ev" style="color:#c8a96e;"><span style="font-family:'DM Mono',monospace;font-size:7px;margin-right:5px;">${ev.label}</span>Reset &amp; OET — Option Early Termination</td>
+        </tr>`;
+      if(ev.type==='oet') return `
+        <tr style="background:#fffbf0;">
+          <td style="color:#c8a96e;font-weight:700;">${ev.td}</td>
+          <td style="color:#c8a96e;font-weight:700;">${ev.vd}</td>
+          <td class="ev" style="color:#c8a96e;">OET — Option Early Termination</td>
+        </tr>`;
+      return `
+        <tr style="background:${i%2===0?'var(--gold-dim)':'transparent'};">
+          <td>${ev.td}</td>
+          <td>${ev.vd}</td>
+          <td class="ev"><span style="font-family:'DM Mono',monospace;font-size:7px;color:var(--accent);font-weight:600;margin-right:5px;">${ev.label}</span>Reset</td>
+        </tr>`;
+    }).join('') : '<tr><td colspan="3" style="color:#888;font-style:italic;font-size:7px;text-align:center;padding:6px;">No resets yet — paste or auto-generate</td></tr>';
+
+    datesBlock=`
+      <div class="d-sec">Key Dates &amp; Reset Calendar</div>
+      <table class="dt-t">
+        <thead><tr><th>Date</th><th>Value Date</th><th>Event</th></tr></thead>
+        <tbody>
+          <tr><td>${g('startTD2')}</td><td>${g('startVD2')}</td><td class="ev">Start Date</td></tr>
+          ${midRowsHTML}
+          <tr style="background:#fff3f3;"><td style="font-weight:700;color:#c0392b;">${g('expiryTD2')}</td><td style="font-weight:700;color:#c0392b;">${g('expiryVD2')}</td><td class="ev" style="color:#c0392b;font-weight:700;">MATURITY DATE</td></tr>
+        </tbody>
+      </table>`;
+  }
+
+  return `
+    <div style="background:#fff;padding:16px 24px 12px;text-align:center;border-bottom:1px solid #e8e8e8;">
+      <img src="data:image/png;base64,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" style="height:44px;width:auto;display:inline-block;"/>
+    </div>
+    <div class="doc-title">
+      <h2>CONFIRMATION - TOTAL RETURN SWAP</h2>
+      <p>${eh(g('subtitle'))}</p>
+    </div>
+    <div class="doc-body">
+      <div class="d-sec">Trade Information</div>
+      <table class="kv-t">
+        <tr><td class="lbl">TRADE DATE</td><td>${eh(g('tradeDate'))}</td></tr>
+        <tr><td class="lbl">PRODUCT</td><td>TOTAL RETURN SWAP</td></tr>
+        <tr><td class="lbl">BUYER OF SWAP</td><td>${eh(g('buyer'))}</td></tr>
+        <tr><td class="lbl">SELLER OF SWAP</td><td>${eh(g('seller'))}</td></tr>
+      </table>
+      <div class="spacer"></div>
+      <div class="d-sec">Basket Composition</div>
+      <table class="bkt">
+        <thead><tr><th>Ticker</th><th>Name</th><th>ISIN</th><th>Size</th><th>Price (EUR)</th><th>Notional (EUR)</th></tr></thead>
+        <tbody>
+          ${bktRows}
+          <tr class="tot"><td colspan="5" style="text-align:right;padding-right:9px;">TOTAL NOTIONAL (${eh(g('swapCcy'))})</td><td>${fmtNum(totalNot)}</td></tr>
+        </tbody>
+      </table>
+      <div class="spacer"></div>
+      <div class="d-sec">Economic Terms</div>
+      <table class="kv-t">
+        <tr><td class="lbl">FINANCING RATE</td><td>${rateLabel}</td></tr>
+        <tr><td class="lbl">SWAP CURRENCY</td><td>${eh(g('swapCcy'))}</td></tr>
+        <tr><td class="lbl">SETTLEMENT</td><td>${eh(g('settlement'))}</td></tr>
+        <tr><td class="lbl">EQUITY SETTLEMENT</td><td>${eh(g('eqSettle'))}</td></tr>
+        <tr><td class="lbl">TENOR</td><td>${eh(getTenorLabel())}</td></tr>
+        <tr><td class="lbl">RESET FREQUENCY</td><td>${document.getElementById('hasResets').checked ? eh(g('resetFreq')) : 'None'}</td></tr>
+        <tr><td class="lbl">BREAKABLE</td><td>${eh(g('breakab'))}</td></tr>
+        <tr><td class="lbl">RIGHT OF SUBSTITUTION</td><td>${eh(g('rightSub'))}</td></tr>
+        <tr><td class="lbl">DIVIDEND CURRENCY</td><td>${eh(g('divCcy'))}</td></tr>
+      </table>
+      <div class="spacer"></div>
+      <div class="d-sec">Index Composition Rules</div>
+      <table class="kv-t">
+        <tr><td class="lbl">COMPOSITION</td><td>${eh(g('compo'))}</td></tr>
+        <tr><td class="lbl">MAX FINANCIALS</td><td>${eh(g('maxFin'))}</td></tr>
+        <tr><td class="lbl">MAX POSITION SIZE</td><td>${eh(g('maxPos'))}</td></tr>
+        <tr><td class="lbl">LOOKBACK PERIOD</td><td>${eh(g('lookback'))}</td></tr>
+      </table>
+      <div class="spacer"></div>
+      <div class="d-sec">Dividend Rates (DR) by Jurisdiction</div>
+      <table class="dr-t">
+        <thead><tr><th style="text-align:left">Country</th><th>DR Rate (%)</th></tr></thead>
+        <tbody>${drRows}</tbody>
+      </table>
+      <div class="spacer"></div>
+      ${datesBlock}
+      <div class="spacer"></div>
+      ${document.getElementById('oetEnabled').checked && g('oetTD') ? `
+      <div class="d-sec" style="background:#1a3a5c;color:#fff;">OPTIONAL EARLY TERMINATION (OET) — ${g('oetTD')}</div>
+      <table class="kv-t">
+        <tr>
+          <td class="lbl">OET DATE</td>
+          <td style="color:#c0392b;font-weight:600;">${g('oetTD')} — Value Date: ${g('oetVD')}</td>
+        </tr>
+        <tr>
+          <td class="lbl">BUYER RIGHT</td>
+          <td>${document.getElementById('oetBuyerRight').value}</td>
+        </tr>
+        <tr>
+          <td class="lbl">RE-RATE RIGHT</td>
+          <td>${document.getElementById('oetReRate').value}</td>
+        </tr>
+        <tr>
+          <td class="lbl">FALLBACK</td>
+          <td>${document.getElementById('oetFallback').value}</td>
+        </tr>
+      </table>
+      <div class="spacer"></div>` : ''}
+      <div class="d-sec">Cashflow &amp; Reshuffle Terms</div>
+      <div class="cf-block">
+        <strong>RESHUFFLE CASHFLOWS:</strong>&nbsp;${document.getElementById('cashflowText').value}
+      </div>
+      ${specialConditions.filter(sc=>sc.label||sc.value).length ? `
+      <div class="d-sec">Special Conditions</div>
+      <table class="kv-t">${getSpecialConditionsHTML()}</table>` : ''}
+      <div class="d-sec">Brokerage Fees</div>
+      <table class="kv-t">
+        <tr><td class="lbl">BROKERAGE FEES</td><td>${eh(g('swapCcy'))} ${fmtNum(parseFloat(g('fees'))||0, 0)}</td></tr>
+      </table>
+    </div>
+    <div class="doc-footer">Generated ${today} · Confidential · For discussion purposes only</div>`;
+}
+
+function generatePreview(){
+  if(!parsedBasket.length){alert('Importe ton basket.');return;}
+  document.getElementById('confirmation-doc').innerHTML=buildDocHTML();
+  document.getElementById('confirmation-doc').style.display='block';
+  document.getElementById('placeholder').style.display='none';
+}
+
+// ═══════════════════════════════════
+// PDF
+// ═══════════════════════════════════
+function savePDF(){
+  if(!parsedBasket.length){alert('Importe ton basket.');return;}
+  generatePreview();
+
+  // Build the doc HTML with all inline styles for the print window
+  const docHTML = document.getElementById('confirmation-doc').innerHTML;
+
+  const printStyles = `
+    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:wght@700&family=DM+Sans:wght@300;400;500;600&display=swap');
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'DM Sans',sans-serif;background:#fff;color:#1a1a1a;width:794px;margin:0 auto;}
+    .doc-title{background:#00254d;color:#fff;text-align:center;padding:16px;}
+    .doc-title h2{font-family:'Playfair Display',serif;font-size:17px;letter-spacing:2px;margin-bottom:3px;}
+    .doc-title p{font-size:8.5px;color:#c8a96e;letter-spacing:3px;font-family:'DM Mono',monospace;}
+    .d-sec{background:#1f4e79;color:#fff;font-size:7.5px;letter-spacing:3px;text-transform:uppercase;padding:5px 11px;font-weight:600;font-family:'DM Mono',monospace;}
+    .kv-t{width:100%;border-collapse:collapse;}
+    .kv-t tr:nth-child(odd) td{background:#f2f2f2;}
+    .kv-t tr:nth-child(even) td{background:#fff;}
+    .kv-t td{padding:6px 11px;font-size:9px;border-bottom:1px solid #e8e8e8;}
+    .kv-t td.lbl{width:36%;font-weight:700;color:#00254d;font-family:'DM Mono',monospace;font-size:7px;letter-spacing:.5px;}
+    .bkt{width:100%;border-collapse:collapse;}
+    .bkt th{background:#2e75b6;color:#fff;font-size:7px;padding:5px 6px;text-align:center;font-family:'DM Mono',monospace;letter-spacing:.8px;border-right:1px solid rgba(255,255,255,.2);}
+    .bkt td{font-size:8.5px;padding:4px 6px;border-bottom:1px solid #e8e8e8;border-right:1px solid #f0f0f0;text-align:center;}
+    .bkt td.tl{text-align:left;}
+    .bkt tr:nth-child(odd) td{background:#f2f2f2;}
+    .bkt tr:nth-child(even) td{background:#fff;}
+    .bkt tr.tot td{background:#00254d!important;color:#fff;font-weight:700;font-size:7.5px;font-family:'DM Mono',monospace;}
+    .reset-t{width:100%;border-collapse:collapse;}
+    .reset-t th{background:#2e75b6;color:#fff;font-size:7px;padding:4px 9px;font-family:'DM Mono',monospace;letter-spacing:.8px;text-align:center;}
+    .reset-t td{font-size:8.5px;padding:4px 9px;border-bottom:1px solid #e8e8e8;text-align:center;font-family:'DM Mono',monospace;}
+    .reset-t tr:nth-child(odd) td{background:#f2f2f2;}
+    .reset-t tr:nth-child(even) td{background:#fff;}
+    .reset-t td.ev{font-weight:700;color:#00254d;}
+    .dr-t{width:100%;border-collapse:collapse;}
+    .dr-t th{background:#2e75b6;color:#fff;font-size:7px;padding:4px 11px;font-family:'DM Mono',monospace;letter-spacing:.8px;text-align:center;}
+    .dr-t td{font-size:8.5px;padding:4px 11px;border-bottom:1px solid #e8e8e8;text-align:center;}
+    .dr-t tr:nth-child(odd) td{background:#f2f2f2;}
+    .dr-t tr:nth-child(even) td{background:#fff;}
+    .dr-t td.cty{font-weight:700;color:#00254d;text-align:left;}
+    .dt-t{width:100%;border-collapse:collapse;}
+    .dt-t th{background:#2e75b6;color:#fff;font-size:7px;padding:4px;font-family:'DM Mono',monospace;text-align:center;letter-spacing:.8px;}
+    .dt-t td{font-size:8.5px;padding:4px;text-align:center;border-bottom:1px solid #e8e8e8;}
+    .dt-t tr:nth-child(odd) td{background:#f2f2f2;}
+    .dt-t tr:nth-child(even) td{background:#fff;}
+    .dt-t td.ev{font-weight:700;color:#00254d;font-family:'DM Mono',monospace;}
+    .cf-block{background:#f2f2f2;padding:7px 11px;font-size:7px;color:#1a1a1a;line-height:1.6;border-bottom:1px solid #e8e8e8;}
+    .cf-block strong{color:#00254d;font-family:'DM Mono',monospace;}
+    .spacer{height:4px;}
+    .doc-footer{background:#00254d;color:rgba(255,255,255,.4);font-size:6px;padding:7px 11px;text-align:center;font-family:'DM Mono',monospace;letter-spacing:1px;}
+    @media print{
+      body{width:100%;}
+      @page{margin:8mm;size:A4;}
+    }
+  `;
+
+  const win = window.open('', '_blank', 'width=900,height=700');
+  win.document.write(`<!DOCTYPE html><html><head>
+    <meta charset="UTF-8"/>
+    <title>TRS Confirmation</title>
+    <style>${printStyles}</style>
+  </head><body>${docHTML}</body></html>`);
+  win.document.close();
+
+  // Wait for fonts then trigger print dialog (browser saves as PDF)
+  setTimeout(()=>{
+    win.focus();
+    win.print();
+  }, 800);
+}
+
+// ═══════════════════════════════════
+// EXCEL - styled as confirmation doc
+// ═══════════════════════════════════
+function exportExcel(){
+  if(!parsedBasket.length){alert('Importe ton basket.');return;}
+  readIsinInputs();
+  const dr = getDrRates();
+  const refRate = g('refRate'), spread = g('spread');
+  const rateLabel = refRate.toLowerCase()==='fixed rate'||refRate.toLowerCase()==='fixed'
+    ? `${spread} bps (Fixed)` : `${refRate} + ${spread} bps`;
+  const totalNot = parsedBasket.reduce((s,r)=>s+r.total, 0);
+
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'TRS Generator';
+  const ws = wb.addWorksheet('Confirmation', {
+    pageSetup:{paperSize:9, orientation:'portrait', margins:{left:0.5,right:0.5,top:0.5,bottom:0.5}}
+  });
+
+  // ── Column widths (6 cols) ──
+  ws.columns = [
+    {width:26},{width:30},{width:16},{width:14},{width:14},{width:18}
+  ];
+
+  // ── Colour palette matching the preview ──
+  const NAVY  = '00254D';
+  const STEEL = '2E75B6';
+  const MID   = '1F4E79';
+  const WHITE = 'FFFFFF';
+  const GREY  = 'F2F2F2';
+  const GOLD  = 'C8A96E';
+  const TEXT  = '1A1A1A';
+
+  // ── Style helpers ──
+  function fill(hex){ return {type:'pattern',pattern:'solid',fgColor:{argb:'FF'+hex}}; }
+  function font(hex,bold,sz){ return {name:'Arial',size:sz||8,bold:!!bold,color:{argb:'FF'+hex}}; }
+  function border(style='thin'){
+    const s={style,color:{argb:'FFCCCCCC'}};
+    return {top:s,bottom:s,left:s,right:s};
+  }
+  function align(h,v,wrap){return {horizontal:h||'left',vertical:v||'middle',wrapText:!!wrap};}
+
+  // Apply style to a cell
+  function style(cell, opts){
+    if(opts.fill)      cell.fill      = opts.fill;
+    if(opts.font)      cell.font      = opts.font;
+    if(opts.alignment) cell.alignment = opts.alignment;
+    if(opts.border)    cell.border    = opts.border;
+  }
+
+  // Merge + style a full row (cols 1-6)
+  function fullRow(text, bgHex, fgHex, bold, sz, halign){
+    const row = ws.addRow([text,'','','','','']);
+    ws.mergeCells(row.number,1,row.number,6);
+    const cell = row.getCell(1);
+    cell.value = text;
+    style(cell,{
+      fill: fill(bgHex),
+      font: font(fgHex, bold, sz),
+      alignment: align(halign||'center','middle'),
+    });
+    row.height = sz && sz>=13 ? 24 : 17;
+    return row;
+  }
+
+  // Key-value row (label col A, value cols B-F merged)
+  function kvRow(label, value, rowIdx){
+    const bg = rowIdx%2===0 ? GREY : WHITE;
+    const row = ws.addRow([label, value,'','','','']);
+    ws.mergeCells(row.number,2,row.number,6);
+    const cL = row.getCell(1), cV = row.getCell(2);
+    style(cL,{fill:fill(bg),font:font(NAVY,true,8),alignment:align('left'),border:border()});
+    style(cV,{fill:fill(bg),font:font(TEXT,false,8),alignment:align('left','middle',true),border:border()});
+    row.height = 16;
+    return row;
+  }
+
+  // Section header band
+  function secRow(text){
+    const row = ws.addRow([text,'','','','','']);
+    ws.mergeCells(row.number,1,row.number,6);
+    const cell = row.getCell(1);
+    style(cell,{
+      fill:fill(MID),
+      font:font(WHITE,true,8),
+      alignment:align('left','middle'),
+    });
+    row.height = 15;
+    return row;
+  }
+
+  // Spacer row
+  function spRow(){
+    const row = ws.addRow(['','','','','','']);
+    row.height = 4;
+  }
+
+  // ─────────────────────────────────────
+  // TITLE
+  // ─────────────────────────────────────
+  fullRow('CONFIRMATION — TOTAL RETURN SWAP', NAVY, WHITE, true, 13, 'center');
+  fullRow(g('subtitle'), NAVY, GOLD, false, 9, 'center');
+  spRow();
+
+  // TRADE INFO
+  secRow('TRADE INFORMATION');
+  [['TRADE DATE', g('tradeDate')],['PRODUCT','Total Return Swap'],
+   ['BUYER OF SWAP', g('buyer')],['SELLER OF SWAP', g('seller')]
+  ].forEach(([l,v],i) => kvRow(l,v,i));
+  spRow();
+
+  // BASKET COMPOSITION
+  secRow('BASKET COMPOSITION');
+
+  // Basket header row
+  const bHdr = ws.addRow(['Ticker','Name','ISIN','Size','Price (EUR)','Notional (EUR)']);
+  [1,2,3,4,5,6].forEach(c => {
+    const cell = bHdr.getCell(c);
+    style(cell,{
+      fill: fill(STEEL),
+      font: font(WHITE,true,8),
+      alignment: align(c<=2?'left':'center','middle'),
+      border: border(),
+    });
+  });
+  bHdr.height = 17;
+
+  // Basket data rows
+  parsedBasket.forEach((stk,i) => {
+    const bg = i%2===0 ? GREY : WHITE;
+    const row = ws.addRow([stk.ticker, stk.name, stk.isin||'', stk.size, stk.price, stk.total]);
+    const styles = [
+      {fill:fill(bg),font:font(TEXT,true,8), alignment:align('left'),  border:border()},
+      {fill:fill(bg),font:font(TEXT,false,8),alignment:align('left'),  border:border()},
+      {fill:fill(bg),font:font(TEXT,false,7),alignment:align('center'),border:border()},
+      {fill:fill(bg),font:font(TEXT,false,8),alignment:align('right'), border:border()},
+      {fill:fill(bg),font:font(TEXT,false,8),alignment:align('right'), border:border()},
+      {fill:fill(bg),font:font(TEXT,true,8), alignment:align('right'), border:border()},
+    ];
+    [1,2,3,4,5,6].forEach(c => { style(row.getCell(c), styles[c-1]); });
+    // Format numbers
+    row.getCell(4).numFmt = '#,##0';
+    row.getCell(5).numFmt = '#,##0.###';
+    row.getCell(6).numFmt = '#,##0.00';
+    row.height = 15;
+  });
+
+  // Total row
+  const totRow = ws.addRow(['','','','','TOTAL NOTIONAL (EUR)', totalNot]);
+  ws.mergeCells(totRow.number,1,totRow.number,4);
+  [1,2,3,4,5,6].forEach(c => {
+    style(totRow.getCell(c),{
+      fill:fill(NAVY),
+      font:font(WHITE,true,8),
+      alignment:align(c===5?'right':'left','middle'),
+      border:border('medium'),
+    });
+  });
+  totRow.getCell(6).numFmt = '#,##0.00';
+  totRow.height = 17;
+  spRow();
+
+  // ECONOMIC TERMS
+  secRow('ECONOMIC TERMS');
+  [['FINANCING RATE',rateLabel],['SWAP CURRENCY', g('swapCcy')],['SETTLEMENT',g('settlement')],
+   ['EQUITY SETTLEMENT',g('eqSettle')],['TENOR',getTenorLabel()],['RESET FREQUENCY', document.getElementById('hasResets').checked ? g('resetFreq') : 'None'],['BREAKABILITY',g('breakab')],
+   ['RIGHT OF SUBSTITUTION',g('rightSub')],['DIVIDEND CURRENCY',g('divCcy')]
+  ].forEach(([l,v],i) => kvRow(l,v,i));
+  spRow();
+
+  // INDEX COMPOSITION RULES
+  secRow('INDEX COMPOSITION RULES');
+  [['COMPOSITION',g('compo')],['MAX FINANCIALS',g('maxFin')],
+   ['MAX POSITION SIZE',g('maxPos')],['LOOKBACK PERIOD',g('lookback')]
+  ].forEach(([l,v],i) => kvRow(l,v,i));
+  spRow();
+
+  // DR RATES
+  secRow('DIVIDEND RATES (DR) BY JURISDICTION');
+  const drHdr = ws.addRow(['Country','DR Rate (%)','','','','']);
+  ws.mergeCells(drHdr.number,2,drHdr.number,6);
+  style(drHdr.getCell(1),{fill:fill(STEEL),font:font(WHITE,true,8),alignment:align('left'),border:border()});
+  style(drHdr.getCell(2),{fill:fill(STEEL),font:font(WHITE,true,8),alignment:align('right'),border:border()});
+  drHdr.height = 15;
+  dr.filter(d=>d.country).forEach((d,i) => {
+    const bg = i%2===0?GREY:WHITE;
+    const row = ws.addRow([d.country, d.rate,'','','','']);
+    ws.mergeCells(row.number,2,row.number,6);
+    style(row.getCell(1),{fill:fill(bg),font:font(NAVY,true,8),alignment:align('left'),border:border()});
+    style(row.getCell(2),{fill:fill(bg),font:font(TEXT,false,8),alignment:align('right'),border:border()});
+    row.height = 15;
+  });
+  spRow();
+
+  // KEY DATES
+  secRow('KEY DATES');
+  const dtHdr = ws.addRow(['Date','Value Date','Event','','','']);
+  ws.mergeCells(dtHdr.number,3,dtHdr.number,6);
+  [1,2,3].forEach(c => {
+    style(dtHdr.getCell(c),{fill:fill(STEEL),font:font(WHITE,true,8),alignment:align('center'),border:border()});
+  });
+  dtHdr.height = 15;
+
+  const addDateRow = (td, vd, event, i, isMaturity=false) => {
+    const bg    = isMaturity ? 'FFF3F3' : (i%2===0?GREY:WHITE);
+    const fgDate = isMaturity ? 'FFC0392B' : ('FF'+TEXT);
+    const fgLbl  = isMaturity ? 'FFC0392B' : ('FF'+NAVY);
+    const row = ws.addRow([td, vd, event,'','','']);
+    ws.mergeCells(row.number,3,row.number,6);
+    style(row.getCell(1),{fill:fill(bg),font:{name:'Arial',size:8,bold:isMaturity,color:{argb:fgDate}},alignment:align('center'),border:border()});
+    style(row.getCell(2),{fill:fill(bg),font:{name:'Arial',size:8,bold:isMaturity,color:{argb:fgDate}},alignment:align('center'),border:border()});
+    style(row.getCell(3),{fill:fill(bg),font:{name:'Arial',size:8,bold:isMaturity,color:{argb:fgLbl}},alignment:align('left'),border:border()});
+    row.height = 15;
+  };
+
+  if(tenorMode==='simple'){
+    addDateRow(g('startTD'), g('startVD'), 'Start Date', 0);
+    if(document.getElementById('oetEnabled').checked && g('oetTD')){
+      const oetR = ws.addRow([g('oetTD'), g('oetVD'), 'OET - Option Early Termination','','','']);
+      ws.mergeCells(oetR.number,3,oetR.number,6);
+      style(oetR.getCell(1),{fill:fill('FFF8E8'),font:{name:'Arial',size:8,bold:true,color:{argb:'FFC8A96E'}},alignment:align('center'),border:border()});
+      style(oetR.getCell(2),{fill:fill('FFF8E8'),font:{name:'Arial',size:8,bold:true,color:{argb:'FFC8A96E'}},alignment:align('center'),border:border()});
+      style(oetR.getCell(3),{fill:fill('FFF8E8'),font:{name:'Arial',size:8,bold:true,color:{argb:'FFC8A96E'}},alignment:align('left'),border:border()});
+      oetR.height=15;
+    }
+    addDateRow(g('expiryTD'), g('expiryVD'), 'MATURITY DATE', 1, true);
+  } else {
+    // KEY DATES & RESET CALENDAR — chronological sort
+    addDateRow(g('startTD2'), g('startVD2'), 'Start Date', 0);
+    const oetEnabledXL = document.getElementById('oetEnabled').checked && g('oetTD');
+    const parseForSortXL = s => { const d=new Date((s||'').replace(/-/g,' ')); return isNaN(d)?0:d.getTime(); };
+    let midEventsXL = [];
+    parsedResets.forEach(r => midEventsXL.push({time:parseForSortXL(r.resetDate),td:r.resetDate,vd:r.valueDate,label:r.period,type:'reset'}));
+    if(oetEnabledXL) midEventsXL.push({time:parseForSortXL(g('oetTD')),td:g('oetTD'),vd:g('oetVD'),label:'OET',type:'oet'});
+    midEventsXL.sort((a,b)=>a.time-b.time);
+    // Merge OET + reset if same date
+    const mergedXL=[];
+    for(let i=0;i<midEventsXL.length;i++){
+      const ev=midEventsXL[i];
+      if(ev.type==='oet'){
+        const sameR=mergedXL.length&&mergedXL[mergedXL.length-1].type==='reset'&&mergedXL[mergedXL.length-1].time===ev.time;
+        if(sameR){mergedXL[mergedXL.length-1].type='reset+oet';}else{mergedXL.push(ev);}
+      } else {
+        const nextOET=i+1<midEventsXL.length&&midEventsXL[i+1].type==='oet'&&midEventsXL[i+1].time===ev.time;
+        if(nextOET){mergedXL.push({...ev,type:'reset+oet'});i++;}else{mergedXL.push(ev);}
+      }
+    }
+    mergedXL.forEach((ev,i)=>{
+      const isOET = ev.type==='oet'||ev.type==='reset+oet';
+      const bg = isOET?'FFF8E8':(i%2===0?GREY:WHITE);
+      const fgC = isOET?'FFC8A96E':('FF'+TEXT);
+      const label = ev.type==='reset+oet'?`${ev.label} — Reset & OET`:ev.type==='oet'?'OET — Option Early Termination':`${ev.label} — Reset`;
+      const row=ws.addRow([ev.td,ev.vd,label,'','','']);
+      ws.mergeCells(row.number,3,row.number,6);
+      style(row.getCell(1),{fill:fill(bg),font:{name:'Arial',size:8,bold:isOET,color:{argb:fgC}},alignment:align('center'),border:border()});
+      style(row.getCell(2),{fill:fill(bg),font:{name:'Arial',size:8,bold:false,color:{argb:fgC}},alignment:align('center'),border:border()});
+      style(row.getCell(3),{fill:fill(bg),font:{name:'Arial',size:8,bold:isOET,color:{argb:fgC}},alignment:align('left'),border:border()});
+      row.height=15;
+    });
+    addDateRow(g('expiryTD2'), g('expiryVD2'), 'MATURITY DATE', midEventsXL.length+1, true);
+  }
+  spRow();
+
+  // OET SECTION — above cashflow
+  if(document.getElementById('oetEnabled').checked && g('oetTD')){
+    const oetHdr = ws.addRow([`OPTIONAL EARLY TERMINATION (OET) — ${g('oetTD')}`,'','','','','']);
+    ws.mergeCells(oetHdr.number,1,oetHdr.number,6);
+    style(oetHdr.getCell(1),{fill:fill('1A3A5C'),font:font(WHITE,true,9),alignment:align('left','middle'),border:border()});
+    oetHdr.height=18;
+    const oetDate = ws.addRow(['OET DATE', `${g('oetTD')} — Value Date: ${g('oetVD')}`,'','','','']);
+    ws.mergeCells(oetDate.number,2,oetDate.number,6);
+    style(oetDate.getCell(1),{fill:fill(GREY),font:font(NAVY,true,8),alignment:align('left'),border:border()});
+    style(oetDate.getCell(2),{fill:fill(GREY),font:{name:'Arial',size:8,bold:true,color:{argb:'FFC0392B'}},alignment:align('left'),border:border()});
+    oetDate.height=16;
+    [
+      ['BUYER RIGHT',   document.getElementById('oetBuyerRight').value],
+      ['RE-RATE RIGHT', document.getElementById('oetReRate').value],
+      ['FALLBACK',      document.getElementById('oetFallback').value],
+    ].forEach(([l,v],i)=>{
+      const bg=i%2===0?WHITE:GREY;
+      const row=ws.addRow([l,v,'','','','']);
+      ws.mergeCells(row.number,2,row.number,6);
+      style(row.getCell(1),{fill:fill(bg),font:font(NAVY,true,8),alignment:align('left'),border:border()});
+      style(row.getCell(2),{fill:fill(bg),font:font(TEXT,false,8),alignment:align('left','middle',true),border:border()});
+      row.height=28;
+    });
+    spRow();
+  }
+
+  // CASHFLOW
+  secRow('CASHFLOW & RESHUFFLE TERMS');
+  const cfRow = ws.addRow([
+    'RESHUFFLE CASHFLOWS',
+    document.getElementById('cashflowText').value,
+    '','','',''
+  ]);
+  ws.mergeCells(cfRow.number,2,cfRow.number,6);
+  style(cfRow.getCell(1),{fill:fill(GREY),font:font(NAVY,true,8),alignment:align('left','middle'),border:border()});
+  style(cfRow.getCell(2),{fill:fill(GREY),font:font(TEXT,false,8),alignment:align('left','middle',true),border:border()});
+  cfRow.height = 28;
+  spRow();
+
+  // SPECIAL CONDITIONS
+  const activeSC = specialConditions.filter(sc=>sc.label||sc.value);
+  if(activeSC.length){
+    secRow('SPECIAL CONDITIONS');
+    activeSC.forEach((sc,i) => kvRow(sc.label.toUpperCase(), sc.value, i));
+    spRow();
+  }
+
+  // BROKERAGE FEES
+  secRow('BROKERAGE FEES');
+  kvRow('BROKERAGE FEES', `${g('swapCcy')} ${fmtNum(parseFloat(g('fees'))||0, 0)}`, 0);
+  spRow();
+
+  // FOOTER
+  const today = new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  const ftRow = fullRow(`Generated ${today}  ·  Confidential  ·  For discussion purposes only`, NAVY, 'AAAAAA', false, 7, 'center');
+
+  // ── Download ──
+  wb.xlsx.writeBuffer().then(buffer => {
+    const blob = new Blob([buffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `TRS_Confirmation_${g('tradeDate').replace(/[\s\-]/g,'')}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+}
+</script>
+</body>
+</html>
