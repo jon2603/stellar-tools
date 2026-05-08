@@ -14,6 +14,8 @@ header{height:58px;background:var(--bg2);border-bottom:1px solid var(--gold-bord
 .status{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-muted);padding:5px 10px;border:1px solid var(--border);border-radius:999px}
 main{max-width:1280px;margin:0 auto;padding:28px 34px}
 .panel{background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:18px}
+.panel-row{display:grid;grid-template-columns:1fr;gap:18px;margin-bottom:18px}
+.panel-row .panel{margin-bottom:0}
 .panel-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg3)}
 .panel-title{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:600}
 .panel-body{padding:18px}
@@ -21,6 +23,7 @@ main{max-width:1280px;margin:0 auto;padding:28px 34px}
 .field.wide{grid-column:span 2}
 .field{display:flex;flex-direction:column;gap:6px}
 .field.hidden{display:none}
+.hidden{display:none!important}
 label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);font-weight:600}
 input,select{height:38px;border:1px solid var(--border);border-radius:var(--radius);background:#fff;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:0 11px;outline:none}
 input:focus,select:focus{border-color:var(--gold)}
@@ -35,6 +38,14 @@ button:disabled{opacity:.55;cursor:default}
 .quick{display:grid;grid-template-columns:1fr auto;gap:10px;margin-bottom:14px}
 .quick input{height:40px}
 .ticker-box{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--gold);background:var(--gold-dim);border:1px solid var(--gold-border);padding:7px 10px;border-radius:8px;max-width:520px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rfq-box{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text);background:#fffdf6;border:1px solid var(--gold-border);border-radius:8px;padding:12px;line-height:1.5;overflow-x:auto;white-space:nowrap}
+.eurex-panel .rfq-box{font-size:13px;white-space:normal;min-height:48px;display:flex;align-items:center}
+.eurex-panel .rfq-actions{align-items:stretch}
+.eurex-panel button{height:auto;min-height:48px}
+.solver-box{margin-top:12px;border-top:1px solid var(--border);padding-top:12px}
+.solver-result{font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.55;color:var(--text);background:#fff;border:1px solid var(--border);border-radius:8px;padding:10px;margin-top:10px;white-space:pre-wrap}
+.rfq-actions{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.copy-ok{font-size:11px;color:var(--green);min-height:16px}
 .cards{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px}
 .cards.adjusted{grid-template-columns:repeat(5,1fr);background:#1f2f2a;border:1px solid rgba(39,110,71,.35);border-radius:10px;padding:12px}
 .kpi{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--gold);border-radius:8px;padding:14px 15px;min-width:0}
@@ -58,6 +69,7 @@ button:disabled{opacity:.55;cursor:default}
 .error{display:none;margin-top:14px;padding:10px 12px;background:rgba(184,50,50,.08);border:1px solid rgba(184,50,50,.25);border-radius:8px;color:var(--red);font-size:12px}
 .note{font-size:12px;color:var(--text-muted);line-height:1.6}
 @media(max-width:1050px){.cards{grid-template-columns:1fr 1fr}.field.wide{grid-column:span 1}}
+@media(max-width:900px){.panel-row{grid-template-columns:1fr}}
 @media(max-width:640px){main{padding:18px 14px}header{padding:0 16px}.grid,.cards,.quick{grid-template-columns:1fr}.actions{justify-content:stretch}.actions button,.quick button{width:100%}}
 </style>
 </head>
@@ -83,6 +95,7 @@ button:disabled{opacity:.55;cursor:default}
       <div class="tabs">
         <button class="tab active" id="indexTab" onclick="setAssetMode('index')">Index</button>
         <button class="tab" id="singleTab" onclick="setAssetMode('single')">Single Stock</button>
+        <button class="tab" id="eurexTab" onclick="toggleEurexPanel()">Eurex</button>
       </div>
       <div class="grid">
         <div class="field wide" id="underlyingField"><label>Index option root</label><input id="underlying" value="SX7E" placeholder="SX7E, SX5E, SPX"></div>
@@ -97,15 +110,23 @@ button:disabled{opacity:.55;cursor:default}
           <option value="put">Put</option>
           <option value="call_spread">Call Spread</option>
           <option value="put_spread">Put Spread</option>
+          <option value="call_fly">Call Fly</option>
+          <option value="put_fly">Put Fly</option>
           <option value="call_ratio">Call Ratio</option>
           <option value="put_ratio">Put Ratio</option>
+          <option value="risk_reversal">Risk Reversal</option>
+          <option value="risk_reversal_ratio">Risk Reversal Ratio</option>
           <option value="straddle">Straddle</option>
+          <option value="straddle_swap">Straddle Swap</option>
           <option value="strangle">Strangle</option>
           <option value="call_calendar">Call Calendar</option>
           <option value="put_calendar">Put Calendar</option>
+          <option value="call_diagonal">Call Diagonal</option>
+          <option value="put_diagonal">Put Diagonal</option>
         </select></div>
         <div class="field" id="strike1Field"><label>Strike 1</label><input id="strike1" type="number" value="260" step="0.01"></div>
         <div class="field" id="strike2Field"><label>Strike 2</label><input id="strike2" type="number" value="270" step="0.01"></div>
+        <div class="field hidden" id="strike3Field"><label>Strike 3</label><input id="strike3" type="number" value="275" step="0.01"></div>
         <div class="field" id="ratioField"><label>Ratio short</label><input id="ratioShort" type="number" value="2" step="0.1"></div>
         <div class="field" id="mat1Field"><label>Mat 1</label><input id="mat1" value="Jun26" placeholder="Jun26"></div>
         <div class="field" id="mat2Field"><label>Mat 2</label><input id="mat2" value="Sep26" placeholder="Sep26"></div>
@@ -149,10 +170,57 @@ button:disabled{opacity:.55;cursor:default}
   </section>
 
   <section class="panel">
+    <div class="panel-head">
+      <div class="panel-title">Goldman Symph</div>
+      <div class="note">RFQ pret a coller</div>
+    </div>
+    <div class="panel-body">
+      <div class="rfq-actions">
+        <div class="rfq-box" id="goldmanSymph">-</div>
+        <button class="secondary" onclick="copyGoldmanSymph()">Copy Goldman</button>
+      </div>
+      <div class="copy-ok" id="goldmanCopyStatus"></div>
+    </div>
+  </section>
+
+  <div class="panel-row">
+    <section class="panel hidden eurex-panel" id="eurexPanel">
+      <div class="panel-head">
+        <div class="panel-title">Eurex Cross</div>
+        <div class="note">phrase prete a crosser</div>
+      </div>
+      <div class="panel-body">
+        <div class="rfq-actions">
+          <div class="rfq-box" id="eurexCrossHint">-</div>
+          <button class="secondary" onclick="copyEurexCrossHint()">Copy Eurex</button>
+        </div>
+        <div class="solver-box">
+          <div class="grid">
+            <div class="field"><label>Traded level</label><input id="tradedLevel" placeholder="mid rounded"></div>
+            <div class="field"><label>Size</label><input id="crossSize" type="number" value="3000" step="1"></div>
+            <div class="field"><label>Agreed delta %</label><input id="crossDelta" type="number" placeholder="20" step="0.1"></div>
+            <div class="field"><label>Option tick</label><input id="optionTick" type="number" value="0.05" step="0.001"></div>
+            <div class="field"><label>Future tick</label><input id="futureTick" type="number" value="0.05" step="0.001"></div>
+            <div class="field"><label>Multiplier</label><input id="crossMultiplier" type="number" value="50" step="1"></div>
+            <div class="field"><label>Live ref band %</label><input id="liveRefBand" type="number" value="1" step="0.1"></div>
+          </div>
+          <div class="solver-result" id="crossSolver">-</div>
+          <div class="rfq-actions" style="margin-top:10px">
+            <div class="rfq-box" id="tradingPhrase">-</div>
+            <button class="secondary" onclick="copyTradingPhrase()">Copy Trading</button>
+          </div>
+          <div class="copy-ok" id="tradingCopyStatus"></div>
+        </div>
+        <div class="copy-ok" id="eurexCopyStatus"></div>
+      </div>
+    </section>
+  </div>
+
+  <section class="panel">
     <div class="panel-head"><div class="panel-title">Legs Bloomberg</div><div class="note" id="strategyLabel">-</div></div>
     <div class="panel-body">
       <table class="legs">
-        <thead><tr><th>Leg</th><th>Ticker</th><th>Side</th><th>Bid</th><th>Ask</th><th>Mid</th><th>Delta</th><th>OI</th></tr></thead>
+        <thead><tr><th>Leg</th><th>Ticker</th><th>Side</th><th>Bid x Size</th><th>Ask x Size</th><th>Mid</th><th>Delta</th><th>OI</th></tr></thead>
         <tbody id="legsBody"></tbody>
       </table>
     </div>
@@ -162,19 +230,378 @@ button:disabled{opacity:.55;cursor:default}
 const API = 'http://127.0.0.1:8765';
 let assetMode = 'index';
 let state = null;
+let eurexVisible = false;
 function $(id){return document.getElementById(id);}
 function num(id){const n=Number($(id).value);return Number.isFinite(n)?n:null;}
 function fmt(v){if(v===null||v===undefined||v==='')return '-';const n=Number(v);return Number.isFinite(n)?n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):String(v);}
 function fmtPct(v){if(v===null||v===undefined||v==='')return '-';const n=Number(v);return Number.isFinite(n)?(n*100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+'%':String(v);}
+function fmtRfqNum(v){const n=Number(v);if(!Number.isFinite(n))return '';return Number.isInteger(n)?String(n):String(Number(n.toFixed(4))).replace(/\.?0+$/,'');}
+function fmtCash(v){const n=Number(v);return Number.isFinite(n)?n.toLocaleString('en-US',{maximumFractionDigits:0}):'-';}
+function roundToTick(v,tick){const n=Number(v),t=Number(tick);return Number.isFinite(n)&&Number.isFinite(t)&&t>0?Math.round(n/t)*t:null;}
+function fmtPxSize(q,side){
+  const px=side==='bid'?q&&q.bid:q&&q.ask;
+  const size=fnum(q,[side==='bid'?'BID_SIZE':'ASK_SIZE']);
+  const pxTxt=fmt(px);
+  return Number.isFinite(size)&&pxTxt!=='-'?`${pxTxt} x ${fmtRfqNum(size)}`:pxTxt;
+}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function contractTooltip(q){
+  const f=q&&q.fields?q.fields:{};
+  const rows=[
+    ['Ticker',q&&q.ticker],
+    ['Exchange',f.EXCH_CODE],
+    ['Exchange symbol',f.ID_EXCH_SYMBOL],
+    ['Underlying',f.UNDERLYING_SECURITY_DES||f.OPT_UNDL_TICKER],
+    ['Style',f.OPT_EXER_TYP],
+    ['Type',f.OPT_PUT_CALL],
+    ['Strike',f.OPT_STRIKE_PX],
+    ['Expiry',f.OPT_EXPIRE_DT],
+    ['Contract size',f.OPT_CONT_SIZE],
+    ['Multiplier',f.OPT_MULTIPLIER],
+    ['Tick size',f.OPT_TICK_SIZE],
+    ['Currency',f.CRNCY],
+    ['Open interest',f.OPEN_INT??f.OPEN_INTEREST]
+  ].filter(([,v])=>v!==null&&v!==undefined&&v!=='');
+  return rows.map(([k,v])=>`${k}: ${v}`).join('\n');
+}
 function setError(msg){$('err').textContent=msg||'';$('err').style.display=msg?'block':'none';}
 function thirdFriday(year, monthIndex){const d=new Date(year,monthIndex,1);let c=0;while(d.getMonth()===monthIndex){if(d.getDay()===5){c++;if(c===3)return d;}d.setDate(d.getDate()+1);}return new Date(year,monthIndex,15);}
-function parseMaturity(raw){const s=raw.trim();const direct=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);if(direct)return `${direct[1].padStart(2,'0')}/${direct[2].padStart(2,'0')}/${direct[3].slice(-2)}`;const months={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};const m=s.match(/^([a-z]{3})(\d{2,4})$/i);if(!m)throw new Error('Maturite invalide. Utilise Jun26 ou 06/19/26.');const y=m[2].length===2?2000+Number(m[2]):Number(m[2]);const d=thirdFriday(y,months[m[1].toLowerCase()]);return `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${String(d.getFullYear()).slice(-2)}`;}
+function parseMaturity(raw){const s=raw.trim();const direct=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);if(direct)return `${direct[1].padStart(2,'0')}/${direct[2].padStart(2,'0')}/${direct[3].slice(-2)}`;const months={jan:0,janv:0,feb:1,fev:1,mar:2,apr:3,avr:3,may:4,mai:4,jun:5,juin:5,jul:6,juil:6,aug:7,aou:7,sep:8,oct:9,nov:10,dec:11};const m=s.match(/^([a-z]{3,5})(\d{2,4})$/i);const key=m&&m[1].toLowerCase();const month=key&&(months[key]??months[key.slice(0,3)]);if(!m||month===undefined)throw new Error('Maturite invalide. Utilise Jun26 ou 06/19/26.');const y=m[2].length===2?2000+Number(m[2]):Number(m[2]);const d=thirdFriday(y,month);return `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${String(d.getFullYear()).slice(-2)}`;}
 function cleanUnderlying(){return $('underlying').value.trim().replace(/\s+Index$/i,'').replace(/\s+Equity$/i,'');}
 function cleanOptionRoot(){return assetMode==='single'?$('optionRoot').value.trim().replace(/\s+Equity$/i,''):cleanUnderlying();}
-function defaultReferenceTicker(){if(assetMode==='single')return $('stockRef').value.trim()||'BNP FP Equity';const u=cleanUnderlying().toUpperCase();const map={SX7E:'CAA Index'};return map[u]||(/\s/.test($('underlying').value.trim())?$('underlying').value.trim()+' Equity':cleanUnderlying()+' Index');}
-function optTicker(cp,strike,mat){const k=Number(strike);const kt=Number.isInteger(k)?String(k):String(strike);const suffix=assetMode==='single'?'Equity':'Index';return `${cleanOptionRoot()} ${parseMaturity(mat)} ${cp}${kt} ${suffix}`;}
+function isDividendOptionRoot(root=cleanUnderlying()){return /^[A-Z]{2,5}[FGHJKMNQUVXZ]\d{1,2}$/i.test(String(root||'').trim());}
+function dividendOptionTickerRoot(root=cleanUnderlying()){return String(root||'').trim().toUpperCase().replace(/\d(?=\d$)/,'');}
+function defaultReferenceTicker(){if(assetMode==='single')return $('stockRef').value.trim()||'BNP FP Equity';const u=cleanUnderlying().toUpperCase();const map={SX7E:'CAA Index'};if(isDividendOptionRoot(u))return `${u} Index`;return map[u]||(/\s/.test($('underlying').value.trim())?$('underlying').value.trim()+' Equity':cleanUnderlying()+' Index');}
+function optTicker(cp,strike,mat){const k=Number(strike);const kt=Number.isInteger(k)?String(k):String(strike);const suffix=assetMode==='single'?'Equity':'Index';if(assetMode==='index'&&isDividendOptionRoot())return `${dividendOptionTickerRoot()}${cp} ${kt} ${suffix}`;return `${cleanOptionRoot()} ${parseMaturity(mat)} ${cp}${kt} ${suffix}`;}
+function goldmanUnderlying(){return assetMode==='single'?$('stockRef').value.trim().replace(/\s+Equity$/i,''):cleanUnderlying();}
+function goldmanExpiry(raw){
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const aliases={jan:0,janv:0,feb:1,fev:1,mar:2,apr:3,avr:3,may:4,mai:4,jun:5,juin:5,jul:6,juil:6,aug:7,aou:7,sep:8,oct:9,nov:10,dec:11};
+  const s=raw.trim();
+  const direct=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if(direct)return months[Number(direct[1])-1]+direct[3].slice(-2);
+  const m=s.match(/^([a-z]{3,5})[a-z]*\s*[-\/]?\s*(\d{2,4})$/i);
+  if(m){const key=m[1].toLowerCase(),idx=aliases[key]??aliases[key.slice(0,3)];return idx===undefined?s:months[idx]+m[2].slice(-2);}
+  return s;
+}
+function goldmanLegParts(){
+  const s=$('strategy').value,k1=$('strike1').value,k2=$('strike2').value,k3=$('strike3').value,m1=$('mat1').value,m2=$('mat2').value,ratio=Number($('ratioShort').value)||2;
+  const ul=goldmanUnderlying(), ae=assetMode==='single'?'A':'E', L=[];
+  const qtyTxt=qty=>`${fmtRfqNum(qty*3)}k`;
+  const leg=(qty,mat,strike,cp)=>({qty,txt:`${qtyTxt(qty)} ${ul}${isDividendOptionRoot()?'':' '+goldmanExpiry(mat)} ${fmtRfqNum(strike)} ${cp} ${ae}`});
+  if(s==='call')L.push(leg(1,m1,k1,'C'));
+  if(s==='put')L.push(leg(1,m1,k1,'P'));
+  if(s==='call_spread')L.push(leg(1,m1,k1,'C'),leg(-1,m1,k2,'C'));
+  if(s==='put_spread')L.push(leg(1,m1,k1,'P'),leg(-1,m1,k2,'P'));
+  if(s==='call_fly')L.push(leg(1,m1,k1,'C'),leg(-2,m1,k2,'C'),leg(1,m1,k3,'C'));
+  if(s==='put_fly')L.push(leg(1,m1,k1,'P'),leg(-2,m1,k2,'P'),leg(1,m1,k3,'P'));
+  if(s==='call_ratio'){const low=Math.min(Number(k1),Number(k2)),high=Math.max(Number(k1),Number(k2));L.push(leg(1,m1,low,'C'),leg(-ratio,m1,high,'C'));}
+  if(s==='put_ratio'){const low=Math.min(Number(k1),Number(k2)),high=Math.max(Number(k1),Number(k2));L.push(leg(1,m1,high,'P'),leg(-ratio,m1,low,'P'));}
+  if(s==='risk_reversal'){const low=Math.min(Number(k1),Number(k2)),high=Math.max(Number(k1),Number(k2));L.push(leg(1,m1,low,'P'),leg(1,m1,high,'C'));}
+  if(s==='risk_reversal_ratio'){const low=Math.min(Number(k1),Number(k2)),high=Math.max(Number(k1),Number(k2));L.push(leg(ratio,m1,low,'P'),leg(1,m1,high,'C'));}
+  if(s==='straddle')L.push(leg(1,m1,k1,'C'),leg(1,m1,k1,'P'));
+  if(s==='straddle_swap')L.push(leg(1,m2,k1,'C'),leg(1,m2,k1,'P'),leg(-1,m1,k1,'C'),leg(-1,m1,k1,'P'));
+  if(s==='strangle')L.push(leg(1,m1,k1,'P'),leg(1,m1,k2,'C'));
+  if(s==='call_calendar')L.push(leg(1,m2,k1,'C'),leg(-1,m1,k1,'C'));
+  if(s==='put_calendar')L.push(leg(1,m2,k1,'P'),leg(-1,m1,k1,'P'));
+  if(s==='call_diagonal')L.push(leg(1,m2,k2,'C'),leg(-1,m1,k1,'C'));
+  if(s==='put_diagonal')L.push(leg(1,m2,k2,'P'),leg(-1,m1,k1,'P'));
+  return L;
+}
+function goldmanPricePair(){
+  if(!state)return '/';
+  const ref=num('refSpot'),live=liveRef(),a=state.agg;
+  const useAdjusted=Number.isFinite(ref)&&Number.isFinite(live)&&Number.isFinite(a.delta);
+  const bid=useAdjusted?a.bid+a.delta*(ref-live):a.bid;
+  const ask=useAdjusted?a.ask+a.delta*(ref-live):a.ask;
+  return `${fmtRfqNum(bid)}/${fmtRfqNum(ask)}`;
+}
+function buildGoldmanSymph(){
+  try{
+    if(assetMode==='index'&&isDividendOptionRoot())return '-';
+    const legs=goldmanLegParts();
+    const ref=num('refSpot')??liveRef();
+    const refSuffix=assetMode==='single'?'s':'f';
+    const refTxt=Number.isFinite(ref)?`${fmtRfqNum(ref)}${refSuffix}`:'';
+    const body=legs.length===1?legs[0].txt:`[ ${legs.map(l=>l.txt).join(' | ')} ]`;
+    return ['MKT',body,refTxt,goldmanPricePair()].filter(Boolean).join(' ');
+  }catch(e){return '-';}
+}
+function updateGoldmanSymph(){if($('goldmanSymph'))$('goldmanSymph').textContent=buildGoldmanSymph();}
+async function copyGoldmanSymph(){
+  const text=$('goldmanSymph').textContent;
+  if(!text||text==='-')return;
+  await navigator.clipboard.writeText(text);
+  $('goldmanCopyStatus').textContent='Copied';
+  setTimeout(()=>$('goldmanCopyStatus').textContent='',1400);
+}
+function extractTradingLevel(text){
+  const m=String(text||'').match(/\bat\s*([-+]?\d+(?:\.\d+)?)\s*$/i);
+  return m?m[1]:'';
+}
+function cleanTradingInput(text){
+  return String(text||'')
+    .replace(/^\s*(?:\{TW\}\s*)?TRADING\s+/i,'')
+    .replace(/\bat\s*[-+]?\d+(?:\.\d+)?\s*$/i,'')
+    .trim()
+    .replace(/\s+/g,' ');
+}
+function fallbackTradingCore(){
+  const ul=assetMode==='single'?$('stockRef').value.trim().replace(/\s+Equity$/i,''):cleanUnderlying();
+  const exp=isDividendOptionRoot()?null:goldmanExpiry($('mat1').value),s=$('strategy').value,k1=fmtRfqNum($('strike1').value),k2=fmtRfqNum($('strike2').value),k3=fmtRfqNum($('strike3').value),ratio=fmtRfqNum(Number($('ratioShort').value)||2);
+  const head=exp?`${ul} ${exp}`:ul;
+  if(s==='call')return `${head} ${k1} AC`;
+  if(s==='put')return `${head} ${k1} AP`;
+  if(s==='straddle')return `${head} ${k1} ASD`;
+  if(s==='strangle')return `${head} ${k1}/${k2} ASG`;
+  if(s==='call_fly')return `${head} ${k1}/${k2}/${k3} ACF`;
+  if(s==='put_fly')return `${head} ${k1}/${k2}/${k3} APF`;
+  if(s==='call_ratio')return `${head} ${k1}/${k2} ACR 1/-${ratio}`;
+  if(s==='put_ratio')return `${head} ${k1}/${k2} APR 1/-${ratio}`;
+  if(s==='risk_reversal')return `${head} ${k1}/${k2} RR`;
+  if(s==='risk_reversal_ratio')return `${head} ${k1}/${k2} RR ${ratio}/1`;
+  if(s==='straddle_swap')return `${ul} ${goldmanExpiry($('mat1').value)}/${goldmanExpiry($('mat2').value)} ${k1} STD Swap`;
+  if(s==='call_calendar')return `${ul} ${goldmanExpiry($('mat1').value)}/${goldmanExpiry($('mat2').value)} ${k1} ACS`;
+  if(s==='put_calendar')return `${ul} ${goldmanExpiry($('mat1').value)}/${goldmanExpiry($('mat2').value)} ${k1} APS`;
+  if(s==='call_diagonal')return `${ul} ${goldmanExpiry($('mat1').value)}/${goldmanExpiry($('mat2').value)} ${k1}/${k2} ACD`;
+  if(s==='put_diagonal')return `${ul} ${goldmanExpiry($('mat1').value)}/${goldmanExpiry($('mat2').value)} ${k1}/${k2} APD`;
+  return `${ul} ${exp} ${k1}`;
+}
+function buildTradingPhrase(){
+  const core=cleanTradingInput($('quickInput').value.trim())||fallbackTradingCore();
+  const level=$('tradedLevel').value.trim();
+  return level?`{TW} TRADING ${core} at ${level}`:`{TW} TRADING ${core}`;
+}
+function updateTradingPhrase(){if($('tradingPhrase'))$('tradingPhrase').textContent=buildTradingPhrase();}
+const EUREX_STRATEGY_TYPES={
+  call_spread:{name:'Call Spread',standard:'BUL',volShort:'BUL-U',detail:'buy low strike call / sell high strike call'},
+  put_spread:{name:'Put Spread',standard:'BER',volLong:'BER+U',detail:'buy high strike put / sell low strike put'},
+  straddle:{name:'Straddle',standard:'STD',volLong:'STD+U',volShort:'STD-U',detail:'same strike call + put'},
+  strangle:{name:'Strangle',standard:'STG',volLong:'STG+U',volShort:'STG-U',detail:'low strike put + high strike call'},
+  call_calendar:{name:'Call Calendar Spread',standard:'BLT',volLong:'BLT+U',volShort:'BLT-U',detail:'sell near call / buy far call, same strike'},
+  put_calendar:{name:'Put Calendar Spread',standard:'BRT',volLong:'BRT+U',volShort:'BRT-U',detail:'sell near put / buy far put, same strike'},
+  call_diagonal:{name:'Call Diagonal Calendar Spread',standard:'CDIA',volLong:'CDIA+U',volShort:'CDIA-U',detail:'sell near call / buy far call, different strikes'},
+  put_diagonal:{name:'Put Diagonal Calendar Spread',standard:'PDIA',volLong:'PDIA+U',volShort:'PDIA-U',detail:'sell near put / buy far put, different strikes'}
+};
+function isEurexMarketCode(code){return /^(GR|GY|EUX|XEUR|EUREX)$/i.test(String(code||''));}
+function eurexRoots(){
+  const u=goldmanUnderlying().toUpperCase().replace(/\s+INDEX$/,'').trim();
+  const map={SX7E:{opt:'OESB',fut:'FESB'},SX5E:{opt:'OESX',fut:'FESX'}};
+  return map[u]||{opt:u.split(/\s+/)[0],fut:u.split(/\s+/)[0]};
+}
+function compactExpiry(raw){return goldmanExpiry(raw).toLowerCase();}
+function frontQuarterExpiry(){
+  const d=new Date(), months=[2,5,8,11];
+  let y=d.getFullYear(), m=months.find(mm=>d<=thirdFriday(y,mm));
+  if(m===undefined){y++;m=2;}
+  return ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'][m]+String(y).slice(-2);
+}
+function quickDeltaOverride(){
+  const m=String($('quickInput').value||'').match(/\bdelta\s*([-+]?\d+(?:\.\d+)?)\s*%?/i);
+  if(!m)return null;
+  let d=Number(m[1]);
+  if(!Number.isFinite(d))return null;
+  if(Math.abs(d)>1)d/=100;
+  if(!/[+-]/.test(m[1])&&$('strategy').value==='put')d=-Math.abs(d);
+  return d;
+}
+function effectiveDelta(){
+  const override=quickDeltaOverride();
+  if(Number.isFinite(override))return override;
+  return state&&state.agg&&Number.isFinite(state.agg.delta)?state.agg.delta:null;
+}
+function agreedDelta(){
+  const raw=String($('crossDelta')&&$('crossDelta').value||'').trim();
+  let d=Number(raw);
+  if(!Number.isFinite(d))return effectiveDelta();
+  if(Math.abs(d)>1)d/=100;
+  if(!/^[+-]/.test(raw)){
+    const ed=effectiveDelta();
+    if(Number.isFinite(ed)&&ed<0)d=-Math.abs(d);
+  }
+  return d;
+}
+function tradedLevelNum(){
+  const n=Number($('tradedLevel').value);
+  return Number.isFinite(n)?n:null;
+}
+function defaultCrossInputs(){
+  if(!state||!state.agg)return;
+  const tick=Number($('optionTick')&&$('optionTick').value)||0.05;
+  const ref=num('refSpot'), live=liveRef(), a=state.agg;
+  const adjustedMid=Number.isFinite(ref)&&Number.isFinite(live)&&Number.isFinite(a.delta)&&Number.isFinite(a.mid)?a.mid+a.delta*(ref-live):null;
+  const defaultMid=Number.isFinite(adjustedMid)?adjustedMid:a.mid;
+  if($('tradedLevel')&&(!$('tradedLevel').value||$('tradedLevel').dataset.auto==='1')&&Number.isFinite(defaultMid)){
+    const rounded=roundToTick(defaultMid,tick);
+    if(Number.isFinite(rounded)){$('tradedLevel').value=fmtRfqNum(rounded);$('tradedLevel').dataset.auto='1';}
+  }
+  if($('crossDelta')&&(!$('crossDelta').value||$('crossDelta').dataset.auto==='1')&&Number.isFinite(state.agg.delta)){
+    $('crossDelta').value=fmtRfqNum(Math.round(state.agg.delta*100));
+    $('crossDelta').dataset.auto='1';
+  }
+}
+function ratioScaleForCross(){
+  const r=Number($('ratioShort').value)||2;
+  const rounded=Math.round(r);
+  if(Math.abs(r-rounded)<1e-9)return 1;
+  for(let denom=2;denom<=10;denom++){
+    const whole=r*denom;
+    if(Math.abs(whole-Math.round(whole))<1e-9)return denom;
+  }
+  return 1;
+}
+function ratioCrossText(){
+  const r=Number($('ratioShort').value)||2, scale=ratioScaleForCross();
+  return `${scale}x${fmtRfqNum(r*scale)}`;
+}
+function ratioEurexTemplate(kind){
+  const r=Number($('ratioShort').value)||2, scale=ratioScaleForCross(), scaled=Math.round(r*scale);
+  if(scale===1&&scaled===2)return {standard:kind==='call'?'RBUL':'RBER',scale,label:'2x1'};
+  if(scale===2&&scaled===3)return {standard:kind==='call'?'BU23':'BR23',scale,label:'3x2'};
+  return null;
+}
+function eurexHedgeCode(info, d){
+  if(!info||!Number.isFinite(d))return null;
+  return d>=0?(info.volShort||info.volLong):(info.volLong||info.volShort);
+}
+function eurexRatioHedgeCode(base,d){
+  if(!Number.isFinite(d))return `${base}-U`;
+  return `${base}${d>=0?'-U':'+U'}`;
+}
+function eurexStrategyDescription(){
+  const s=$('strategy').value,k1=fmtRfqNum($('strike1').value),k2=fmtRfqNum($('strike2').value);
+  if(s==='call')return `${compactExpiry($('mat1').value)} ${k1} call`;
+  if(s==='put')return `${compactExpiry($('mat1').value)} ${k1} put`;
+  if(s==='straddle')return `${compactExpiry($('mat1').value)} ${k1} straddle`;
+  if(s==='strangle')return `${compactExpiry($('mat1').value)} ${k1}/${k2} strangle`;
+  if(s==='call_spread')return `${compactExpiry($('mat1').value)} ${k1}/${k2} call spread`;
+  if(s==='put_spread')return `${compactExpiry($('mat1').value)} ${k1}/${k2} put spread`;
+  if(s==='call_fly')return `${compactExpiry($('mat1').value)} ${k1}/${k2}/${fmtRfqNum($('strike3').value)} call fly`;
+  if(s==='put_fly')return `${compactExpiry($('mat1').value)} ${k1}/${k2}/${fmtRfqNum($('strike3').value)} put fly`;
+  if(s==='call_ratio')return `${compactExpiry($('mat1').value)} ${k1}/${k2} call ratio`;
+  if(s==='put_ratio')return `${compactExpiry($('mat1').value)} ${k1}/${k2} put ratio`;
+  if(s==='risk_reversal')return `${compactExpiry($('mat1').value)} ${k1}/${k2} risk reversal`;
+  if(s==='risk_reversal_ratio')return `${compactExpiry($('mat1').value)} ${k1}/${k2} risk reversal ratio ${fmtRfqNum(Number($('ratioShort').value)||1)}/1`;
+  if(s==='straddle_swap')return `${compactExpiry($('mat1').value)}/${compactExpiry($('mat2').value)} ${k1} straddle swap`;
+  if(s==='call_calendar')return `${compactExpiry($('mat1').value)}/${compactExpiry($('mat2').value)} ${k1} call calendar`;
+  if(s==='put_calendar')return `${compactExpiry($('mat1').value)}/${compactExpiry($('mat2').value)} ${k1} put calendar`;
+  if(s==='call_diagonal')return `${compactExpiry($('mat1').value)}/${compactExpiry($('mat2').value)} ${k1}/${k2} call diagonal`;
+  if(s==='put_diagonal')return `${compactExpiry($('mat1').value)}/${compactExpiry($('mat2').value)} ${k1}/${k2} put diagonal`;
+  return `${compactExpiry($('mat1').value)} ${k1}`;
+}
+function buildEurexCrossTicket(code,opts={}){
+  const d=agreedDelta(), ref=num('refSpot')||liveRef(), roots=eurexRoots();
+  const deltaScale=opts.deltaScale||1;
+  const hedge=Number.isFinite(d)?`${fmtRfqNum(Math.abs(d)*100*deltaScale)}% ${roots.fut} ${frontQuarterExpiry()}`:'future hedge';
+  const at=Number.isFinite(ref)?` at ${fmtRfqNum(ref)}`:'';
+  const level=opts.crossLevel;
+  const cross=Number.isFinite(level)?` cross at ${fmtRfqNum(level)}`:'';
+  return `${code} ${roots.opt} ${eurexStrategyDescription()}${cross} vs ${hedge}${at}`;
+}
+function solveCrossEconomics(){
+  const oldOpt=tradedLevelNum(), oldRef=num('refSpot')||liveRef();
+  const live=liveRef();
+  const size=Number($('crossSize')&&$('crossSize').value)||3000;
+  const mult=Number($('crossMultiplier')&&$('crossMultiplier').value)||50;
+  const optTick=Number($('optionTick')&&$('optionTick').value)||0.05;
+  const futTick=Number($('futureTick')&&$('futureTick').value)||0.05;
+  const bandPct=(Number($('liveRefBand')&&$('liveRefBand').value)||1)/100;
+  let d=agreedDelta();
+  if(!Number.isFinite(oldOpt)||!Number.isFinite(oldRef)||!Number.isFinite(d)||d===0)return 'Enter traded level, ref and agreed delta.';
+  const delta=Math.abs(d)>1?d/100:d;
+  const liveOnly=size<3000;
+  const oldOptOnTick=Math.abs(oldOpt-roundToTick(oldOpt,optTick))<1e-9;
+  const oldRefOnTick=Math.abs(oldRef-roundToTick(oldRef,futTick))<1e-9;
+  const minRef=liveOnly&&Number.isFinite(live)?live*(1-bandPct):-Infinity;
+  const maxRef=liveOnly&&Number.isFinite(live)?live*(1+bandPct):Infinity;
+  const liveCrossOk=Number.isFinite(live)&&oldRef>=live*(1-bandPct)&&oldRef<=live*(1+bandPct)&&oldOptOnTick&&oldRefOnTick;
+  if(oldOptOnTick&&oldRefOnTick&&(!liveOnly||liveCrossOk)){
+    const lines=[
+      `${liveOnly?'Live cross only':(liveCrossOk?'Block ok + live cross ok':'Block ok')} | size ${fmtRfqNum(size)} | delta ${fmtRfqNum(delta*100)}% | multiplier ${fmtRfqNum(mult)}`,
+      `Option ${fmtRfqNum(oldOpt)} | Ref ${fmtRfqNum(oldRef)} | no re-ref needed`
+    ];
+    if(liveOnly&&Number.isFinite(live))lines.push(`Live ref band ${fmtRfqNum(live*(1-bandPct))} / ${fmtRfqNum(live*(1+bandPct))}`);
+    else if(Number.isFinite(live))lines.push(`Live ref ${fmtRfqNum(live)} | band ${fmtRfqNum(live*(1-bandPct))} / ${fmtRfqNum(live*(1+bandPct))}`);
+    return lines.join('\n');
+  }
+  const center=roundToTick(oldRef,futTick);
+  const candidates=[];
+  for(let i=-200;i<=200;i++){
+    const newRef=Number((center+i*futTick).toFixed(10));
+    if(!Number.isFinite(newRef)||newRef<minRef||newRef>maxRef)continue;
+    const idealOpt=oldOpt+delta*(newRef-oldRef);
+    const newOpt=roundToTick(idealOpt,optTick);
+    if(!Number.isFinite(newOpt)||newOpt<0)continue;
+    const a=(oldOpt-newOpt)*size*mult;
+    const b=size*delta*mult*(oldRef-newRef);
+    candidates.push({newOpt,newRef,a,b,residual:a-b,dist:Math.abs(newOpt-oldOpt)+Math.abs(newRef-oldRef)*delta});
+  }
+  if(!candidates.length)return `No tick solution inside live ref band +/-${fmtRfqNum(bandPct*100)}%.`;
+  candidates.sort((x,y)=>Math.abs(x.residual)-Math.abs(y.residual)||x.dist-y.dist);
+  const best=candidates[0];
+  best.a=(oldOpt-best.newOpt)*size*mult;
+  best.b=size*delta*mult*(oldRef-best.newRef);
+  best.residual=best.a-best.b;
+  const block=liveOnly?'Live cross only':'Block ok';
+  const lines=[
+    `${block} | size ${fmtRfqNum(size)} | delta ${fmtRfqNum(delta*100)}% | multiplier ${fmtRfqNum(mult)}`,
+    `Option ${fmtRfqNum(oldOpt)} -> ${fmtRfqNum(best.newOpt)} | Ref ${fmtRfqNum(oldRef)} -> ${fmtRfqNum(best.newRef)}`,
+    `Cash option A ${fmtCash(best.a)} | futures B ${fmtCash(best.b)} | residual ${fmtCash(best.residual)}`
+  ];
+  if(liveOnly&&Number.isFinite(live))lines.push(`Live ref band ${fmtRfqNum(minRef)} / ${fmtRfqNum(maxRef)}`);
+  const low=Math.floor(oldOpt/optTick)*optTick, high=low+optTick;
+  if(size>=6000&&Math.abs(oldOpt-low)>1e-9&&Math.abs(high-oldOpt)>1e-9){
+    const highSize=size*(oldOpt-low)/optTick, lowSize=size-highSize;
+    if(lowSize>=3000&&highSize>=3000)lines.push(`Block split avg: ${fmtRfqNum(lowSize)} @ ${fmtRfqNum(low)} / ${fmtRfqNum(highSize)} @ ${fmtRfqNum(high)}`);
+  }
+  return lines.join('\n');
+}
+function updateCrossSolver(){if($('crossSolver'))$('crossSolver').textContent=solveCrossEconomics();}
+function stateMarketCodes(){
+  if(!state||!Array.isArray(state.legs))return [];
+  const codes=state.legs.map(l=>l.quote&&l.quote.fields&&l.quote.fields.EXCH_CODE).filter(Boolean);
+  return [...new Set(codes)];
+}
+function hasEurexLegs(){return stateMarketCodes().some(isEurexMarketCode);}
+function buildEurexCrossHint(){
+  const s=$('strategy').value, ratio=Number($('ratioShort').value)||2, info=EUREX_STRATEGY_TYPES[s];
+  if(s==='call'||s==='put'){
+    const code=s==='put'?'PUT+U':'CALL-U';
+    return buildEurexCrossTicket(code);
+  }
+  if(['call_ratio','put_ratio'].includes(s)){
+    const cp=s==='call_ratio'?'Call':'Put';
+    const tpl=ratioEurexTemplate(s==='call_ratio'?'call':'put');
+    if(tpl){
+      const d=agreedDelta(), vol=eurexRatioHedgeCode(tpl.standard,d), level=tradedLevelNum();
+      const crossLevel=Number.isFinite(level)?-Math.abs(level*tpl.scale):null;
+      return buildEurexCrossTicket(vol,{crossLevel,deltaScale:tpl.scale});
+    }
+    return `${cp} Ratio ${fmtRfqNum(ratio)}x1: use Non-Standard Option Strategy unless your GUI has the exact ratio`;
+  }
+  if(!info)return 'Eurex strategy not mapped yet';
+  const d=agreedDelta(), code=eurexHedgeCode(info,d)||info.standard;
+  return buildEurexCrossTicket(code);
+}
+function updateEurexCrossHint(){defaultCrossInputs();updateTradingPhrase();if($('eurexCrossHint'))$('eurexCrossHint').textContent=buildEurexCrossHint();updateCrossSolver();}
+async function copyEurexCrossHint(){
+  const raw=$('eurexCrossHint').textContent;
+  const parts=String(raw||'').split(' | ');
+  const text=parts.find(p=>/^(?:CALL-U|PUT\+U|[A-Z]+[A-Z0-9-]*[+-]?U?)\s+\S+\s+/.test(p))||raw;
+  if(!text||text==='-')return;
+  await navigator.clipboard.writeText(text);
+  $('eurexCopyStatus').textContent='Copied';
+  setTimeout(()=>$('eurexCopyStatus').textContent='',1400);
+}
+async function copyTradingPhrase(){
+  const text=$('tradingPhrase').textContent;
+  if(!text||text==='-')return;
+  await navigator.clipboard.writeText(text);
+  $('tradingCopyStatus').textContent='Copied';
+  setTimeout(()=>$('tradingCopyStatus').textContent='',1400);
+}
 function buildLegs(){
-  const s=$('strategy').value,k1=$('strike1').value,k2=$('strike2').value,m1=$('mat1').value,m2=$('mat2').value;
+  const s=$('strategy').value,k1=$('strike1').value,k2=$('strike2').value,k3=$('strike3').value,m1=$('mat1').value,m2=$('mat2').value;
   if(!k1)throw new Error('Strike 1 manquant.');
   const ratio=Number($('ratioShort').value)||2;
   const L=[];
@@ -182,20 +609,81 @@ function buildLegs(){
   if(s==='put') L.push({name:'Put',ticker:optTicker('P',k1,m1),qty:1});
   if(s==='call_spread'){if(!k2)throw new Error('Strike 2 manquant.');L.push({name:'Long Call',ticker:optTicker('C',k1,m1),qty:1},{name:'Short Call',ticker:optTicker('C',k2,m1),qty:-1});}
   if(s==='put_spread'){if(!k2)throw new Error('Strike 2 manquant.');L.push({name:'Long Put',ticker:optTicker('P',k1,m1),qty:1},{name:'Short Put',ticker:optTicker('P',k2,m1),qty:-1});}
+  if(s==='call_fly'){if(!k2||!k3)throw new Error('Strikes 2/3 manquants.');const ks=[Number(k1),Number(k2),Number(k3)].sort((a,b)=>a-b);L.push({name:'Wing Call low',ticker:optTicker('C',ks[0],m1),qty:1},{name:'Body 2x Call mid',ticker:optTicker('C',ks[1],m1),qty:-2},{name:'Wing Call high',ticker:optTicker('C',ks[2],m1),qty:1});}
+  if(s==='put_fly'){if(!k2||!k3)throw new Error('Strikes 2/3 manquants.');const ks=[Number(k1),Number(k2),Number(k3)].sort((a,b)=>a-b);L.push({name:'Wing Put low',ticker:optTicker('P',ks[0],m1),qty:1},{name:'Body 2x Put mid',ticker:optTicker('P',ks[1],m1),qty:-2},{name:'Wing Put high',ticker:optTicker('P',ks[2],m1),qty:1});}
   if(s==='call_ratio'){if(!k2)throw new Error('Strike 2 manquant.');const low=Math.min(Number(k1),Number(k2)),high=Math.max(Number(k1),Number(k2));L.push({name:'Long Call low',ticker:optTicker('C',low,m1),qty:1},{name:`Short ${ratio} Call high`,ticker:optTicker('C',high,m1),qty:-ratio});}
   if(s==='put_ratio'){if(!k2)throw new Error('Strike 2 manquant.');const low=Math.min(Number(k1),Number(k2)),high=Math.max(Number(k1),Number(k2));L.push({name:'Long Put high',ticker:optTicker('P',high,m1),qty:1},{name:`Short ${ratio} Put low`,ticker:optTicker('P',low,m1),qty:-ratio});}
+  if(s==='risk_reversal'){if(!k2)throw new Error('Strike 2 manquant.');const low=Math.min(Number(k1),Number(k2)),high=Math.max(Number(k1),Number(k2));L.push({name:'Put low',ticker:optTicker('P',low,m1),qty:1},{name:'Call high',ticker:optTicker('C',high,m1),qty:1});}
+  if(s==='risk_reversal_ratio'){if(!k2)throw new Error('Strike 2 manquant.');const low=Math.min(Number(k1),Number(k2)),high=Math.max(Number(k1),Number(k2));L.push({name:`${ratio}x Put low`,ticker:optTicker('P',low,m1),qty:ratio},{name:'Call high',ticker:optTicker('C',high,m1),qty:1});}
   if(s==='straddle') L.push({name:'Call',ticker:optTicker('C',k1,m1),qty:1},{name:'Put',ticker:optTicker('P',k1,m1),qty:1});
+  if(s==='straddle_swap') L.push({name:'Long far Call',ticker:optTicker('C',k1,m2),qty:1},{name:'Long far Put',ticker:optTicker('P',k1,m2),qty:1},{name:'Short near Call',ticker:optTicker('C',k1,m1),qty:-1},{name:'Short near Put',ticker:optTicker('P',k1,m1),qty:-1});
   if(s==='strangle'){if(!k2)throw new Error('Strike 2 manquant.');L.push({name:'Put low',ticker:optTicker('P',k1,m1),qty:1},{name:'Call high',ticker:optTicker('C',k2,m1),qty:1});}
   if(s==='call_calendar') L.push({name:'Long far Call',ticker:optTicker('C',k1,m2),qty:1},{name:'Short near Call',ticker:optTicker('C',k1,m1),qty:-1});
   if(s==='put_calendar') L.push({name:'Long far Put',ticker:optTicker('P',k1,m2),qty:1},{name:'Short near Put',ticker:optTicker('P',k1,m1),qty:-1});
+  if(s==='call_diagonal'){if(!k2)throw new Error('Strike 2 manquant.');L.push({name:'Long far Call',ticker:optTicker('C',k2,m2),qty:1},{name:'Short near Call',ticker:optTicker('C',k1,m1),qty:-1});}
+  if(s==='put_diagonal'){if(!k2)throw new Error('Strike 2 manquant.');L.push({name:'Long far Put',ticker:optTicker('P',k2,m2),qty:1},{name:'Short near Put',ticker:optTicker('P',k1,m1),qty:-1});}
   if(assetMode==='single'&&$('manualTicker').value.trim()&&L.length===1)L[0].ticker=$('manualTicker').value.trim();
   return L;
 }
-async function fetchQuote(ticker){const r=await fetch(API+'/quote?ticker='+encodeURIComponent(ticker));const p=await r.json();if(!p.ok)throw new Error(p.error||'Bloomberg error');return p.data;}
+function divOptionQuoteVariants(ticker){
+  const s=String(ticker||'').trim();
+  const out=[s];
+  const add=t=>{if(t&&!out.includes(t))out.push(t);};
+  let m=s.match(/^([A-Z]{2,5}[FGHJKMNQUVXZ])(\d{2})\s+([CP])\s*([-+]?\d+(?:\.\d+)?)\s+Index$/i);
+  if(m)add(`${m[1].toUpperCase()}${m[2].slice(-1)}${m[3].toUpperCase()} ${m[4]} Index`);
+  m=s.match(/^([A-Z]{2,5}[FGHJKMNQUVXZ])(\d{2})([CP])\s+([-+]?\d+(?:\.\d+)?)\s+Index$/i);
+  if(m)add(`${m[1].toUpperCase()}${m[2].slice(-1)}${m[3].toUpperCase()} ${m[4]} Index`);
+  m=s.match(/^([A-Z]{2,5}[FGHJKMNQUVXZ])(\d{2})\s+([-+]?\d+(?:\.\d+)?)\s+([CP])\s+Index$/i);
+  if(m)add(`${m[1].toUpperCase()}${m[2].slice(-1)}${m[4].toUpperCase()} ${m[3]} Index`);
+  return out;
+}
+function quoteLooksLikeDivOption(q,ticker){
+  return !/^[A-Z]{2,5}[FGHJKMNQUVXZ]\d?[CP]\s+[-+]?\d+(?:\.\d+)?\s+Index$/i.test(String(ticker||''))||!!(q&&q.fields&&q.fields.OPT_STRIKE_PX!=null&&q.fields.OPT_PUT_CALL);
+}
+async function fetchQuote(ticker){
+  const variants=divOptionQuoteVariants(ticker);
+  let lastError='';
+  for(const t of variants){
+    try{
+      const r=await fetch(API+'/quote?ticker='+encodeURIComponent(t));
+      const p=await r.json();
+      if(!p.ok){lastError=p.error||'Bloomberg error';continue;}
+      if(!quoteLooksLikeDivOption(p.data,t)){lastError=`${t} returned underlying data, not option data`;continue;}
+      return p.data;
+    }catch(e){lastError=e.message;}
+  }
+  throw new Error(lastError||'Bloomberg error');
+}
+async function fetchChainMatches(underlying,expiry,strike,cp){
+  const q=new URLSearchParams({underlying,expiry,strike:String(strike),cp});
+  const r=await fetch(API+'/chain?'+q.toString());
+  const p=await r.json();
+  if(!p.ok)throw new Error(p.error||'Bloomberg chain error');
+  return p.data||[];
+}
+function chainMissingMsg(underlying,expiry,strike,cp){
+  return `No American ${cp==='C'?'call':'put'} found for ${underlying} ${expiry} strike ${fmtRfqNum(strike)}. Check that this strike exists for this expiry, or try another expiry/strike.`;
+}
 async function checkBridge(){const st=$('bridge-status');try{const r=await fetch(API+'/health');if(!r.ok)throw new Error('offline');st.textContent='Bridge: online';st.style.color='var(--green)';}catch(e){st.textContent='Bridge: offline';st.style.color='var(--red)';}}
 function fnum(q,names){const f=q&&q.fields?q.fields:{};for(const n of names){const v=Number(f[n]);if(Number.isFinite(v))return v;}return null;}
 function delta(q){let d=fnum(q,['OPT_DELTA','DELTA']);if(d===null)return null;if(Math.abs(d)>1.5)d/=100;return d;}
 function liveRef(){if(!state||!state.ref)return null;const mid=Number(state.ref.mid),last=Number(state.ref.last);return Number.isFinite(mid)?mid:Number.isFinite(last)?last:null;}
+function liveRefMoveText(ref){
+  if(!ref)return 'time -';
+  const f=ref.fields||{};
+  const net=fnum(ref,['CHG_NET_1D']);
+  const pct=fnum(ref,['CHG_PCT_1D']);
+  const prev=fnum(ref,['PREV_CLOSE_VALUE_REALTIME','PX_YEST_CLOSE']);
+  const parts=[];
+  if(f.TIME)parts.push('time '+fmt(f.TIME));
+  if(Number.isFinite(net)||Number.isFinite(pct)){
+    const sign=Number.isFinite(net)&&net>0?'+':'';
+    const pctSign=Number.isFinite(pct)&&pct>0?'+':'';
+    parts.push(`${Number.isFinite(net)?sign+fmtRfqNum(net):'-'} / ${Number.isFinite(pct)?pctSign+fmtRfqNum(pct)+'%':'-'}`);
+  }
+  if(Number.isFinite(prev))parts.push('prev '+fmtRfqNum(prev));
+  return parts.join(' | ')||'time -';
+}
 function aggregate(legs){
   const out={bid:0,ask:0,mid:0,delta:0,gamma:0,vega:0,theta:0,rho:0,volSum:0,volN:0,oi:0};
   legs.forEach(l=>{const q=l.quote, qty=l.qty;const bid=Number(q.bid),ask=Number(q.ask),mid=Number(q.mid);out.bid+=qty>0?bid*qty:ask*qty;out.ask+=qty>0?ask*qty:bid*qty;out.mid+=Number.isFinite(mid)?mid*qty:0;[['delta',delta(q)],['gamma',fnum(q,['OPT_GAMMA','GAMMA'])],['vega',fnum(q,['OPT_VEGA','VEGA'])],['theta',fnum(q,['OPT_THETA','THETA'])],['rho',fnum(q,['OPT_RHO','RHO'])]].forEach(([k,v])=>{if(Number.isFinite(v))out[k]+=v*qty;});const vol=fnum(q,['IVOL_MID','IMPLIED_VOLATILITY_MID']);if(Number.isFinite(vol)){out.volSum+=vol;out.volN++;}const oi=fnum(q,['OPEN_INT','OPEN_INTEREST']);if(Number.isFinite(oi))out.oi+=Math.abs(oi);});
@@ -203,28 +691,285 @@ function aggregate(legs){
 }
 function recalcAdjusted(){
   if(!state)return;const ref=num('refSpot'),live=liveRef(),a=state.agg;$('refOut').textContent=fmt(ref);$('deltaOut').textContent=fmtPct(a.delta);
-  if(!Number.isFinite(ref)||!Number.isFinite(live)||!Number.isFinite(a.delta)){$('adjBid').textContent=$('adjAsk').textContent=$('adjMid').textContent='-';$('moveText').textContent='move -';return;}
+  if(!Number.isFinite(ref)||!Number.isFinite(live)||!Number.isFinite(a.delta)){$('adjBid').textContent=$('adjAsk').textContent=$('adjMid').textContent='-';$('moveText').textContent='move -';updateGoldmanSymph();updateEurexCrossHint();return;}
   const move=ref-live;$('moveText').textContent=`move ${fmt(ref)} - ${fmt(live)} = ${fmt(move)}`;
   $('adjBid').textContent=fmt(a.bid+a.delta*move);$('adjAsk').textContent=fmt(a.ask+a.delta*move);$('adjMid').textContent=fmt(a.mid+a.delta*move);
+  updateGoldmanSymph();
+  updateEurexCrossHint();
 }
 function useLiveAsRef(){const l=liveRef();if(Number.isFinite(l)){$('refSpot').value=l;recalcAdjusted();}}
 function render(legs,ref,agg){
-  $('bid').textContent=fmt(agg.bid);$('ask').textContent=fmt(agg.ask);$('mid').textContent=fmt(agg.mid);$('liveRef').textContent=fmt(liveRef());$('refTime').textContent='time '+fmt(ref.fields.TIME);$('openInterest').textContent=fmt(agg.oi);$('gGamma').textContent=fmt(agg.gamma);$('gVega').textContent=fmt(agg.vega);$('gTheta').textContent=fmt(agg.theta);$('gRho').textContent=fmt(agg.rho);$('gVol').textContent=fmt(agg.vol);$('strategyLabel').textContent=$('strategy').selectedOptions[0].textContent;$('bbgTicker').textContent=legs.map(l=>l.ticker).join(' | ');
-  $('legsBody').innerHTML=legs.map(l=>`<tr><td>${l.name}</td><td>${l.ticker}</td><td>${l.qty>0?'Long':'Short'}</td><td>${fmt(l.quote.bid)}</td><td>${fmt(l.quote.ask)}</td><td>${fmt(l.quote.mid)}</td><td>${fmtPct(delta(l.quote))}</td><td>${fmt(fnum(l.quote,['OPEN_INT','OPEN_INTEREST']))}</td></tr>`).join('');
+  $('bid').textContent=fmt(agg.bid);$('ask').textContent=fmt(agg.ask);$('mid').textContent=fmt(agg.mid);$('liveRef').textContent=fmt(liveRef());$('refTime').textContent=liveRefMoveText(ref);$('openInterest').textContent=fmt(agg.oi);$('gGamma').textContent=fmt(agg.gamma);$('gVega').textContent=fmt(agg.vega);$('gTheta').textContent=fmt(agg.theta);$('gRho').textContent=fmt(agg.rho);$('gVol').textContent=fmt(agg.vol);$('strategyLabel').textContent=$('strategy').selectedOptions[0].textContent;$('bbgTicker').textContent=legs.map(l=>l.ticker).join(' | ');updateEurexCrossHint();
+  $('legsBody').innerHTML=legs.map(l=>`<tr title="${esc(contractTooltip(l.quote))}"><td>${l.name}</td><td>${l.ticker}</td><td>${l.qty>0?'Long':'Short'}</td><td>${fmtPxSize(l.quote,'bid')}</td><td>${fmtPxSize(l.quote,'ask')}</td><td>${fmt(l.quote.mid)}</td><td>${fmtPct(delta(l.quote))}</td><td>${fmt(fnum(l.quote,['OPEN_INT','OPEN_INTEREST']))}</td></tr>`).join('');
+  if(!$('refSpot').value&&Number.isFinite(liveRef()))$('refSpot').value=liveRef();recalcAdjusted();
+}
+function chainAggregate(matches){
+  const live=matches.filter(m=>Number.isFinite(Number(m.quote&&m.quote.bid))||Number.isFinite(Number(m.quote&&m.quote.ask)));
+  const bestBid=Math.max(...live.map(m=>Number(m.quote.bid)).filter(Number.isFinite));
+  const bestAsk=Math.min(...live.map(m=>Number(m.quote.ask)).filter(Number.isFinite));
+  const mid=Number.isFinite(bestBid)&&Number.isFinite(bestAsk)?(bestBid+bestAsk)/2:null;
+  const bestMid=live.slice().sort((a,b)=>(Number(b.quote.mid)||-Infinity)-(Number(a.quote.mid)||-Infinity))[0];
+  const q=bestMid&&bestMid.quote?bestMid.quote:{fields:{}};
+  const oi=matches.reduce((sum,m)=>sum+(Number(fnum(m.quote,['OPEN_INT','OPEN_INTEREST']))||0),0);
+  return {bid:Number.isFinite(bestBid)?bestBid:null,ask:Number.isFinite(bestAsk)?bestAsk:null,mid,delta:delta(q)||0,gamma:fnum(q,['OPT_GAMMA','GAMMA'])||0,vega:fnum(q,['OPT_VEGA','VEGA'])||0,theta:fnum(q,['OPT_THETA','THETA'])||0,rho:fnum(q,['OPT_RHO','RHO'])||0,vol:fnum(q,['IVOL_MID','IMPLIED_VOLATILITY_MID']),oi};
+}
+function renderChainMatches(matches,ref){
+  const agg=chainAggregate(matches);
+  state={legs:matches.map(m=>({name:m.root,ticker:m.ticker,qty:1,quote:m.quote})),ref,agg,chainMatches:matches};
+  $('bid').textContent=fmt(agg.bid);$('ask').textContent=fmt(agg.ask);$('mid').textContent=fmt(agg.mid);$('liveRef').textContent=fmt(liveRef());$('refTime').textContent=liveRefMoveText(ref);$('openInterest').textContent=fmt(agg.oi);$('gGamma').textContent=fmt(agg.gamma);$('gVega').textContent=fmt(agg.vega);$('gTheta').textContent=fmt(agg.theta);$('gRho').textContent=fmt(agg.rho);$('gVol').textContent=fmt(agg.vol);$('strategyLabel').textContent=`All markets (${matches.length})`;$('bbgTicker').textContent=matches.map(m=>m.ticker).join(' | ');updateEurexCrossHint();
+  $('legsBody').innerHTML=matches.map(m=>`<tr title="${esc(contractTooltip(m.quote))}"><td>${m.root}</td><td>${m.ticker}</td><td>${m.market}</td><td>${fmtPxSize(m.quote,'bid')}</td><td>${fmtPxSize(m.quote,'ask')}</td><td>${fmt(m.quote.mid)}</td><td>${fmtPct(delta(m.quote))}</td><td>${fmt(fnum(m.quote,['OPEN_INT','OPEN_INTEREST']))}</td></tr>`).join('');
+  if(!$('refSpot').value&&Number.isFinite(liveRef()))$('refSpot').value=liveRef();recalcAdjusted();
+}
+function optionContractKey(match){
+  return String(match&&match.root||'').trim().toUpperCase();
+}
+function pairChainMatches(callMatches,putMatches){
+  const puts=new Map(putMatches.map(m=>[optionContractKey(m),m]));
+  return callMatches.map(c=>({root:c.root,market:c.market,call:c,put:puts.get(optionContractKey(c))})).filter(p=>p.put);
+}
+function chainPairAggregate(pairs){
+  const rows=pairs.map(p=>{
+    const cb=Number(p.call.quote.bid),pb=Number(p.put.quote.bid),ca=Number(p.call.quote.ask),pa=Number(p.put.quote.ask);
+    const bid=Number.isFinite(cb)&&Number.isFinite(pb)?cb+pb:null;
+    const ask=Number.isFinite(ca)&&Number.isFinite(pa)?ca+pa:null;
+    return {pair:p,bid,ask,mid:Number.isFinite(bid)&&Number.isFinite(ask)?(bid+ask)/2:null};
+  });
+  const best=rows.slice().sort((a,b)=>(Number(b.mid)||-Infinity)-(Number(a.mid)||-Infinity))[0]||{};
+  const q1=best.pair&&best.pair.call.quote?best.pair.call.quote:{fields:{}},q2=best.pair&&best.pair.put.quote?best.pair.put.quote:{fields:{}};
+  const sum=(fn)=>Number(fn(q1)||0)+Number(fn(q2)||0);
+  const oi=pairs.reduce((n,p)=>n+(Number(fnum(p.call.quote,['OPEN_INT','OPEN_INTEREST']))||0)+(Number(fnum(p.put.quote,['OPEN_INT','OPEN_INTEREST']))||0),0);
+  return {bid:Number.isFinite(best.bid)?best.bid:null,ask:Number.isFinite(best.ask)?best.ask:null,mid:Number.isFinite(best.mid)?best.mid:null,delta:sum(delta),gamma:sum(q=>fnum(q,['OPT_GAMMA','GAMMA'])),vega:sum(q=>fnum(q,['OPT_VEGA','VEGA'])),theta:sum(q=>fnum(q,['OPT_THETA','THETA'])),rho:sum(q=>fnum(q,['OPT_RHO','RHO'])),vol:null,oi};
+}
+function renderChainPairs(pairs,ref,label){
+  const agg=chainPairAggregate(pairs);
+  state={legs:pairs.flatMap(p=>[{name:p.root+' Call',ticker:p.call.ticker,qty:1,quote:p.call.quote},{name:p.root+' Put',ticker:p.put.ticker,qty:1,quote:p.put.quote}]),ref,agg,chainPairs:pairs};
+  $('bid').textContent=fmt(agg.bid);$('ask').textContent=fmt(agg.ask);$('mid').textContent=fmt(agg.mid);$('liveRef').textContent=fmt(liveRef());$('refTime').textContent=liveRefMoveText(ref);$('openInterest').textContent=fmt(agg.oi);$('gGamma').textContent=fmt(agg.gamma);$('gVega').textContent=fmt(agg.vega);$('gTheta').textContent=fmt(agg.theta);$('gRho').textContent=fmt(agg.rho);$('gVol').textContent=fmt(agg.vol);$('strategyLabel').textContent=`${label} markets (${pairs.length})`;$('bbgTicker').textContent=pairs.map(p=>`${p.call.ticker} + ${p.put.ticker}`).join(' | ');updateEurexCrossHint();
+  $('legsBody').innerHTML=pairs.map(p=>{const bid=Number(p.call.quote.bid)+Number(p.put.quote.bid),ask=Number(p.call.quote.ask)+Number(p.put.quote.ask);const mid=Number.isFinite(bid)&&Number.isFinite(ask)?(bid+ask)/2:null;const d=(delta(p.call.quote)||0)+(delta(p.put.quote)||0);const oi=(Number(fnum(p.call.quote,['OPEN_INT','OPEN_INTEREST']))||0)+(Number(fnum(p.put.quote,['OPEN_INT','OPEN_INTEREST']))||0);return `<tr title="${esc(contractTooltip(p.call.quote)+'\n\n'+contractTooltip(p.put.quote))}"><td>${p.root}</td><td>${p.call.ticker}<br>${p.put.ticker}</td><td>${p.market}</td><td>${fmt(bid)}</td><td>${fmt(ask)}</td><td>${fmt(mid)}</td><td>${fmtPct(d)}</td><td>${fmt(oi)}</td></tr>`;}).join('');
+  if(!$('refSpot').value&&Number.isFinite(liveRef()))$('refSpot').value=liveRef();recalcAdjusted();
+}
+function pairByMarket(nearMatches,farMatches){
+  const nearByContract=new Map(nearMatches.map(m=>[optionContractKey(m),m]));
+  return farMatches.map(f=>({root:f.root,market:f.market,near:nearByContract.get(optionContractKey(f)),far:f})).filter(p=>p.near);
+}
+function chainCalendarAggregate(pairs){
+  const rows=pairs.map(p=>{
+    const fb=Number(p.far.quote.bid),fa=Number(p.far.quote.ask),nb=Number(p.near.quote.bid),na=Number(p.near.quote.ask);
+    const bid=Number.isFinite(fb)&&Number.isFinite(na)?fb-na:null;
+    const ask=Number.isFinite(fa)&&Number.isFinite(nb)?fa-nb:null;
+    return {pair:p,bid,ask,mid:Number.isFinite(bid)&&Number.isFinite(ask)?(bid+ask)/2:null};
+  });
+  const best=rows.slice().sort((a,b)=>(Number(b.mid)||-Infinity)-(Number(a.mid)||-Infinity))[0]||{};
+  const qf=best.pair&&best.pair.far.quote?best.pair.far.quote:{fields:{}},qn=best.pair&&best.pair.near.quote?best.pair.near.quote:{fields:{}};
+  const net=(fn)=>Number(fn(qf)||0)-Number(fn(qn)||0);
+  const oi=pairs.reduce((n,p)=>n+(Number(fnum(p.far.quote,['OPEN_INT','OPEN_INTEREST']))||0)+(Number(fnum(p.near.quote,['OPEN_INT','OPEN_INTEREST']))||0),0);
+  return {bid:Number.isFinite(best.bid)?best.bid:null,ask:Number.isFinite(best.ask)?best.ask:null,mid:Number.isFinite(best.mid)?best.mid:null,delta:net(delta),gamma:net(q=>fnum(q,['OPT_GAMMA','GAMMA'])),vega:net(q=>fnum(q,['OPT_VEGA','VEGA'])),theta:net(q=>fnum(q,['OPT_THETA','THETA'])),rho:net(q=>fnum(q,['OPT_RHO','RHO'])),vol:null,oi};
+}
+function renderChainCalendar(pairs,ref,label){
+  const agg=chainCalendarAggregate(pairs);
+  state={legs:pairs.flatMap(p=>[{name:p.market+' Long far',ticker:p.far.ticker,qty:1,quote:p.far.quote},{name:p.market+' Short near',ticker:p.near.ticker,qty:-1,quote:p.near.quote}]),ref,agg,chainCalendar:pairs};
+  $('bid').textContent=fmt(agg.bid);$('ask').textContent=fmt(agg.ask);$('mid').textContent=fmt(agg.mid);$('liveRef').textContent=fmt(liveRef());$('refTime').textContent=liveRefMoveText(ref);$('openInterest').textContent=fmt(agg.oi);$('gGamma').textContent=fmt(agg.gamma);$('gVega').textContent=fmt(agg.vega);$('gTheta').textContent=fmt(agg.theta);$('gRho').textContent=fmt(agg.rho);$('gVol').textContent=fmt(agg.vol);$('strategyLabel').textContent=`${label} markets (${pairs.length})`;$('bbgTicker').textContent=pairs.map(p=>`${p.far.ticker} - ${p.near.ticker}`).join(' | ');updateEurexCrossHint();
+  $('legsBody').innerHTML=pairs.map(p=>{const bid=Number(p.far.quote.bid)-Number(p.near.quote.ask),ask=Number(p.far.quote.ask)-Number(p.near.quote.bid);const mid=Number.isFinite(bid)&&Number.isFinite(ask)?(bid+ask)/2:null;const d=(delta(p.far.quote)||0)-(delta(p.near.quote)||0);const oi=(Number(fnum(p.far.quote,['OPEN_INT','OPEN_INTEREST']))||0)+(Number(fnum(p.near.quote,['OPEN_INT','OPEN_INTEREST']))||0);return `<tr title="${esc(contractTooltip(p.far.quote)+'\n\n'+contractTooltip(p.near.quote))}"><td>${p.market}</td><td>${p.far.ticker}<br>${p.near.ticker}</td><td>Calendar</td><td>${fmt(bid)}</td><td>${fmt(ask)}</td><td>${fmt(mid)}</td><td>${fmtPct(d)}</td><td>${fmt(oi)}</td></tr>`;}).join('');
+  if(!$('refSpot').value&&Number.isFinite(liveRef()))$('refSpot').value=liveRef();recalcAdjusted();
+}
+function pairByMarketNamed(firstMatches,secondMatches,firstName,secondName){
+  const secondByContract=new Map(secondMatches.map(m=>[optionContractKey(m),m]));
+  return firstMatches.map(f=>({market:f.market,root:f.root,[firstName]:f,[secondName]:secondByContract.get(optionContractKey(f))})).filter(p=>p[secondName]);
+}
+function pairStraddleSwaps(nearPairs,farPairs){
+  const nearByContract=new Map(nearPairs.map(p=>[optionContractKey(p),p]));
+  return farPairs.map(f=>({market:f.market,root:f.root,near:nearByContract.get(optionContractKey(f)),far:f})).filter(p=>p.near);
+}
+function pairButterfly(lowMatches,midMatches,highMatches){
+  const midByContract=new Map(midMatches.map(m=>[optionContractKey(m),m]));
+  const highByContract=new Map(highMatches.map(m=>[optionContractKey(m),m]));
+  return lowMatches.map(l=>({market:l.market,root:l.root,low:l,mid:midByContract.get(optionContractKey(l)),high:highByContract.get(optionContractKey(l))})).filter(p=>p.mid&&p.high);
+}
+function chainComboAggregate(groups){
+  const rows=groups.map(g=>{
+    let bid=0,ask=0,mid=0,deltaSum=0,gamma=0,vega=0,theta=0,rho=0,oi=0;
+    for(const l of g.legs){
+      const q=l.quote,qty=l.qty,b=Number(q.bid),a=Number(q.ask),m=Number(q.mid);
+      if(!Number.isFinite(b)||!Number.isFinite(a))return {...g,bid:null,ask:null,mid:null};
+      bid+=qty>0?b*qty:a*qty;ask+=qty>0?a*qty:b*qty;if(Number.isFinite(m))mid+=m*qty;
+      deltaSum+=(delta(q)||0)*qty;gamma+=(fnum(q,['OPT_GAMMA','GAMMA'])||0)*qty;vega+=(fnum(q,['OPT_VEGA','VEGA'])||0)*qty;theta+=(fnum(q,['OPT_THETA','THETA'])||0)*qty;rho+=(fnum(q,['OPT_RHO','RHO'])||0)*qty;oi+=Number(fnum(q,['OPEN_INT','OPEN_INTEREST']))||0;
+    }
+    return {...g,bid,ask,mid,delta:deltaSum,gamma,vega,theta,rho,oi};
+  });
+  const best=rows.slice().sort((a,b)=>(Number(b.mid)||-Infinity)-(Number(a.mid)||-Infinity))[0]||{};
+  return {bid:Number.isFinite(best.bid)?best.bid:null,ask:Number.isFinite(best.ask)?best.ask:null,mid:Number.isFinite(best.mid)?best.mid:null,delta:best.delta||0,gamma:best.gamma||0,vega:best.vega||0,theta:best.theta||0,rho:best.rho||0,vol:null,oi:rows.reduce((n,r)=>n+(r.oi||0),0)};
+}
+function renderChainCombos(groups,ref,label){
+  const agg=chainComboAggregate(groups);
+  state={legs:groups.flatMap(g=>g.legs.map(l=>({name:g.market+' '+l.name,ticker:l.ticker,qty:l.qty,quote:l.quote}))),ref,agg,chainCombos:groups};
+  $('bid').textContent=fmt(agg.bid);$('ask').textContent=fmt(agg.ask);$('mid').textContent=fmt(agg.mid);$('liveRef').textContent=fmt(liveRef());$('refTime').textContent=liveRefMoveText(ref);$('openInterest').textContent=fmt(agg.oi);$('gGamma').textContent=fmt(agg.gamma);$('gVega').textContent=fmt(agg.vega);$('gTheta').textContent=fmt(agg.theta);$('gRho').textContent=fmt(agg.rho);$('gVol').textContent=fmt(agg.vol);$('strategyLabel').textContent=`${label} markets (${groups.length})`;$('bbgTicker').textContent=groups.map(g=>g.legs.map(l=>l.ticker).join(' / ')).join(' | ');updateEurexCrossHint();
+  $('legsBody').innerHTML=groups.map(g=>{const row=chainComboAggregate([g]);return `<tr title="${esc(g.legs.map(l=>contractTooltip(l.quote)).join('\n\n'))}"><td>${g.market}</td><td>${g.legs.map(l=>`${l.qty>0?'Long':'Short'} ${fmtRfqNum(Math.abs(l.qty))} ${l.ticker}`).join('<br>')}</td><td>${label}</td><td>${fmt(row.bid)}</td><td>${fmt(row.ask)}</td><td>${fmt(row.mid)}</td><td>${fmtPct(row.delta)}</td><td>${fmt(row.oi)}</td></tr>`;}).join('');
+  if(!$('refSpot').value&&Number.isFinite(liveRef()))$('refSpot').value=liveRef();recalcAdjusted();
+}
+function riskReversalRow(callLeg,putLeg,market,putRatio=1){
+  const c=callLeg.quote,p=putLeg.quote;
+  const r=Number(putRatio)||1,cm=Number(c.mid),pm=Number(p.mid);
+  const callOver=Number.isFinite(cm)&&Number.isFinite(pm)?cm>=r*pm:Number(c.ask)>=r*Number(p.ask);
+  const longLeg=callOver?callLeg:putLeg, shortLeg=callOver?putLeg:callLeg;
+  const longQty=callOver?1:r, shortQty=callOver?r:1;
+  const lb=Number(longLeg.quote.bid),la=Number(longLeg.quote.ask),sb=Number(shortLeg.quote.bid),sa=Number(shortLeg.quote.ask);
+  const bid=Number.isFinite(lb)&&Number.isFinite(sa)?longQty*lb-shortQty*sa:null;
+  const ask=Number.isFinite(la)&&Number.isFinite(sb)?longQty*la-shortQty*sb:null;
+  const mid=Number.isFinite(bid)&&Number.isFinite(ask)?(bid+ask)/2:null;
+  const d=longQty*(delta(longLeg.quote)||0)-shortQty*(delta(shortLeg.quote)||0);
+  const oi=(Number(fnum(c,['OPEN_INT','OPEN_INTEREST']))||0)+(Number(fnum(p,['OPEN_INT','OPEN_INTEREST']))||0);
+  return {market,label:callOver?'Call over':'Put over',call:callLeg,put:putLeg,longLeg,shortLeg,longQty,shortQty,putRatio:r,bid,ask,mid,delta:d,gamma:longQty*(fnum(longLeg.quote,['OPT_GAMMA','GAMMA'])||0)-shortQty*(fnum(shortLeg.quote,['OPT_GAMMA','GAMMA'])||0),vega:longQty*(fnum(longLeg.quote,['OPT_VEGA','VEGA'])||0)-shortQty*(fnum(shortLeg.quote,['OPT_VEGA','VEGA'])||0),theta:longQty*(fnum(longLeg.quote,['OPT_THETA','THETA'])||0)-shortQty*(fnum(shortLeg.quote,['OPT_THETA','THETA'])||0),rho:longQty*(fnum(longLeg.quote,['OPT_RHO','RHO'])||0)-shortQty*(fnum(shortLeg.quote,['OPT_RHO','RHO'])||0),oi};
+}
+function riskReversalAggregate(rows){
+  const best=rows.slice().sort((a,b)=>(Number(b.mid)||-Infinity)-(Number(a.mid)||-Infinity))[0]||{};
+  return {bid:Number.isFinite(best.bid)?best.bid:null,ask:Number.isFinite(best.ask)?best.ask:null,mid:Number.isFinite(best.mid)?best.mid:null,delta:best.delta||0,gamma:best.gamma||0,vega:best.vega||0,theta:best.theta||0,rho:best.rho||0,vol:null,oi:rows.reduce((n,r)=>n+(r.oi||0),0),label:best.label||'Risk Reversal'};
+}
+function renderRiskReversal(rows,ref,label='Risk Reversal'){
+  const agg=riskReversalAggregate(rows);
+  state={legs:rows.flatMap(r=>[{name:r.market+' '+r.label+' Long',ticker:r.longLeg.ticker,qty:r.longQty,quote:r.longLeg.quote},{name:r.market+' '+r.label+' Short',ticker:r.shortLeg.ticker,qty:-r.shortQty,quote:r.shortLeg.quote}]),ref,agg,riskReversalRows:rows};
+  $('bid').textContent=fmt(agg.bid);$('ask').textContent=fmt(agg.ask);$('mid').textContent=fmt(agg.mid);$('liveRef').textContent=fmt(liveRef());$('refTime').textContent=liveRefMoveText(ref);$('openInterest').textContent=fmt(agg.oi);$('gGamma').textContent=fmt(agg.gamma);$('gVega').textContent=fmt(agg.vega);$('gTheta').textContent=fmt(agg.theta);$('gRho').textContent=fmt(agg.rho);$('gVol').textContent=fmt(agg.vol);$('strategyLabel').textContent=`${label} - ${agg.label} (${rows.length})`;$('bbgTicker').textContent=rows.map(r=>`${r.label}: ${r.longLeg.ticker} - ${r.shortLeg.ticker}`).join(' | ');updateEurexCrossHint();
+  $('legsBody').innerHTML=rows.map(r=>`<tr title="${esc(contractTooltip(r.call.quote)+'\n\n'+contractTooltip(r.put.quote))}"><td>${r.market}</td><td>${r.label}<br>Long ${fmtRfqNum(r.longQty)} ${r.longLeg.ticker}<br>Short ${fmtRfqNum(r.shortQty)} ${r.shortLeg.ticker}</td><td>${label}</td><td>${fmt(r.bid)}</td><td>${fmt(r.ask)}</td><td>${fmt(r.mid)}</td><td>${fmtPct(r.delta)}</td><td>${fmt(r.oi)}</td></tr>`).join('');
+  if(!$('refSpot').value&&Number.isFinite(liveRef()))$('refSpot').value=liveRef();recalcAdjusted();
+}
+function butterflyRow(lowLeg,midLeg,highLeg,market,kind){
+  const wingMid=Number(lowLeg.quote.mid)+Number(highLeg.quote.mid),bodyMid=2*Number(midLeg.quote.mid);
+  const wingsOver=Number.isFinite(wingMid)&&Number.isFinite(bodyMid)?wingMid>=bodyMid:(Number(lowLeg.quote.ask)+Number(highLeg.quote.ask))>=2*Number(midLeg.quote.ask);
+  const lb=Number(lowLeg.quote.bid),la=Number(lowLeg.quote.ask),mb=Number(midLeg.quote.bid),ma=Number(midLeg.quote.ask),hb=Number(highLeg.quote.bid),ha=Number(highLeg.quote.ask);
+  const bid=wingsOver?(Number.isFinite(lb)&&Number.isFinite(hb)&&Number.isFinite(ma)?lb+hb-2*ma:null):(Number.isFinite(mb)&&Number.isFinite(la)&&Number.isFinite(ha)?2*mb-la-ha:null);
+  const ask=wingsOver?(Number.isFinite(la)&&Number.isFinite(ha)&&Number.isFinite(mb)?la+ha-2*mb:null):(Number.isFinite(ma)&&Number.isFinite(lb)&&Number.isFinite(hb)?2*ma-lb-hb:null);
+  const mid=Number.isFinite(bid)&&Number.isFinite(ask)?(bid+ask)/2:null;
+  const qty=wingsOver?[1,-2,1]:[-1,2,-1];
+  const net=(fn)=>qty[0]*Number(fn(lowLeg.quote)||0)+qty[1]*Number(fn(midLeg.quote)||0)+qty[2]*Number(fn(highLeg.quote)||0);
+  const oi=[lowLeg,midLeg,highLeg].reduce((n,l)=>n+(Number(fnum(l.quote,['OPEN_INT','OPEN_INTEREST']))||0),0);
+  return {market,kind,label:wingsOver?'Wings over':'Body over',lowLeg,midLeg,highLeg,qty,bid,ask,mid,delta:net(delta),gamma:net(q=>fnum(q,['OPT_GAMMA','GAMMA'])),vega:net(q=>fnum(q,['OPT_VEGA','VEGA'])),theta:net(q=>fnum(q,['OPT_THETA','THETA'])),rho:net(q=>fnum(q,['OPT_RHO','RHO'])),oi};
+}
+function butterflyAggregate(rows){
+  const best=rows.slice().sort((a,b)=>(Number(b.mid)||-Infinity)-(Number(a.mid)||-Infinity))[0]||{};
+  return {bid:Number.isFinite(best.bid)?best.bid:null,ask:Number.isFinite(best.ask)?best.ask:null,mid:Number.isFinite(best.mid)?best.mid:null,delta:best.delta||0,gamma:best.gamma||0,vega:best.vega||0,theta:best.theta||0,rho:best.rho||0,vol:null,oi:rows.reduce((n,r)=>n+(r.oi||0),0),label:best.label||'Fly'};
+}
+function renderButterfly(rows,ref,label){
+  const agg=butterflyAggregate(rows);
+  state={legs:rows.flatMap(r=>[{name:r.market+' '+r.label+' Low wing',ticker:r.lowLeg.ticker,qty:r.qty[0],quote:r.lowLeg.quote},{name:r.market+' '+r.label+' Body',ticker:r.midLeg.ticker,qty:r.qty[1],quote:r.midLeg.quote},{name:r.market+' '+r.label+' High wing',ticker:r.highLeg.ticker,qty:r.qty[2],quote:r.highLeg.quote}]),ref,agg,butterflyRows:rows};
+  $('bid').textContent=fmt(agg.bid);$('ask').textContent=fmt(agg.ask);$('mid').textContent=fmt(agg.mid);$('liveRef').textContent=fmt(liveRef());$('refTime').textContent=liveRefMoveText(ref);$('openInterest').textContent=fmt(agg.oi);$('gGamma').textContent=fmt(agg.gamma);$('gVega').textContent=fmt(agg.vega);$('gTheta').textContent=fmt(agg.theta);$('gRho').textContent=fmt(agg.rho);$('gVol').textContent=fmt(agg.vol);$('strategyLabel').textContent=`${label} - ${agg.label} (${rows.length})`;$('bbgTicker').textContent=rows.map(r=>`${r.label}: ${r.lowLeg.ticker} / ${r.midLeg.ticker} / ${r.highLeg.ticker}`).join(' | ');updateEurexCrossHint();
+  $('legsBody').innerHTML=rows.map(r=>`<tr title="${esc([r.lowLeg,r.midLeg,r.highLeg].map(l=>contractTooltip(l.quote)).join('\n\n'))}"><td>${r.market}</td><td>${r.label}<br>${fmtRfqNum(r.qty[0])} ${r.lowLeg.ticker}<br>${fmtRfqNum(r.qty[1])} ${r.midLeg.ticker}<br>${fmtRfqNum(r.qty[2])} ${r.highLeg.ticker}</td><td>${label}</td><td>${fmt(r.bid)}</td><td>${fmt(r.ask)}</td><td>${fmt(r.mid)}</td><td>${fmtPct(r.delta)}</td><td>${fmt(r.oi)}</td></tr>`).join('');
   if(!$('refSpot').value&&Number.isFinite(liveRef()))$('refSpot').value=liveRef();recalcAdjusted();
 }
 async function loadStrategy(){
   setError('');const btn=$('loadBtn');btn.disabled=true;btn.textContent='Loading';
-  try{const legs=buildLegs();const refTicker=$('refTicker').value.trim()||defaultReferenceTicker();$('refTicker').value=refTicker;const quotes=await Promise.all([...legs.map(l=>fetchQuote(l.ticker)),fetchQuote(refTicker)]);const ref=quotes.pop();legs.forEach((l,i)=>l.quote=quotes[i]);state={legs,ref,agg:aggregate(legs)};render(legs,ref,state.agg);}catch(e){setError(e.message+' Verifie les tickers et Bloomberg.');}finally{btn.disabled=false;btn.textContent='Load Bloomberg';checkBridge();}
+  try{
+    const refTicker=$('refTicker').value.trim()||defaultReferenceTicker();$('refTicker').value=refTicker;
+    if(assetMode==='single'&&['call','put','straddle','straddle_swap','strangle','risk_reversal','risk_reversal_ratio','call_fly','put_fly','call_ratio','put_ratio','call_calendar','put_calendar','call_diagonal','put_diagonal'].includes($('strategy').value)&&!$('manualTicker').value.trim()&&!$('optionRoot').value.trim()){
+      const ref=await fetchQuote(refTicker);
+      if($('strategy').value==='straddle'){
+        const [calls,puts]=await Promise.all([fetchChainMatches(refTicker,parseMaturity($('mat1').value),$('strike1').value,'C'),fetchChainMatches(refTicker,parseMaturity($('mat1').value),$('strike1').value,'P')]);
+        if(!calls.length)throw new Error(chainMissingMsg(refTicker,parseMaturity($('mat1').value),$('strike1').value,'C'));
+        if(!puts.length)throw new Error(chainMissingMsg(refTicker,parseMaturity($('mat1').value),$('strike1').value,'P'));
+        const pairs=pairChainMatches(calls,puts);
+        if(!pairs.length)throw new Error('American call and put exist, but not on the same option contract/root for this expiry and strike.');
+        renderChainPairs(pairs,ref,'Straddle');
+      }else if($('strategy').value==='straddle_swap'){
+        const [nearCalls,nearPuts,farCalls,farPuts]=await Promise.all([
+          fetchChainMatches(refTicker,parseMaturity($('mat1').value),$('strike1').value,'C'),
+          fetchChainMatches(refTicker,parseMaturity($('mat1').value),$('strike1').value,'P'),
+          fetchChainMatches(refTicker,parseMaturity($('mat2').value),$('strike1').value,'C'),
+          fetchChainMatches(refTicker,parseMaturity($('mat2').value),$('strike1').value,'P')
+        ]);
+        if(!nearCalls.length)throw new Error(chainMissingMsg(refTicker,parseMaturity($('mat1').value),$('strike1').value,'C'));
+        if(!nearPuts.length)throw new Error(chainMissingMsg(refTicker,parseMaturity($('mat1').value),$('strike1').value,'P'));
+        if(!farCalls.length)throw new Error(chainMissingMsg(refTicker,parseMaturity($('mat2').value),$('strike1').value,'C'));
+        if(!farPuts.length)throw new Error(chainMissingMsg(refTicker,parseMaturity($('mat2').value),$('strike1').value,'P'));
+        const nearPairs=pairChainMatches(nearCalls,nearPuts),farPairs=pairChainMatches(farCalls,farPuts);
+        const swaps=pairStraddleSwaps(nearPairs,farPairs);
+        if(!swaps.length)throw new Error('American near and far straddles exist, but not on the same option contract/root for this straddle swap.');
+        renderChainCombos(swaps.map(p=>({market:p.market,legs:[
+          {name:'Long far Call',ticker:p.far.call.ticker,qty:1,quote:p.far.call.quote},
+          {name:'Long far Put',ticker:p.far.put.ticker,qty:1,quote:p.far.put.quote},
+          {name:'Short near Call',ticker:p.near.call.ticker,qty:-1,quote:p.near.call.quote},
+          {name:'Short near Put',ticker:p.near.put.ticker,qty:-1,quote:p.near.put.quote}
+        ]})),ref,'Straddle Swap');
+      }else if(['call_calendar','put_calendar','call_diagonal','put_diagonal'].includes($('strategy').value)){
+        const st=$('strategy').value, cp=st.includes('call')?'C':'P', farStrike=st.includes('diagonal')?$('strike2').value:$('strike1').value;
+        const [near,far]=await Promise.all([fetchChainMatches(refTicker,parseMaturity($('mat1').value),$('strike1').value,cp),fetchChainMatches(refTicker,parseMaturity($('mat2').value),farStrike,cp)]);
+        if(!near.length)throw new Error(chainMissingMsg(refTicker,parseMaturity($('mat1').value),$('strike1').value,cp));
+        if(!far.length)throw new Error(chainMissingMsg(refTicker,parseMaturity($('mat2').value),farStrike,cp));
+        const pairs=pairByMarket(near,far);
+        if(!pairs.length)throw new Error('American near and far options exist, but not on the same option contract/root for this calendar/diagonal.');
+        renderChainCalendar(pairs,ref,cp==='C'?(st.includes('diagonal')?'Call Diagonal':'Call Calendar'):(st.includes('diagonal')?'Put Diagonal':'Put Calendar'));
+      }else if($('strategy').value==='strangle'){
+        const low=Math.min(Number($('strike1').value),Number($('strike2').value)),high=Math.max(Number($('strike1').value),Number($('strike2').value));
+        const [puts,calls]=await Promise.all([fetchChainMatches(refTicker,parseMaturity($('mat1').value),low,'P'),fetchChainMatches(refTicker,parseMaturity($('mat1').value),high,'C')]);
+        if(!puts.length)throw new Error(chainMissingMsg(refTicker,parseMaturity($('mat1').value),low,'P'));
+        if(!calls.length)throw new Error(chainMissingMsg(refTicker,parseMaturity($('mat1').value),high,'C'));
+        const pairs=pairByMarketNamed(puts,calls,'put','call');
+        if(!pairs.length)throw new Error('American put and call exist, but not on the same option contract/root for this strangle.');
+        renderChainCombos(pairs.map(p=>({market:p.market,legs:[{name:'Put low',ticker:p.put.ticker,qty:1,quote:p.put.quote},{name:'Call high',ticker:p.call.ticker,qty:1,quote:p.call.quote}]})),ref,'Strangle');
+      }else if(['risk_reversal','risk_reversal_ratio'].includes($('strategy').value)){
+        const ratio=$('strategy').value==='risk_reversal_ratio'?(Number($('ratioShort').value)||1):1;
+        const low=Math.min(Number($('strike1').value),Number($('strike2').value)),high=Math.max(Number($('strike1').value),Number($('strike2').value));
+        const [puts,calls]=await Promise.all([fetchChainMatches(refTicker,parseMaturity($('mat1').value),low,'P'),fetchChainMatches(refTicker,parseMaturity($('mat1').value),high,'C')]);
+        if(!puts.length)throw new Error(chainMissingMsg(refTicker,parseMaturity($('mat1').value),low,'P'));
+        if(!calls.length)throw new Error(chainMissingMsg(refTicker,parseMaturity($('mat1').value),high,'C'));
+        const pairs=pairByMarketNamed(calls,puts,'call','put');
+        if(!pairs.length)throw new Error('American call and put exist, but not on the same option contract/root for this risk reversal.');
+        renderRiskReversal(pairs.map(p=>riskReversalRow({ticker:p.call.ticker,quote:p.call.quote},{ticker:p.put.ticker,quote:p.put.quote},p.market,ratio)),ref,$('strategy').value==='risk_reversal_ratio'?'Risk Reversal Ratio':'Risk Reversal');
+      }else if(['call_fly','put_fly'].includes($('strategy').value)){
+        const cp=$('strategy').value==='call_fly'?'C':'P',ks=[$('strike1').value,$('strike2').value,$('strike3').value].map(Number).sort((a,b)=>a-b);
+        if(ks.some(k=>!Number.isFinite(k)))throw new Error('Trois strikes requis pour le fly.');
+        const [low,mid,high]=await Promise.all([
+          fetchChainMatches(refTicker,parseMaturity($('mat1').value),ks[0],cp),
+          fetchChainMatches(refTicker,parseMaturity($('mat1').value),ks[1],cp),
+          fetchChainMatches(refTicker,parseMaturity($('mat1').value),ks[2],cp)
+        ]);
+        if(!low.length)throw new Error(chainMissingMsg(refTicker,parseMaturity($('mat1').value),ks[0],cp));
+        if(!mid.length)throw new Error(chainMissingMsg(refTicker,parseMaturity($('mat1').value),ks[1],cp));
+        if(!high.length)throw new Error(chainMissingMsg(refTicker,parseMaturity($('mat1').value),ks[2],cp));
+        const flies=pairButterfly(low,mid,high);
+        if(!flies.length)throw new Error('American fly legs exist, but not on the same option contract/root.');
+        renderButterfly(flies.map(p=>butterflyRow({ticker:p.low.ticker,quote:p.low.quote},{ticker:p.mid.ticker,quote:p.mid.quote},{ticker:p.high.ticker,quote:p.high.quote},p.market,cp==='C'?'Call Fly':'Put Fly')),ref,cp==='C'?'Call Fly':'Put Fly');
+      }else if(['call_ratio','put_ratio'].includes($('strategy').value)){
+        const ratio=Number($('ratioShort').value)||2,low=Math.min(Number($('strike1').value),Number($('strike2').value)),high=Math.max(Number($('strike1').value),Number($('strike2').value));
+        const cp=$('strategy').value==='call_ratio'?'C':'P';
+        const longStrike=cp==='C'?low:high,shortStrike=cp==='C'?high:low;
+        const [longs,shorts]=await Promise.all([fetchChainMatches(refTicker,parseMaturity($('mat1').value),longStrike,cp),fetchChainMatches(refTicker,parseMaturity($('mat1').value),shortStrike,cp)]);
+        if(!longs.length)throw new Error(chainMissingMsg(refTicker,parseMaturity($('mat1').value),longStrike,cp));
+        if(!shorts.length)throw new Error(chainMissingMsg(refTicker,parseMaturity($('mat1').value),shortStrike,cp));
+        const pairs=pairByMarketNamed(longs,shorts,'longLeg','shortLeg');
+        if(!pairs.length)throw new Error('American ratio legs exist, but not on the same option contract/root.');
+        renderChainCombos(pairs.map(p=>({market:p.market,legs:[{name:'Long',ticker:p.longLeg.ticker,qty:1,quote:p.longLeg.quote},{name:'Short',ticker:p.shortLeg.ticker,qty:-ratio,quote:p.shortLeg.quote}]})),ref,cp==='C'?'Call Ratio':'Put Ratio');
+      }else{
+        const cp=$('strategy').value==='call'?'C':'P';
+        const matches=await fetchChainMatches(refTicker,parseMaturity($('mat1').value),$('strike1').value,cp);
+        if(!matches.length)throw new Error(chainMissingMsg(refTicker,parseMaturity($('mat1').value),$('strike1').value,cp));
+        renderChainMatches(matches,ref);
+      }
+    }else{
+      const legs=buildLegs();
+      const manualRef=num('refSpot');
+      const useManualDivRef=assetMode==='index'&&isDividendOptionRoot()&&Number.isFinite(manualRef);
+      const quotes=await Promise.all(useManualDivRef?legs.map(l=>fetchQuote(l.ticker)):[...legs.map(l=>fetchQuote(l.ticker)),fetchQuote(refTicker)]);
+      const ref=useManualDivRef?{mid:manualRef,last:manualRef,fields:{}}:quotes.pop();legs.forEach((l,i)=>l.quote=quotes[i]);
+      if(['risk_reversal','risk_reversal_ratio'].includes($('strategy').value)){
+        const callLeg=legs.find(l=>/call/i.test(l.name)), putLeg=legs.find(l=>/put/i.test(l.name));
+        renderRiskReversal([riskReversalRow(callLeg,putLeg,'Direct',$('strategy').value==='risk_reversal_ratio'?(Number($('ratioShort').value)||1):1)],ref,$('strategy').value==='risk_reversal_ratio'?'Risk Reversal Ratio':'Risk Reversal');
+      }else if(['call_fly','put_fly'].includes($('strategy').value)){
+        renderButterfly([butterflyRow(legs[0],legs[1],legs[2],'Direct',$('strategy').value==='call_fly'?'Call Fly':'Put Fly')],ref,$('strategy').value==='call_fly'?'Call Fly':'Put Fly');
+      }else{
+        state={legs,ref,agg:aggregate(legs)};render(legs,ref,state.agg);
+      }
+    }
+  }catch(e){setError(e.message+' Verifie les tickers et Bloomberg.');}finally{btn.disabled=false;btn.textContent='Load Bloomberg';checkBridge();}
 }
 function updateFieldVisibility(){
   const s=$('strategy').value;
-  const needsStrike2=['call_spread','put_spread','call_ratio','put_ratio','strangle'].includes(s);
-  const needsRatio=['call_ratio','put_ratio'].includes(s);
-  const needsMat2=['call_calendar','put_calendar'].includes(s);
+  const needsStrike2=['call_spread','put_spread','call_fly','put_fly','call_ratio','put_ratio','risk_reversal','risk_reversal_ratio','strangle','call_diagonal','put_diagonal'].includes(s);
+  const needsStrike3=['call_fly','put_fly'].includes(s);
+  const needsRatio=['call_ratio','put_ratio','risk_reversal_ratio'].includes(s);
+  const needsMat2=['straddle_swap','call_calendar','put_calendar','call_diagonal','put_diagonal'].includes(s);
+  const divOption=assetMode==='index'&&isDividendOptionRoot();
   $('strike2Field').classList.toggle('hidden',!needsStrike2);
+  $('strike3Field').classList.toggle('hidden',!needsStrike3);
   $('ratioField').classList.toggle('hidden',!needsRatio);
-  $('mat2Field').classList.toggle('hidden',!needsMat2);
+  $('mat1Field').classList.toggle('hidden',divOption);
+  $('mat2Field').classList.toggle('hidden',divOption||!needsMat2);
   $('underlyingField').classList.toggle('hidden',assetMode==='single');
   document.querySelectorAll('.single-stock-field').forEach(el=>el.classList.toggle('hidden',assetMode!=='single'));
   $('manualTickerField').classList.toggle('hidden',!(assetMode==='single'&&(s==='call'||s==='put')));
@@ -241,36 +986,78 @@ function setAssetMode(mode){
   $('refTicker').value=defaultReferenceTicker();
   refreshPreview();
 }
+function toggleEurexPanel(){
+  eurexVisible=!eurexVisible;
+  $('eurexPanel').classList.toggle('hidden',!eurexVisible);
+  $('eurexTab').classList.toggle('active',eurexVisible);
+  updateEurexCrossHint();
+}
 function quickStrategy(text){
   const t=text.toLowerCase();
-  if(/\b(call\s*(cal|calendar)|cc)\b/.test(t))return 'call_calendar';
-  if(/\b(put\s*(cal|calendar)|pc)\b/.test(t))return 'put_calendar';
-  if(/\b(call\s*ratio|ratio\s*call|c\s*ratio|cr)\b/.test(t))return 'call_ratio';
-  if(/\b(put\s*ratio|ratio\s*put|p\s*ratio|pr)\b/.test(t))return 'put_ratio';
+  if(/\b(risk\s*reversal|rr)\s*ratio\b|\brrr\b/.test(t))return 'risk_reversal_ratio';
+  if(/\b(risk\s*reversal|rr)\b/.test(t))return 'risk_reversal';
+  if((/\b(std|straddle)\b/.test(t)&&/\bswap\b/.test(t))||/\bstd\b.*\bvs\b.*\bstd\b/.test(t))return 'straddle_swap';
+  if(/\b(call\s*fly|fly\s*call|c\s*fly|acf)\b/.test(t))return 'call_fly';
+  if(/\b(put\s*fly|fly\s*put|p\s*fly|apf)\b/.test(t))return 'put_fly';
+  if(/\b(call\s*(diag|diagonal)|c\s*diag|acd)\b/.test(t))return 'call_diagonal';
+  if(/\b(put\s*(diag|diagonal)|p\s*diag|apd)\b/.test(t))return 'put_diagonal';
+  if(/\b(acs|call\s*(cal|calendar)|cc)\b/.test(t))return 'call_calendar';
+  if(/\b(aps|apc|put\s*(cal|calendar)|pc)\b/.test(t))return 'put_calendar';
+  if(/\b(acr|call\s*ratio|ratio\s*call|c\s*ratio|cr)\b/.test(t))return 'call_ratio';
+  if(/\b(apr|put\s*ratio|ratio\s*put|p\s*ratio|pr)\b/.test(t))return 'put_ratio';
   if(/\b(call\s*spread|cs)\b/.test(t))return 'call_spread';
   if(/\b(put\s*spread|ps)\b/.test(t))return 'put_spread';
-  if(/\b(straddle|std)\b/.test(t))return 'straddle';
-  if(/\b(strangle|stg)\b/.test(t))return 'strangle';
-  if(/\b(call|c)\b/.test(t))return 'call';
-  if(/\b(put|p)\b/.test(t))return 'put';
+  if(/\b(straddle|std|asd)\b/.test(t))return 'straddle';
+  if(/\b(asg|strangle|stg)\b/.test(t))return 'strangle';
+  if(/\b(ac|call|c)\b/.test(t))return 'call';
+  if(/\b(ap|put|p)\b/.test(t))return 'put';
   return 'call';
 }
 function quickMaturities(text){
-  const out=[];const re=/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s*[-\/]?\s*(\d{2,4})\b/ig;let m;
-  while((m=re.exec(text)))out.push((m[1].slice(0,3)+m[2]).replace(/\s+/g,''));
+  const out=[];const re=/\b(jan|janv|feb|fev|mar|apr|avr|may|mai|jun|juin|jul|juil|aug|aou|sep|oct|nov|dec)[a-z]*\s*[-\/]?\s*(\d{2,4})\b/ig;let m;
+  const map={jan:'jan',janv:'jan',feb:'feb',fev:'feb',mar:'mar',apr:'apr',avr:'apr',may:'may',mai:'may',jun:'jun',juin:'jun',jul:'jul',juil:'jul',aug:'aug',aou:'aug',sep:'sep',oct:'oct',nov:'nov',dec:'dec'};
+  while((m=re.exec(text))){const key=m[1].toLowerCase();out.push(((map[key]||key.slice(0,3))+m[2]).replace(/\s+/g,''));}
   return out;
 }
 function quickNumbers(text){
   const noDates=text
+    .replace(/\bvs\s*[-+]?\d+(?:\.\d+)?/ig,' ')
+    .replace(/\bat\s*[-+]?\d+(?:\.\d+)?\s*$/ig,' ')
     .replace(/\b\d{1,2}\/\d{1,2}\/\d{2,4}\b/g,' ')
-    .replace(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s*[-\/]?\s*\d{2,4}\b/ig,' ')
-    .replace(/\b\d+(?:\.\d+)?\s*(?:x|by|par)\s*\d+(?:\.\d+)?\b/ig,' ')
+    .replace(/\b(jan|janv|feb|fev|mar|apr|avr|may|mai|jun|juin|jul|juil|aug|aou|sep|oct|nov|dec)[a-z]*\s*[-\/]?\s*\d{2,4}\b/ig,' ')
+    .replace(/[-+]?\d+(?:\.\d+)?\s*(?:x|by|par)\s*[-+]?\d+(?:\.\d+)?/ig,' ')
+    .replace(/([-+]?\d+(?:\.\d+)?)\s*\/\s*([-+]?\d+(?:\.\d+)?)/g,(m,a,b)=>{
+      const left=Math.abs(Number(a)),right=Math.abs(Number(b));
+      return left>0&&right>0&&left<=20&&right<=20?' ':`${a} ${b}`;
+    })
     .replace(/\([^)]*\)/g,' ');
   return (noDates.match(/\b-?\d+(?:\.\d+)?\b/g)||[]).map(Number).filter(Number.isFinite);
 }
 function quickRatio(text){
-  const m=text.match(/\b(?:1\s*)?(?:x|by|par)\s*(\d+(?:\.\d+)?)\b/i)||text.match(/\b1\s*(?:x|by|par)\s*(\d+(?:\.\d+)?)\b/i);
-  return m?Number(m[1]):null;
+  if(/\b(risk\s*reversal|rr)\s*ratio\b|\brrr\b/i.test(text)){
+    const ratios=[...String(text||'').matchAll(/([-+]?\d+(?:\.\d+)?)\s*\/\s*([-+]?\d+(?:\.\d+)?)/g)]
+      .map(m=>[Math.abs(Number(m[1])),Math.abs(Number(m[2]))])
+      .filter(([a,b])=>a>0&&b>0&&a<=20&&b<=20);
+    const rr=ratios[ratios.length-1];
+    if(rr){
+      const [putRatio,callRatio]=rr;
+      if(putRatio&&callRatio)return putRatio/callRatio;
+    }
+  }
+  const explicit=text.match(/([-+]?\d+(?:\.\d+)?)\s*(?:x|by|par)\s*([-+]?\d+(?:\.\d+)?)/i);
+  if(explicit){
+    const left=Math.abs(Number(explicit[1])),right=Math.abs(Number(explicit[2]));
+    return left&&right?right/left:null;
+  }
+  const short=text.match(/\b(?:x|by|par)\s*([-+]?\d+(?:\.\d+)?)\b/i);
+  if(short)return Math.abs(Number(short[1]));
+  const slashRe=/([-+]?\d+(?:\.\d+)?)\s*\/\s*([-+]?\d+(?:\.\d+)?)/g;
+  let m;
+  while((m=slashRe.exec(text))){
+    const left=Math.abs(Number(m[1])),right=Math.abs(Number(m[2]));
+    if(left>0&&right>0&&left<=20&&right<=20)return right/left;
+  }
+  return null;
 }
 function quickUnderlying(text){
   const t=text.toUpperCase();
@@ -279,30 +1066,51 @@ function quickUnderlying(text){
   if(/\bBN1\s+FP\b/.test(t))return {mode:'single',stock:'BNP FP Equity',root:'BN1 FP',exchange:'euronext'};
   if(/\bBNP\s+GR\b/.test(t))return {mode:'single',stock:'BNP FP Equity',root:'BNP GR',exchange:'eurex'};
   if(/\bBNP\s+FP\b/.test(t))return {mode:'single',stock:'BNP FP Equity',root:'BN1 FP',exchange:'euronext'};
+  const stock=t.match(/\b([A-Z0-9]{2,6})\s+(FP|GR|NA|LN|IM|SM|SW|BB|AV|DC|FH|GY|US)\b/);
+  if(stock)return {mode:'single',stock:`${stock[1]} ${stock[2]} Equity`,root:'',exchange:stock[2]==='GR'?'eurex':'euronext'};
+  const divRoot=(t.match(/\b[A-Z]{2,5}[FGHJKMNQUVXZ]\d{1,2}\b/)||[])[0];
+  if(divRoot)return {mode:'index',root:divRoot};
   const root=(t.match(/\b[A-Z0-9]{2,6}\b/)||[])[0];
   return {mode:'index',root:root||cleanUnderlying()};
 }
 async function parseQuickAndLoad(){
   setError('');
-  const text=$('quickInput').value.trim();
+  const rawText=$('quickInput').value.trim();
+  const traded=extractTradingLevel(rawText);
+  state=null;
+  if(traded){$('tradedLevel').value=traded;$('tradedLevel').dataset.auto='0';}
+  else {$('tradedLevel').value='';$('tradedLevel').dataset.auto='1';}
+  if(/\bdelta\s*[-+]?\d+(?:\.\d+)?\s*%?/i.test(rawText))$('crossDelta').dataset.auto='0';
+  else {$('crossDelta').value='';$('crossDelta').dataset.auto='1';}
+  const text=cleanTradingInput(rawText);
   if(!text){setError('Quick input vide.');return;}
-  const refMatch=text.match(/\(([-+]?\d+(?:\.\d+)?)\)|\bref(?:erence)?\s*[:=]?\s*([-+]?\d+(?:\.\d+)?)/i);
-  const ref=refMatch?Number(refMatch[1]||refMatch[2]):null;
-  const parsed=quickUnderlying(text), strategy=quickStrategy(text), mats=quickMaturities(text), nums=quickNumbers(text), ratio=quickRatio(text);
+  const refMatch=text.match(/\(([-+]?\d+(?:\.\d+)?)\)|\bref(?:erence)?\s*[:=]?\s*([-+]?\d+(?:\.\d+)?)|\bvs\s*([-+]?\d+(?:\.\d+)?)/i);
+  const ref=refMatch?Number(refMatch[1]||refMatch[2]||refMatch[3]):null;
+  const parsed=quickUnderlying(text), mats=quickMaturities(text), nums=quickNumbers(text), ratio=quickRatio(text);
+  let strategy=quickStrategy(text);
+  if(parsed.mode==='single'&&mats.length>=2&&nums.length===1&&!/\b(spread|ratio|straddle|strangle|std|asd|diag|diagonal)\b/i.test(text)){
+    strategy=/\b(apc|aps|put|p)\b/i.test(text)?'put_calendar':'call_calendar';
+  }
   setAssetMode(parsed.mode);
   if(parsed.mode==='single'){
     $('stockRef').value=parsed.stock||$('stockRef').value;
     $('stockExchange').value=parsed.exchange||'euronext';
-    $('optionRoot').value=parsed.root||$('optionRoot').value;
+    $('optionRoot').value=parsed.root!==undefined?parsed.root:$('optionRoot').value;
     $('manualTicker').value='';
   }else{
     $('underlying').value=parsed.root;
   }
   $('strategy').value=strategy;
-  if(mats[0])$('mat1').value=mats[0];
-  if(mats[1])$('mat2').value=mats[1];
+  if(parsed.mode==='index'&&isDividendOptionRoot(parsed.root)){
+    $('mat1').value='';
+    $('mat2').value='';
+  }else{
+    if(mats[0])$('mat1').value=mats[0];
+    if(mats[1])$('mat2').value=mats[1];
+  }
   if(nums[0]!==undefined)$('strike1').value=nums[0];
   if(nums[1]!==undefined)$('strike2').value=nums[1];
+  if(nums[2]!==undefined)$('strike3').value=nums[2];
   $('ratioShort').value=Number.isFinite(ratio)?ratio:2;
   if(Number.isFinite(ref))$('refSpot').value=ref;
   $('refTicker').value=defaultReferenceTicker();
@@ -314,13 +1122,17 @@ function refreshPreview(changedId){
   updateFieldVisibility();
   try{$('bbgTicker').textContent=buildLegs().map(l=>l.ticker).join(' | ');}catch(e){$('bbgTicker').textContent='-';}
   if(['underlying','stockRef','stockExchange'].includes(changedId))$('refTicker').value=defaultReferenceTicker();
+  updateGoldmanSymph();
+  updateTradingPhrase();
+  updateEurexCrossHint();
 }
-['underlying','stockRef','stockExchange','optionRoot','manualTicker','strategy','strike1','strike2','ratioShort','mat1','mat2'].forEach(id=>{
-  $(''+id).addEventListener('input',()=>refreshPreview(id));
+['underlying','stockRef','stockExchange','optionRoot','manualTicker','strategy','strike1','strike2','strike3','ratioShort','mat1','mat2','tradedLevel','crossSize','crossDelta','optionTick','futureTick','crossMultiplier','liveRefBand'].forEach(id=>{
+  $(''+id).addEventListener('input',()=>{if(id==='tradedLevel'||id==='crossDelta')$(''+id).dataset.auto='0';refreshPreview(id);});
   $(''+id).addEventListener('change',()=>refreshPreview(id));
 });
+$('quickInput').addEventListener('input',()=>{const traded=extractTradingLevel($('quickInput').value);if(traded){$('tradedLevel').value=traded;$('tradedLevel').dataset.auto='0';}updateTradingPhrase();updateEurexCrossHint();});
 $('quickInput').addEventListener('keydown',e=>{if(e.key==='Enter')parseQuickAndLoad();});
-$('refSpot').addEventListener('input',recalcAdjusted);
+$('refSpot').addEventListener('input',()=>{recalcAdjusted();updateGoldmanSymph();updateEurexCrossHint();});
 checkBridge();refreshPreview();
 </script>
 </body>
