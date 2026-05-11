@@ -1,0 +1,774 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>XCCY Spreads</title>
+  <style>
+    :root {
+      --blue: #4f83bd;
+      --blue-dark: #2f5f97;
+      --blue-light: #dce9f7;
+      --grid: #d9e0e8;
+      --text: #111827;
+      --muted: #64748b;
+      --ok: #16794c;
+      --bad: #b42318;
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 13px/1.35 Arial, Helvetica, sans-serif;
+    }
+
+    .app {
+      min-height: 100vh;
+      padding: 18px;
+    }
+
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin: -18px -18px 14px;
+      padding: 14px 18px;
+      border-bottom: 1px solid #d4deea;
+      background: rgba(245, 247, 251, .96);
+    }
+
+    .title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--blue-dark);
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .bridge-input {
+      width: 260px;
+      height: 32px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 0 10px;
+      color: var(--text);
+      background: #fff;
+      font: inherit;
+    }
+
+    button {
+      height: 32px;
+      border: 1px solid var(--blue-dark);
+      border-radius: 6px;
+      padding: 0 12px;
+      color: #fff;
+      background: var(--blue-dark);
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      cursor: wait;
+      opacity: .7;
+    }
+
+    .status {
+      min-width: 230px;
+      color: var(--muted);
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .status.ok { color: var(--ok); }
+    .status.bad { color: var(--bad); }
+
+    .stack {
+      display: grid;
+      gap: 22px;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 0 0 6px;
+    }
+
+    .section-title h2 {
+      margin: 0;
+      font-size: 14px;
+      color: var(--blue-dark);
+    }
+
+    .section-status {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .sheet-wrap {
+      overflow: auto;
+      border: 1px solid #a9b8ca;
+      background: var(--panel);
+      box-shadow: 0 8px 24px rgba(15, 23, 42, .08);
+    }
+
+    section {
+      --section-main: var(--blue);
+      --section-dark: var(--blue-dark);
+      --section-light: var(--blue-light);
+      --section-soft: #eef5ff;
+    }
+
+    section[data-market="eurusd"] {
+      --section-main: #3f7fba;
+      --section-dark: #255f93;
+      --section-light: #dceaf8;
+      --section-soft: #eef6fd;
+    }
+
+    section[data-market="gbpusd"] {
+      --section-main: #3d8b64;
+      --section-dark: #246447;
+      --section-light: #dcefe5;
+      --section-soft: #eff8f3;
+    }
+
+    section[data-market="chfusd"] {
+      --section-main: #7c65b8;
+      --section-dark: #574091;
+      --section-light: #e9e3f7;
+      --section-soft: #f5f1fb;
+    }
+
+    section .sheet-wrap {
+      border-color: var(--section-dark);
+      background: var(--section-soft);
+    }
+
+    section .section-title h2 {
+      color: var(--section-dark);
+    }
+
+    table {
+      width: 100%;
+      min-width: 1720px;
+      border-collapse: collapse;
+      table-layout: fixed;
+      background: #fff;
+    }
+
+    th,
+    td {
+      height: 26px;
+      border: 1px solid var(--grid);
+      padding: 4px 7px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 700;
+      transition: background-color .08s ease, color .08s ease, box-shadow .08s ease;
+    }
+
+    thead th {
+      color: #fff;
+      background: var(--section-main);
+      border-color: var(--section-dark);
+    }
+
+    .corner,
+    .row-head { width: 68px; }
+
+    .row-head {
+      color: #fff;
+      background: var(--section-main);
+      border-color: var(--section-dark);
+    }
+
+    .title-row th {
+      height: 24px;
+      font-size: 14px;
+    }
+
+    .empty-title {
+      background: transparent;
+      border: 0;
+    }
+
+    tbody tr:nth-child(even) td.data:not(.diag):not(.blank) {
+      background: var(--section-light);
+    }
+
+    .data {
+      color: #0f172a;
+      background: #fff;
+      cursor: crosshair;
+    }
+
+    .diag {
+      background: var(--section-main);
+      border-color: var(--section-main);
+      color: transparent;
+    }
+
+    .blank {
+      background: #fff;
+      color: transparent;
+    }
+
+    .loading {
+      color: #111827;
+      text-align: left;
+    }
+
+    .error {
+      color: var(--bad);
+      text-align: left;
+    }
+
+    .muted-cell:not(.active-cell):not(.active-row):not(.active-col):not(.diag):not(.blank) {
+      color: #64748b;
+      background: #f8fafc;
+    }
+
+    .active-row,
+    .active-col {
+      background: color-mix(in srgb, var(--section-light) 70%, #fff) !important;
+    }
+
+    .active-cell {
+      position: relative;
+      z-index: 1;
+      background: #fff7cc !important;
+      color: #111827 !important;
+      box-shadow: inset 0 0 0 2px #d97706;
+    }
+
+    .active-head {
+      background: var(--section-dark) !important;
+      color: #fff !important;
+      box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .85);
+    }
+
+    .changed-cell:not(.active-cell) {
+      animation: priceFlash 4s ease-out;
+      background: #fff1a8 !important;
+      color: #111827 !important;
+      box-shadow: inset 0 0 0 2px #f59e0b;
+    }
+
+    .changed-head {
+      animation: priceFlashHead 4s ease-out;
+      background: #92400e !important;
+      color: #fff !important;
+    }
+
+    .pinned .active-cell {
+      box-shadow: inset 0 0 0 2px #b45309, 0 0 0 2px rgba(180, 83, 9, .18);
+    }
+
+    .tooltip {
+      position: fixed;
+      z-index: 20;
+      max-width: 360px;
+      padding: 8px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      background: rgba(15, 23, 42, .96);
+      color: #fff;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, .22);
+      pointer-events: none;
+      font-size: 12px;
+      line-height: 1.35;
+      opacity: 0;
+      transform: translate(10px, 10px);
+      transition: opacity .08s ease;
+    }
+
+    .tooltip.visible {
+      opacity: 1;
+    }
+
+    .tooltip strong {
+      display: block;
+      margin-bottom: 3px;
+      font-size: 12px;
+    }
+
+    .tooltip span {
+      display: block;
+      color: #dbeafe;
+    }
+
+    @keyframes priceFlash {
+      0% { background: #fde047; box-shadow: inset 0 0 0 2px #d97706; }
+      100% { background: #fff1a8; box-shadow: inset 0 0 0 2px #f59e0b; }
+    }
+
+    @keyframes priceFlashHead {
+      0% { background: #b45309; }
+      100% { background: #92400e; }
+    }
+
+    @media (max-width: 760px) {
+      .app { padding: 10px; }
+      .toolbar {
+        align-items: flex-start;
+        flex-direction: column;
+        margin: -10px -10px 12px;
+        padding: 10px;
+      }
+      .controls {
+        width: 100%;
+        justify-content: flex-start;
+      }
+      .bridge-input,
+      .status {
+        width: 100%;
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div class="toolbar">
+      <h1 class="title">XCCY Spreads</h1>
+      <div class="controls">
+        <input id="bridgeUrl" class="bridge-input" value="http://127.0.0.1:8765" aria-label="Bloomberg bridge URL">
+        <button id="refreshBtn" type="button">Refresh all</button>
+        <div id="status" class="status">Ready</div>
+      </div>
+    </div>
+
+    <div id="stack" class="stack"></div>
+    <div id="tooltip" class="tooltip" role="status" aria-live="polite"></div>
+  </main>
+
+  <script>
+    const tenors = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20, 25, 30, 40];
+    const labels = tenors.map((tenor) => `${tenor}Y`);
+    const matrices = [
+      { id: "eurusd", title: "EUR USD XCCY", prefix: "EUXOQQ" },
+      { id: "gbpusd", title: "GBP USD XCCY", prefix: "BPXOQQ" },
+      { id: "chfusd", title: "CHF USD XCCY", prefix: "SFXOQQ" },
+    ].map((matrix) => ({
+      ...matrix,
+      tickers: tenors.map((tenor) => `${matrix.prefix}${tenor} Curncy`),
+      quotes: new Map(),
+      changedTickers: new Set(),
+      errors: new Map(),
+    }));
+
+    const stack = document.getElementById("stack");
+    const statusEl = document.getElementById("status");
+    const refreshBtn = document.getElementById("refreshBtn");
+    const bridgeInput = document.getElementById("bridgeUrl");
+    const tooltip = document.getElementById("tooltip");
+    let loading = false;
+    let pinnedCell = null;
+    let changeTimer = null;
+
+    function setStatus(text, kind = "") {
+      statusEl.textContent = text;
+      statusEl.className = `status ${kind}`.trim();
+    }
+
+    function formatNumber(value) {
+      if (!Number.isFinite(value)) return "";
+      return value.toLocaleString("en-US", {
+        minimumFractionDigits: 3,
+        maximumFractionDigits: 3,
+      });
+    }
+
+    function readBloombergValue(payload) {
+      const data = payload && payload.data ? payload.data : payload;
+      const fields = data && data.fields ? data.fields : {};
+      const candidates = [
+        data && data.last,
+        fields.LAST_PRICE,
+        fields.PX_LAST,
+        data && data.mid,
+        fields.BID,
+        fields.PX_BID,
+      ];
+      for (const candidate of candidates) {
+        const value = Number(candidate);
+        if (Number.isFinite(value)) return value;
+      }
+      return null;
+    }
+
+    function buildTable(matrix) {
+      const section = document.createElement("section");
+      section.id = matrix.id;
+      section.dataset.market = matrix.id;
+
+      const sectionTitle = document.createElement("div");
+      sectionTitle.className = "section-title";
+      const h2 = document.createElement("h2");
+      h2.textContent = matrix.title;
+      const sectionStatus = document.createElement("div");
+      sectionStatus.className = "section-status";
+      sectionStatus.textContent = "Ready";
+      sectionTitle.append(h2, sectionStatus);
+
+      const wrap = document.createElement("div");
+      wrap.className = "sheet-wrap";
+      const table = document.createElement("table");
+      table.setAttribute("aria-label", `${matrix.title} matrix`);
+      wrap.appendChild(table);
+
+      const thead = document.createElement("thead");
+      const titleRow = document.createElement("tr");
+      titleRow.className = "title-row";
+      const emptyTitle = document.createElement("th");
+      emptyTitle.className = "empty-title corner";
+      const title = document.createElement("th");
+      title.colSpan = labels.length;
+      title.textContent = matrix.title;
+      titleRow.append(emptyTitle, title);
+      thead.appendChild(titleRow);
+
+      const headerRow = document.createElement("tr");
+      const corner = document.createElement("th");
+      corner.className = "corner";
+      headerRow.appendChild(corner);
+      labels.forEach((label, colIndex) => {
+        const th = document.createElement("th");
+        th.textContent = label.toLowerCase();
+        th.dataset.colHead = colIndex;
+        headerRow.appendChild(th);
+      });
+      thead.appendChild(headerRow);
+
+      const tbody = document.createElement("tbody");
+      labels.forEach((rowLabel, rowIndex) => {
+        const tr = document.createElement("tr");
+        const rowHead = document.createElement("th");
+        rowHead.className = "row-head";
+        rowHead.textContent = rowLabel;
+        rowHead.dataset.rowHead = rowIndex;
+        tr.appendChild(rowHead);
+        labels.forEach((_, colIndex) => {
+          const td = document.createElement("td");
+          td.className = "data";
+          td.dataset.row = rowIndex;
+          td.dataset.col = colIndex;
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+
+      table.append(thead, tbody);
+      section.append(sectionTitle, wrap);
+      matrix.table = table;
+      matrix.statusEl = sectionStatus;
+      addTableInteractions(matrix);
+      return section;
+    }
+
+    function shouldShowOutright(rowIndex, colIndex) {
+      return rowIndex === 0 || colIndex === 0;
+    }
+
+    function isDiagonal(rowIndex, colIndex) {
+      return rowIndex > 0 && rowIndex === colIndex;
+    }
+
+    function renderMatrix(matrix) {
+      clearHighlight(matrix);
+      matrix.table.querySelectorAll("td.data").forEach((cell) => {
+        const rowIndex = Number(cell.dataset.row);
+        const colIndex = Number(cell.dataset.col);
+        const rowTicker = matrix.tickers[rowIndex];
+        const colTicker = matrix.tickers[colIndex];
+        const rowQuote = matrix.quotes.get(rowTicker);
+        const colQuote = matrix.quotes.get(colTicker);
+
+        cell.className = "data";
+        cell.title = "";
+        cell.textContent = "";
+        const isChanged = matrix.changedTickers.has(rowTicker) || matrix.changedTickers.has(colTicker);
+
+        if (isDiagonal(rowIndex, colIndex)) {
+          cell.classList.add("diag");
+          return;
+        }
+
+        if (!shouldShowOutright(rowIndex, colIndex) && colIndex < rowIndex) {
+          cell.classList.add("blank");
+          return;
+        }
+
+        const neededTicker = shouldShowOutright(rowIndex, colIndex) ? (colIndex === 0 ? rowTicker : colTicker) : null;
+        const shouldMarkChanged = neededTicker ? matrix.changedTickers.has(neededTicker) : isChanged;
+        if (shouldMarkChanged) cell.classList.add("changed-cell");
+        const errorTicker = neededTicker || rowTicker;
+        const error = matrix.errors.get(errorTicker) || matrix.errors.get(colTicker);
+        if (error) {
+          cell.classList.add("error");
+          cell.textContent = "#N/A";
+          cell.title = error;
+          return;
+        }
+
+        if (loading && (!Number.isFinite(rowQuote) || !Number.isFinite(colQuote))) {
+          cell.classList.add("loading");
+          cell.textContent = "#N/A Requesting Data...";
+          return;
+        }
+
+        if (shouldShowOutright(rowIndex, colIndex)) {
+          const ticker = colIndex === 0 ? rowTicker : colTicker;
+          const quote = matrix.quotes.get(ticker);
+          if (Number.isFinite(quote)) {
+            cell.textContent = formatNumber(quote);
+            cell.title = ticker;
+          }
+          return;
+        }
+
+        if (colIndex > rowIndex && Number.isFinite(rowQuote) && Number.isFinite(colQuote)) {
+          cell.textContent = formatNumber(colQuote - rowQuote);
+          cell.title = `${colTicker} - ${rowTicker}`;
+        }
+      });
+      if (pinnedCell && pinnedCell.matrixId === matrix.id) {
+        applyHighlight(matrix, pinnedCell.rowIndex, pinnedCell.colIndex, true);
+      }
+      markChangedHeads(matrix);
+    }
+
+    function renderAll() {
+      matrices.forEach(renderMatrix);
+    }
+
+    function clearHighlight(matrix) {
+      matrix.table.classList.remove("pinned");
+      matrix.table.querySelectorAll(".active-cell, .active-row, .active-col, .active-head, .muted-cell").forEach((el) => {
+        el.classList.remove("active-cell", "active-row", "active-col", "active-head", "muted-cell");
+      });
+    }
+
+    function markChangedHeads(matrix) {
+      matrix.table.querySelectorAll(".changed-head").forEach((el) => el.classList.remove("changed-head"));
+      matrix.changedTickers.forEach((ticker) => {
+        const index = matrix.tickers.indexOf(ticker);
+        const rowHead = matrix.table.querySelector(`[data-row-head="${index}"]`);
+        const colHead = matrix.table.querySelector(`[data-col-head="${index}"]`);
+        if (rowHead) rowHead.classList.add("changed-head");
+        if (colHead) colHead.classList.add("changed-head");
+      });
+    }
+
+    function applyHighlight(matrix, rowIndex, colIndex, pinned = false) {
+      clearHighlight(matrix);
+      matrix.table.classList.toggle("pinned", pinned);
+      matrix.table.querySelectorAll("td.data").forEach((cell) => {
+        const cellRow = Number(cell.dataset.row);
+        const cellCol = Number(cell.dataset.col);
+        cell.classList.add("muted-cell");
+        if (cellRow === rowIndex) cell.classList.add("active-row");
+        if (cellCol === colIndex) cell.classList.add("active-col");
+        if (cellRow === rowIndex && cellCol === colIndex) cell.classList.add("active-cell");
+      });
+
+      const rowHead = matrix.table.querySelector(`[data-row-head="${rowIndex}"]`);
+      const colHead = matrix.table.querySelector(`[data-col-head="${colIndex}"]`);
+      if (rowHead) rowHead.classList.add("active-head");
+      if (colHead) colHead.classList.add("active-head");
+    }
+
+    function describeCell(matrix, rowIndex, colIndex) {
+      const rowLabel = labels[rowIndex];
+      const colLabel = labels[colIndex];
+      const rowTicker = matrix.tickers[rowIndex];
+      const colTicker = matrix.tickers[colIndex];
+      const rowQuote = matrix.quotes.get(rowTicker);
+      const colQuote = matrix.quotes.get(colTicker);
+
+      if (isDiagonal(rowIndex, colIndex)) {
+        return { title: `${matrix.title} - ${rowLabel}`, lines: ["Same maturity"] };
+      }
+      if (!shouldShowOutright(rowIndex, colIndex) && colIndex < rowIndex) {
+        return { title: `${matrix.title}`, lines: [`${rowLabel} vs ${colLabel}`, "Blank side of the matrix"] };
+      }
+      if (shouldShowOutright(rowIndex, colIndex)) {
+        const ticker = colIndex === 0 ? rowTicker : colTicker;
+        const quote = matrix.quotes.get(ticker);
+        return {
+          title: `${matrix.title} - ${colIndex === 0 ? rowLabel : colLabel} outright`,
+          lines: [ticker, Number.isFinite(quote) ? `Last: ${formatNumber(quote)}` : "Waiting for price"],
+        };
+      }
+      const spread = Number.isFinite(rowQuote) && Number.isFinite(colQuote) ? colQuote - rowQuote : null;
+      return {
+        title: `${matrix.title} - ${colLabel} minus ${rowLabel}`,
+        lines: [
+          `${colTicker} - ${rowTicker}`,
+          Number.isFinite(spread) ? `Spread: ${formatNumber(spread)}` : "Waiting for both prices",
+        ],
+      };
+    }
+
+    function showTooltip(event, matrix, rowIndex, colIndex) {
+      const info = describeCell(matrix, rowIndex, colIndex);
+      tooltip.innerHTML = `<strong>${info.title}</strong>${info.lines.map((line) => `<span>${line}</span>`).join("")}`;
+      moveTooltip(event);
+      tooltip.classList.add("visible");
+    }
+
+    function moveTooltip(event) {
+      const margin = 14;
+      const rect = tooltip.getBoundingClientRect();
+      let left = event.clientX + margin;
+      let top = event.clientY + margin;
+      if (left + rect.width > window.innerWidth - margin) left = event.clientX - rect.width - margin;
+      if (top + rect.height > window.innerHeight - margin) top = event.clientY - rect.height - margin;
+      tooltip.style.left = `${Math.max(margin, left)}px`;
+      tooltip.style.top = `${Math.max(margin, top)}px`;
+    }
+
+    function hideTooltip() {
+      tooltip.classList.remove("visible");
+    }
+
+    function addTableInteractions(matrix) {
+      matrix.table.addEventListener("mouseover", (event) => {
+        const cell = event.target.closest("td.data");
+        if (!cell || !matrix.table.contains(cell) || pinnedCell) return;
+        const rowIndex = Number(cell.dataset.row);
+        const colIndex = Number(cell.dataset.col);
+        applyHighlight(matrix, rowIndex, colIndex);
+        showTooltip(event, matrix, rowIndex, colIndex);
+      });
+
+      matrix.table.addEventListener("mousemove", (event) => {
+        if (tooltip.classList.contains("visible")) moveTooltip(event);
+      });
+
+      matrix.table.addEventListener("mouseleave", () => {
+        if (!pinnedCell) clearHighlight(matrix);
+        hideTooltip();
+      });
+
+      matrix.table.addEventListener("click", (event) => {
+        const cell = event.target.closest("td.data");
+        if (!cell || !matrix.table.contains(cell)) return;
+        const rowIndex = Number(cell.dataset.row);
+        const colIndex = Number(cell.dataset.col);
+        if (pinnedCell && pinnedCell.matrixId === matrix.id && pinnedCell.rowIndex === rowIndex && pinnedCell.colIndex === colIndex) {
+          pinnedCell = null;
+          clearHighlight(matrix);
+          hideTooltip();
+          return;
+        }
+        matrices.forEach(clearHighlight);
+        pinnedCell = { matrixId: matrix.id, rowIndex, colIndex };
+        applyHighlight(matrix, rowIndex, colIndex, true);
+        showTooltip(event, matrix, rowIndex, colIndex);
+      });
+    }
+
+    async function fetchTicker(bridgeUrl, ticker) {
+      const url = `${bridgeUrl.replace(/\/$/, "")}/quote?ticker=${encodeURIComponent(ticker)}`;
+      const response = await fetch(url);
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || payload.ok === false) {
+        throw new Error(payload.error || `HTTP ${response.status}`);
+      }
+      const value = readBloombergValue(payload);
+      if (!Number.isFinite(value)) {
+        throw new Error("No numeric LAST_PRICE/PX_LAST returned by bridge");
+      }
+      return value;
+    }
+
+    async function refreshMatrix(matrix, bridgeUrl) {
+      matrix.errors.clear();
+      matrix.changedTickers.clear();
+      matrix.statusEl.textContent = "Requesting data...";
+      const results = await Promise.allSettled(
+        matrix.tickers.map(async (ticker) => [ticker, await fetchTicker(bridgeUrl, ticker)])
+      );
+
+      results.forEach((result, index) => {
+        const ticker = matrix.tickers[index];
+        if (result.status === "fulfilled") {
+          const [name, value] = result.value;
+          const previous = matrix.quotes.get(name);
+          if (Number.isFinite(previous) && Math.abs(previous - value) > 1e-9) {
+            matrix.changedTickers.add(name);
+          }
+          matrix.quotes.set(name, value);
+        } else {
+          matrix.errors.set(ticker, result.reason.message);
+        }
+      });
+
+      const errorCount = matrix.errors.size;
+      const changeCount = matrix.changedTickers.size;
+      const loadedText = errorCount ? `${matrix.tickers.length - errorCount}/${matrix.tickers.length} loaded` : "Loaded";
+      matrix.statusEl.textContent = changeCount ? `${loadedText} - ${changeCount} changed` : loadedText;
+      renderMatrix(matrix);
+      return { errorCount, changeCount };
+    }
+
+    async function refreshAll() {
+      const bridgeUrl = bridgeInput.value.trim() || "http://127.0.0.1:8765";
+      loading = true;
+      refreshBtn.disabled = true;
+      setStatus("Requesting Bloomberg data...");
+      renderAll();
+
+      const started = Date.now();
+      const results = await Promise.all(matrices.map((matrix) => refreshMatrix(matrix, bridgeUrl)));
+      loading = false;
+      refreshBtn.disabled = false;
+      renderAll();
+
+      const totalErrors = results.reduce((sum, result) => sum + result.errorCount, 0);
+      const totalChanges = results.reduce((sum, result) => sum + result.changeCount, 0);
+      const totalTickers = matrices.reduce((sum, matrix) => sum + matrix.tickers.length, 0);
+      const elapsed = ((Date.now() - started) / 1000).toFixed(1);
+      if (totalErrors) {
+        setStatus(`${totalTickers - totalErrors}/${totalTickers} loaded, ${totalChanges} changed in ${elapsed}s`, "bad");
+      } else {
+        setStatus(`Updated ${new Date().toLocaleTimeString()} - ${totalChanges} changed in ${elapsed}s`, "ok");
+      }
+      window.clearTimeout(changeTimer);
+      changeTimer = window.setTimeout(() => {
+        matrices.forEach((matrix) => matrix.changedTickers.clear());
+        renderAll();
+      }, 12000);
+    }
+
+    matrices.forEach((matrix) => stack.appendChild(buildTable(matrix)));
+    refreshBtn.addEventListener("click", refreshAll);
+    renderAll();
+    refreshAll();
+  </script>
+</body>
+</html>
