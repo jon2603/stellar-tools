@@ -85,6 +85,10 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 .tool-card-icon.email{background:rgba(42,95,168,.12);border:1px solid rgba(42,95,168,.28)}
 .tool-card-icon.bonus{background:rgba(138,106,26,.15);border:1px solid rgba(138,106,26,.25)}
 .tool-card-icon.pricer{background:rgba(31,47,42,.12);border:1px solid rgba(39,110,71,.28)}
+.tool-card-icon.xccy{background:rgba(63,127,186,.13);border:1px solid rgba(63,127,186,.30)}
+.tool-card.xccy-card{border-color:rgba(63,127,186,.24)}
+.tool-card.xccy-card::before{background:radial-gradient(circle at 80% 20%,rgba(63,127,186,.10) 0%,transparent 60%)}
+.tool-card.xccy-card:hover{border-color:rgba(63,127,186,.50)}
 .tool-card-label{font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--text-muted);margin-bottom:8px;font-family:'JetBrains Mono',monospace}
 .tool-card-title{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;color:var(--text);margin-bottom:10px;line-height:1.2}
 .tool-card-desc{font-size:13px;color:var(--text-dim);line-height:1.6}
@@ -251,6 +255,14 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
           <div class="tool-card-desc">Price listed vanilla options and strategies with Bloomberg bid/ask, greeks, open interest and adjusted reference.</div>
           <div class="tool-card-arrow">→</div>
         </div>
+        <!-- XCCY SPREADS -->
+        <div class="tool-card xccy-card" onclick="openTool('xccy')">
+          <div class="tool-card-icon xccy">X</div>
+          <div class="tool-card-label">Bloomberg</div>
+          <div class="tool-card-title">XCCY<br>Spreads</div>
+          <div class="tool-card-desc">Monitor EUR, GBP and CHF cross-currency spread matrices with Bloomberg live refresh and change highlights.</div>
+          <div class="tool-card-arrow">→</div>
+        </div>
         <!-- PNL DASHBOARD -->
         <div class="tool-card pnl-card" onclick="openTool('pnl')">
           <div class="tool-card-icon pnl">📈</div>
@@ -371,6 +383,15 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
     <iframe id="frame-pricer" class="tool-frame active" src="vanilla_pricer.html"></iframe>
   </div>
 
+  <div id="wrapper-xccy" class="tool-wrapper">
+    <div class="tool-topbar">
+      <button class="tool-topbar-back" onclick="closeTool('xccy')">← Retour</button>
+      <div class="tool-topbar-title">XCCY Spreads</div>
+      <div class="tool-topbar-badge">Bloomberg</div>
+    </div>
+    <iframe id="frame-xccy" class="tool-frame active" src="xccy_all.html"></iframe>
+  </div>
+
 </div><!-- end app -->
 
 <div id="toast"></div>
@@ -436,7 +457,7 @@ function doLogout() {
   document.getElementById('login-btn').textContent = 'Se connecter';
   document.getElementById('login-btn').disabled = false;
   // Hide all tools
-  ['trs','exotic','email','bonus','pnl','pricer'].forEach(t => {
+  ['trs','exotic','email','bonus','pnl','pricer','xccy'].forEach(t => {
     document.getElementById(`wrapper-${t}`).classList.remove('active');
   });
   showPage('dashboard', document.querySelector('.header-nav-btn'));
