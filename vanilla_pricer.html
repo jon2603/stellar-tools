@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -47,7 +48,7 @@ button:disabled{opacity:.55;cursor:default}
 .rfq-actions{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .copy-ok{font-size:11px;color:var(--green);min-height:16px}
 .cards{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px}
-.cards.adjusted{grid-template-columns:repeat(5,1fr);background:#1f2f2a;border:1px solid rgba(39,110,71,.35);border-radius:10px;padding:12px}
+.cards.adjusted{grid-template-columns:repeat(6,1fr);background:#1f2f2a;border:1px solid rgba(39,110,71,.35);border-radius:10px;padding:12px}
 .kpi{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--gold);border-radius:8px;padding:14px 15px;min-width:0}
 .kpi.blue{border-left-color:var(--blue)}.kpi.green{border-left-color:var(--green)}.kpi.red{border-left-color:var(--red)}.kpi.purple{border-left-color:var(--purple)}
 .kpi.mid-price{background:#fffdf6;border-color:rgba(138,106,26,.34);border-left:5px solid var(--gold);box-shadow:0 6px 18px rgba(138,106,26,.12)}
@@ -83,7 +84,7 @@ button:disabled{opacity:.55;cursor:default}
     <div class="panel-head">
       <div>
         <div class="panel-title">Listed Option Strategy Quote</div>
-        <div class="note">Bid/ask Bloomberg + greeks + ajustement sur future actif. SX7E utilise CAA Index par défaut.</div>
+        <div class="note">Bid/ask Bloomberg + greeks + ajustement sur future actif. SX7E utilise CAA Index par dÃ©faut.</div>
       </div>
       <div class="ticker-box" id="bbgTicker">-</div>
     </div>
@@ -133,6 +134,7 @@ button:disabled{opacity:.55;cursor:default}
         <div class="field wide"><label>Reference ticker</label><input id="refTicker" value="CAA Index"></div>
         <div class="field wide hidden single-stock-field" id="manualTickerField"><label>Manual option ticker</label><input id="manualTicker" placeholder="optional, one-leg Call/Put only"></div>
         <div class="field"><label>Reference cible</label><input id="refSpot" type="number" step="0.01" placeholder="target ref"></div>
+        <div class="field"><label>Option size</label><input id="optionSize" type="number" step="1" placeholder="trade size"></div>
       </div>
       <div class="actions">
         <button class="secondary" onclick="useLiveAsRef()">Use live as reference</button>
@@ -159,6 +161,7 @@ button:disabled{opacity:.55;cursor:default}
     <div class="kpi adjusted-price"><div class="kpi-label">Adjusted Ask</div><div class="kpi-val" id="adjAsk">-</div><div class="kpi-sub">to target ref</div></div>
     <div class="kpi"><div class="kpi-label">Reference cible</div><div class="kpi-val" id="refOut">-</div><div class="kpi-sub" id="moveText">move -</div></div>
     <div class="kpi"><div class="kpi-label">Net Delta</div><div class="kpi-val" id="deltaOut">-</div><div class="kpi-sub">signed strategy</div></div>
+    <div class="kpi green"><div class="kpi-label">Trade Notional</div><div class="kpi-val" id="tradeNotional">-</div><div class="kpi-sub" id="notionalMeta">size x mult x ref</div></div>
   </section>
 
   <section class="cards">
@@ -640,19 +643,35 @@ function divOptionQuoteVariants(ticker){
 function quoteLooksLikeDivOption(q,ticker){
   return !/^[A-Z]{2,5}[FGHJKMNQUVXZ]\d?[CP]\s+[-+]?\d+(?:\.\d+)?\s+Index$/i.test(String(ticker||''))||!!(q&&q.fields&&q.fields.OPT_STRIKE_PX!=null&&q.fields.OPT_PUT_CALL);
 }
+async function fetchQuotesBatch(tickers){
+  const requested=tickers.map(t=>String(t||'').trim());
+  const variantMap=new Map();
+  const all=[];
+  requested.forEach(t=>{
+    const variants=divOptionQuoteVariants(t);
+    variantMap.set(t,variants);
+    variants.forEach(v=>{if(v&&!all.includes(v))all.push(v);});
+  });
+  const q=new URLSearchParams();
+  all.forEach(t=>q.append('ticker',t));
+  const r=await fetch(API+'/quotes?'+q.toString());
+  const p=await r.json();
+  if(!p.ok)throw new Error(p.error||'Bloomberg batch error');
+  const data=p.data||{};
+  return requested.map(original=>{
+    let lastError='';
+    for(const t of variantMap.get(original)||[original]){
+      const quote=data[t];
+      if(!quote){lastError=`${t} returned no data`;continue;}
+      if(quote.error){lastError=quote.error;continue;}
+      if(!quoteLooksLikeDivOption(quote,t)){lastError=`${t} returned underlying data, not option data`;continue;}
+      return quote;
+    }
+    throw new Error(lastError||'Bloomberg error');
+  });
+}
 async function fetchQuote(ticker){
-  const variants=divOptionQuoteVariants(ticker);
-  let lastError='';
-  for(const t of variants){
-    try{
-      const r=await fetch(API+'/quote?ticker='+encodeURIComponent(t));
-      const p=await r.json();
-      if(!p.ok){lastError=p.error||'Bloomberg error';continue;}
-      if(!quoteLooksLikeDivOption(p.data,t)){lastError=`${t} returned underlying data, not option data`;continue;}
-      return p.data;
-    }catch(e){lastError=e.message;}
-  }
-  throw new Error(lastError||'Bloomberg error');
+  return (await fetchQuotesBatch([ticker]))[0];
 }
 async function fetchChainMatches(underlying,expiry,strike,cp){
   const q=new URLSearchParams({underlying,expiry,strike:String(strike),cp});
@@ -668,6 +687,36 @@ async function checkBridge(){const st=$('bridge-status');try{const r=await fetch
 function fnum(q,names){const f=q&&q.fields?q.fields:{};for(const n of names){const v=Number(f[n]);if(Number.isFinite(v))return v;}return null;}
 function delta(q){let d=fnum(q,['OPT_DELTA','DELTA']);if(d===null)return null;if(Math.abs(d)>1.5)d/=100;return d;}
 function liveRef(){if(!state||!state.ref)return null;const mid=Number(state.ref.mid),last=Number(state.ref.last);return Number.isFinite(mid)?mid:Number.isFinite(last)?last:null;}
+function tradeMultiplier(){
+  if(!state||!Array.isArray(state.legs))return null;
+  const vals=state.legs.map(l=>fnum(l.quote,['OPT_CONT_SIZE','OPT_MULTIPLIER'])).filter(v=>Number.isFinite(v)&&v>0);
+  if(!vals.length)return null;
+  const unique=[...new Set(vals.map(v=>Number(v)))];
+  return unique[0];
+}
+function notionalLegFactor(){
+  const s=$('strategy').value;
+  if(['straddle','strangle'].includes(s))return 2;
+  if(['call_spread','put_spread','risk_reversal'].includes(s))return 1;
+  if(['call_ratio','put_ratio','risk_reversal_ratio'].includes(s)){
+    const r=Number($('ratioShort').value)||1;
+    return (1+Math.abs(r))/2;
+  }
+  return 1;
+}
+function recalcNotional(){
+  const out=$('tradeNotional'),meta=$('notionalMeta');
+  if(!out||!meta)return;
+  const size=num('optionSize'),ref=num('refSpot')??liveRef(),mult=tradeMultiplier(),factor=notionalLegFactor();
+  if(!Number.isFinite(size)||!Number.isFinite(ref)||!Number.isFinite(mult)){
+    out.textContent='-';
+    meta.textContent='size x factor x mult x ref';
+    return;
+  }
+  const notional=size*factor*mult*ref;
+  out.textContent=fmtCash(notional);
+  meta.textContent=`${fmtRfqNum(size)} x ${fmtRfqNum(factor)} x ${fmtRfqNum(mult)} x ${fmtRfqNum(ref)}`;
+}
 function liveRefMoveText(ref){
   if(!ref)return 'time -';
   const f=ref.fields||{};
@@ -691,6 +740,7 @@ function aggregate(legs){
 }
 function recalcAdjusted(){
   if(!state)return;const ref=num('refSpot'),live=liveRef(),a=state.agg;$('refOut').textContent=fmt(ref);$('deltaOut').textContent=fmtPct(a.delta);
+  recalcNotional();
   if(!Number.isFinite(ref)||!Number.isFinite(live)||!Number.isFinite(a.delta)){$('adjBid').textContent=$('adjAsk').textContent=$('adjMid').textContent='-';$('moveText').textContent='move -';updateGoldmanSymph();updateEurexCrossHint();return;}
   const move=ref-live;$('moveText').textContent=`move ${fmt(ref)} - ${fmt(live)} = ${fmt(move)}`;
   $('adjBid').textContent=fmt(a.bid+a.delta*move);$('adjAsk').textContent=fmt(a.ask+a.delta*move);$('adjMid').textContent=fmt(a.mid+a.delta*move);
@@ -945,7 +995,8 @@ async function loadStrategy(){
       const legs=buildLegs();
       const manualRef=num('refSpot');
       const useManualDivRef=assetMode==='index'&&isDividendOptionRoot()&&Number.isFinite(manualRef);
-      const quotes=await Promise.all(useManualDivRef?legs.map(l=>fetchQuote(l.ticker)):[...legs.map(l=>fetchQuote(l.ticker)),fetchQuote(refTicker)]);
+      const tickers=useManualDivRef?legs.map(l=>l.ticker):[...legs.map(l=>l.ticker),refTicker];
+      const quotes=await fetchQuotesBatch(tickers);
       const ref=useManualDivRef?{mid:manualRef,last:manualRef,fields:{}}:quotes.pop();legs.forEach((l,i)=>l.quote=quotes[i]);
       if(['risk_reversal','risk_reversal_ratio'].includes($('strategy').value)){
         const callLeg=legs.find(l=>/call/i.test(l.name)), putLeg=legs.find(l=>/put/i.test(l.name));
@@ -1125,15 +1176,19 @@ function refreshPreview(changedId){
   updateGoldmanSymph();
   updateTradingPhrase();
   updateEurexCrossHint();
+  recalcNotional();
 }
 ['underlying','stockRef','stockExchange','optionRoot','manualTicker','strategy','strike1','strike2','strike3','ratioShort','mat1','mat2','tradedLevel','crossSize','crossDelta','optionTick','futureTick','crossMultiplier','liveRefBand'].forEach(id=>{
   $(''+id).addEventListener('input',()=>{if(id==='tradedLevel'||id==='crossDelta')$(''+id).dataset.auto='0';refreshPreview(id);});
   $(''+id).addEventListener('change',()=>refreshPreview(id));
 });
+$('optionSize').addEventListener('input',()=>recalcNotional());
+$('optionSize').addEventListener('change',()=>recalcNotional());
 $('quickInput').addEventListener('input',()=>{const traded=extractTradingLevel($('quickInput').value);if(traded){$('tradedLevel').value=traded;$('tradedLevel').dataset.auto='0';}updateTradingPhrase();updateEurexCrossHint();});
 $('quickInput').addEventListener('keydown',e=>{if(e.key==='Enter')parseQuickAndLoad();});
-$('refSpot').addEventListener('input',()=>{recalcAdjusted();updateGoldmanSymph();updateEurexCrossHint();});
+$('refSpot').addEventListener('input',()=>{recalcAdjusted();recalcNotional();updateGoldmanSymph();updateEurexCrossHint();});
 checkBridge();refreshPreview();
 </script>
 </body>
 </html>
+
