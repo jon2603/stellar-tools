@@ -1,9 +1,10 @@
+
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>XCCY Spreads</title>
+  <title>XCCY & Basis Spreads</title>
   <style>
     :root {
       --blue: #4f83bd;
@@ -99,6 +100,34 @@
     .status.ok { color: var(--ok); }
     .status.bad { color: var(--bad); }
 
+    .tabs {
+      display: flex;
+      gap: 6px;
+      margin: 0 0 14px;
+      border-bottom: 1px solid #cbd5e1;
+    }
+
+    .tab-button {
+      height: 34px;
+      margin-bottom: -1px;
+      border: 1px solid transparent;
+      border-bottom-color: #cbd5e1;
+      border-radius: 6px 6px 0 0;
+      color: var(--blue-dark);
+      background: transparent;
+    }
+
+    .tab-button.active {
+      border-color: #cbd5e1;
+      border-bottom-color: var(--bg);
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .tab-panel[hidden] {
+      display: none;
+    }
+
     .stack {
       display: grid;
       gap: 22px;
@@ -157,6 +186,34 @@
       --section-dark: #574091;
       --section-light: #e9e3f7;
       --section-soft: #f5f1fb;
+    }
+
+    section[data-market="esterbor"] {
+      --section-main: #b7791f;
+      --section-dark: #8a580f;
+      --section-light: #f8e8c2;
+      --section-soft: #fff8e8;
+    }
+
+    section[data-market="eurbasis3s1s"] {
+      --section-main: #0f766e;
+      --section-dark: #115e59;
+      --section-light: #d7f0eb;
+      --section-soft: #eefaf7;
+    }
+
+    section[data-market="eurbasis3s6s"] {
+      --section-main: #b45309;
+      --section-dark: #92400e;
+      --section-light: #fde6c7;
+      --section-soft: #fff7ed;
+    }
+
+    section[data-market="eurbasis6s12s"] {
+      --section-main: #475569;
+      --section-dark: #334155;
+      --section-light: #e2e8f0;
+      --section-soft: #f8fafc;
     }
 
     section .sheet-wrap {
@@ -347,45 +404,78 @@
         width: 100%;
         text-align: left;
       }
+      .tabs {
+        overflow-x: auto;
+      }
     }
   </style>
 </head>
 <body>
   <main class="app">
     <div class="toolbar">
-      <h1 class="title">XCCY Spreads</h1>
+      <h1 class="title">XCCY & Basis Spreads</h1>
       <div class="controls">
         <input id="bridgeUrl" class="bridge-input" value="http://127.0.0.1:8765" aria-label="Bloomberg bridge URL">
-        <button id="refreshBtn" type="button">Refresh all</button>
+        <button id="refreshBtn" type="button">Refresh tab</button>
         <div id="status" class="status">Ready</div>
       </div>
     </div>
 
-    <div id="stack" class="stack"></div>
+    <div class="tabs" role="tablist" aria-label="Market type">
+      <button id="tabXccy" class="tab-button active" type="button" role="tab" aria-selected="true" aria-controls="xccyPanel" data-tab="xccy">XCCY</button>
+      <button id="tabBasis" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="basisPanel" data-tab="basis">Basis</button>
+    </div>
+
+    <div id="xccyPanel" class="stack tab-panel" role="tabpanel" aria-labelledby="tabXccy"></div>
+    <div id="basisPanel" class="stack tab-panel" role="tabpanel" aria-labelledby="tabBasis" hidden></div>
     <div id="tooltip" class="tooltip" role="status" aria-live="polite"></div>
   </main>
 
   <script>
-    const tenors = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20, 25, 30, 40];
-    const labels = tenors.map((tenor) => `${tenor}Y`);
+    const defaultTenors = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20, 25, 30, 40];
+    const esterBorTenors = defaultTenors.filter((tenor) => tenor <= 30);
+    const eurBasisTenors = [...defaultTenors, 50];
+    const eurBasisTenorsFrom2Y = eurBasisTenors.filter((tenor) => tenor >= 2);
     const matrices = [
-      { id: "eurusd", title: "EUR USD XCCY", prefix: "EUXOQQ" },
-      { id: "gbpusd", title: "GBP USD XCCY", prefix: "BPXOQQ" },
-      { id: "chfusd", title: "CHF USD XCCY", prefix: "SFXOQQ" },
-    ].map((matrix) => ({
-      ...matrix,
-      tickers: tenors.map((tenor) => `${matrix.prefix}${tenor} Curncy`),
-      quotes: new Map(),
-      changedTickers: new Set(),
-      errors: new Map(),
-    }));
+      { id: "eurusd", group: "xccy", title: "EUR USD XCCY", prefix: "EUXOQQ" },
+      { id: "gbpusd", group: "xccy", title: "GBP USD XCCY", prefix: "BPXOQQ" },
+      { id: "chfusd", group: "xccy", title: "CHF USD XCCY", prefix: "SFXOQQ" },
+      {
+        id: "esterbor",
+        group: "basis",
+        title: "ESTER BOR",
+        tenors: esterBorTenors,
+        tickerTemplate: (tenor) => `.${tenor}YEE F Index`,
+      },
+      { id: "eurbasis3s1s", group: "basis", title: "EUR Basis 3s1s", prefix: "EUBSAT", tenors: eurBasisTenors },
+      { id: "eurbasis3s6s", group: "basis", title: "EUR Basis 3s6s", prefix: "EUBSVT", tenors: eurBasisTenors },
+      { id: "eurbasis6s12s", group: "basis", title: "EUR Basis 6s12s", prefix: "EUBSST", tenors: eurBasisTenorsFrom2Y },
+    ].map((matrix) => {
+      const tenors = matrix.tenors || defaultTenors;
+      return {
+        ...matrix,
+        tenors,
+        labels: tenors.map((tenor) => `${tenor}Y`),
+        tickers: tenors.map((tenor) => (
+          matrix.tickerTemplate ? matrix.tickerTemplate(tenor) : `${matrix.prefix}${tenor} Curncy`
+        )),
+        quotes: new Map(),
+        changedTickers: new Set(),
+        errors: new Map(),
+      };
+    });
 
-    const stack = document.getElementById("stack");
+    const stacks = {
+      xccy: document.getElementById("xccyPanel"),
+      basis: document.getElementById("basisPanel"),
+    };
+    const tabButtons = document.querySelectorAll(".tab-button");
     const statusEl = document.getElementById("status");
     const refreshBtn = document.getElementById("refreshBtn");
     const bridgeInput = document.getElementById("bridgeUrl");
     const tooltip = document.getElementById("tooltip");
     let loading = false;
+    let activeTabId = "xccy";
     let pinnedCell = null;
     let changeTimer = null;
 
@@ -446,7 +536,7 @@
       const emptyTitle = document.createElement("th");
       emptyTitle.className = "empty-title corner";
       const title = document.createElement("th");
-      title.colSpan = labels.length;
+      title.colSpan = matrix.labels.length;
       title.textContent = matrix.title;
       titleRow.append(emptyTitle, title);
       thead.appendChild(titleRow);
@@ -455,7 +545,7 @@
       const corner = document.createElement("th");
       corner.className = "corner";
       headerRow.appendChild(corner);
-      labels.forEach((label, colIndex) => {
+      matrix.labels.forEach((label, colIndex) => {
         const th = document.createElement("th");
         th.textContent = label.toLowerCase();
         th.dataset.colHead = colIndex;
@@ -464,14 +554,14 @@
       thead.appendChild(headerRow);
 
       const tbody = document.createElement("tbody");
-      labels.forEach((rowLabel, rowIndex) => {
+      matrix.labels.forEach((rowLabel, rowIndex) => {
         const tr = document.createElement("tr");
         const rowHead = document.createElement("th");
         rowHead.className = "row-head";
         rowHead.textContent = rowLabel;
         rowHead.dataset.rowHead = rowIndex;
         tr.appendChild(rowHead);
-        labels.forEach((_, colIndex) => {
+        matrix.labels.forEach((_, colIndex) => {
           const td = document.createElement("td");
           td.className = "data";
           td.dataset.row = rowIndex;
@@ -565,6 +655,25 @@
       matrices.forEach(renderMatrix);
     }
 
+    function getActiveMatrices() {
+      return matrices.filter((matrix) => matrix.group === activeTabId);
+    }
+
+    function setActiveTab(tabId) {
+      activeTabId = tabId;
+      Object.entries(stacks).forEach(([id, panel]) => {
+        panel.hidden = id !== tabId;
+      });
+      tabButtons.forEach((button) => {
+        const isActive = button.dataset.tab === tabId;
+        button.classList.toggle("active", isActive);
+        button.setAttribute("aria-selected", String(isActive));
+      });
+      pinnedCell = null;
+      matrices.forEach(clearHighlight);
+      hideTooltip();
+    }
+
     function clearHighlight(matrix) {
       matrix.table.classList.remove("pinned");
       matrix.table.querySelectorAll(".active-cell, .active-row, .active-col, .active-head, .muted-cell").forEach((el) => {
@@ -602,8 +711,8 @@
     }
 
     function describeCell(matrix, rowIndex, colIndex) {
-      const rowLabel = labels[rowIndex];
-      const colLabel = labels[colIndex];
+      const rowLabel = matrix.labels[rowIndex];
+      const colLabel = matrix.labels[colIndex];
       const rowTicker = matrix.tickers[rowIndex];
       const colTicker = matrix.tickers[colIndex];
       const rowQuote = matrix.quotes.get(rowTicker);
@@ -694,25 +803,57 @@
 
     async function fetchTicker(bridgeUrl, ticker) {
       const url = `${bridgeUrl.replace(/\/$/, "")}/quote?ticker=${encodeURIComponent(ticker)}`;
-      const response = await fetch(url);
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok || payload.ok === false) {
-        throw new Error(payload.error || `HTTP ${response.status}`);
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), 15000);
+      try {
+        const response = await fetch(url, { signal: controller.signal });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || payload.ok === false) {
+          throw new Error(payload.error || `HTTP ${response.status}`);
+        }
+        const value = readBloombergValue(payload);
+        if (!Number.isFinite(value)) {
+          throw new Error("No numeric LAST_PRICE/PX_LAST returned by bridge");
+        }
+        return value;
+      } catch (error) {
+        if (error.name === "AbortError") {
+          throw new Error("Bloomberg request timed out");
+        }
+        throw error;
+      } finally {
+        window.clearTimeout(timeout);
       }
-      const value = readBloombergValue(payload);
-      if (!Number.isFinite(value)) {
-        throw new Error("No numeric LAST_PRICE/PX_LAST returned by bridge");
+    }
+
+    async function fetchTickersLimited(tickers, bridgeUrl, limit = 4) {
+      const results = new Array(tickers.length);
+      let nextIndex = 0;
+
+      async function worker() {
+        while (nextIndex < tickers.length) {
+          const index = nextIndex;
+          nextIndex += 1;
+          const ticker = tickers[index];
+          try {
+            const value = await fetchTicker(bridgeUrl, ticker);
+            results[index] = { status: "fulfilled", value: [ticker, value] };
+          } catch (error) {
+            results[index] = { status: "rejected", reason: error };
+          }
+        }
       }
-      return value;
+
+      const workerCount = Math.min(limit, tickers.length);
+      await Promise.all(Array.from({ length: workerCount }, worker));
+      return results;
     }
 
     async function refreshMatrix(matrix, bridgeUrl) {
       matrix.errors.clear();
       matrix.changedTickers.clear();
       matrix.statusEl.textContent = "Requesting data...";
-      const results = await Promise.allSettled(
-        matrix.tickers.map(async (ticker) => [ticker, await fetchTicker(bridgeUrl, ticker)])
-      );
+      const results = await fetchTickersLimited(matrix.tickers, bridgeUrl);
 
       results.forEach((result, index) => {
         const ticker = matrix.tickers[index];
@@ -738,20 +879,24 @@
 
     async function refreshAll() {
       const bridgeUrl = bridgeInput.value.trim() || "http://127.0.0.1:8765";
+      const targetMatrices = getActiveMatrices();
       loading = true;
       refreshBtn.disabled = true;
       setStatus("Requesting Bloomberg data...");
-      renderAll();
+      targetMatrices.forEach(renderMatrix);
 
       const started = Date.now();
-      const results = await Promise.all(matrices.map((matrix) => refreshMatrix(matrix, bridgeUrl)));
+      const results = [];
+      for (const matrix of targetMatrices) {
+        results.push(await refreshMatrix(matrix, bridgeUrl));
+      }
       loading = false;
       refreshBtn.disabled = false;
-      renderAll();
+      targetMatrices.forEach(renderMatrix);
 
       const totalErrors = results.reduce((sum, result) => sum + result.errorCount, 0);
       const totalChanges = results.reduce((sum, result) => sum + result.changeCount, 0);
-      const totalTickers = matrices.reduce((sum, matrix) => sum + matrix.tickers.length, 0);
+      const totalTickers = targetMatrices.reduce((sum, matrix) => sum + matrix.tickers.length, 0);
       const elapsed = ((Date.now() - started) / 1000).toFixed(1);
       if (totalErrors) {
         setStatus(`${totalTickers - totalErrors}/${totalTickers} loaded, ${totalChanges} changed in ${elapsed}s`, "bad");
@@ -760,12 +905,15 @@
       }
       window.clearTimeout(changeTimer);
       changeTimer = window.setTimeout(() => {
-        matrices.forEach((matrix) => matrix.changedTickers.clear());
-        renderAll();
+        targetMatrices.forEach((matrix) => matrix.changedTickers.clear());
+        targetMatrices.forEach(renderMatrix);
       }, 12000);
     }
 
-    matrices.forEach((matrix) => stack.appendChild(buildTable(matrix)));
+    tabButtons.forEach((button) => {
+      button.addEventListener("click", () => setActiveTab(button.dataset.tab));
+    });
+    matrices.forEach((matrix) => stacks[matrix.group].appendChild(buildTable(matrix)));
     refreshBtn.addEventListener("click", refreshAll);
     renderAll();
     refreshAll();
