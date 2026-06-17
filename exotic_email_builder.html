@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -26,6 +27,13 @@ textarea{min-height:210px;font-family:'JetBrains Mono',monospace;line-height:1.4
 input:focus,select:focus,textarea:focus{border-color:var(--gold)}
 button{height:38px;border:none;border-radius:var(--radius);background:var(--gold);color:white;font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;padding:0 18px;cursor:pointer;white-space:nowrap}
 button.secondary{background:var(--bg3);color:var(--text-dim);border:1px solid var(--border)}
+.quick{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:stretch;margin-bottom:16px}
+.quick textarea{min-height:96px;font-size:13px}
+.quick button{height:auto;min-height:44px}
+.quote-tabs{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.quote-tab{height:34px;background:var(--bg3);color:var(--text-dim);border:1px solid var(--border);padding:0 12px}
+.quote-tab.active{background:var(--gold);color:#fff;border-color:var(--gold)}
+.quote-tab.add{background:#fff;color:var(--gold);border-color:var(--gold-border)}
 .template-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px}
 .template-card h3{font-family:'Cormorant Garamond',serif;color:var(--gold);font-size:16px;margin-bottom:10px}
 .actions{display:flex;gap:10px;align-items:center;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
@@ -68,12 +76,18 @@ button.secondary{background:var(--bg3);color:var(--text-dim);border:1px solid va
       </div>
     </div>
     <div class="panel-body">
+      <div class="quick">
+        <textarea id="quickInput" placeholder="ex: 11Jun27 NKY/SPX 100% CvC qUSD 0.705/ 0.755"></textarea>
+        <button onclick="parseQuick()">Parse</button>
+      </div>
+      <div class="quote-tabs" id="quoteTabs"></div>
       <div class="grid">
         <div class="template-card">
           <h3>1. Structure</h3>
           <div class="field"><label>ProductType</label><select id="productType">
           <option>Call vs Call</option>
           <option>Put vs Put</option>
+          <option>Synthetic Quanto</option>
           </select></div>
           <input id="expiry" type="hidden" value="11/06/2027">
           <div class="field" style="margin-top:10px"><label>Expiry</label><input id="expiryPicker" type="date"></div>
@@ -106,7 +120,7 @@ button.secondary{background:var(--bg3);color:var(--text-dim);border:1px solid va
         </div>
         <div class="legs" id="legs"></div>
         <datalist id="indexList">
-          <option value="NKY"><option value="SPX"><option value="SX5E"><option value="SX7E"><option value="NDX"><option value="FTSE"><option value="UKX"><option value="HSI"><option value="RTY"><option value="CAC"><option value="DAX"><option value="SMI">
+          <option value="NKY"><option value="SPX"><option value="SX5E"><option value="SX7E"><option value="NDX"><option value="FTSE"><option value="UKX"><option value="HSI"><option value="RTY"><option value="CAC"><option value="DAX"><option value="SMI"><option value=".KS200">
         </datalist>
       </div>
       <div class="actions">
@@ -183,6 +197,8 @@ const defaultTraders=[
 ];
 const storedTraders=JSON.parse(localStorage.getItem('stellar_exotic_email_traders')||'null');
 let traders=normalizeTraders(storedTraders||defaultTraders,!storedTraders);
+let quoteTabs=[null];
+let activeQuote=0;
 function $(id){return document.getElementById(id);}
 function titleMonth(s){return s?s.slice(0,1).toUpperCase()+s.slice(1,3).toLowerCase():'';}
 function normalizeTraders(list,isDefault){
@@ -217,6 +233,7 @@ function productShort(s){
   if(t==='call vs call')return 'CvC';
   if(t==='put vs call')return 'PVC';
   if(t==='call vs put')return 'CVP';
+  if(t==='synthetic quanto')return 'Synthetic Quanto';
   return t.split(/\s+/).filter(w=>w!=='vs').map(w=>w[0]||'').join('').toUpperCase();
 }
 function formatStrikePct(s){
@@ -234,6 +251,126 @@ function formatQuotePct(s){
   return s.endsWith('%')?s:s+'%';
 }
 function stripPct(s){return String(s||'').trim().replace(/%$/,'');}
+function currentQuoteState(){
+  return {
+    quick:$('quickInput').value,
+    productType:$('productType').value,
+    expiry:$('expiry').value,
+    totalLegs:$('totalLegs').value,
+    quanto:$('quanto').value,
+    strike:$('strike').value,
+    bid:$('bid').value,
+    ask:$('ask').value,
+    hedge:$('hedge').value,
+    from:$('from').value,
+    legs:legValues()
+  };
+}
+function applyQuoteState(q){
+  if(!q)return;
+  $('quickInput').value=q.quick||'';
+  $('productType').value=q.productType||'Call vs Call';
+  $('expiry').value=q.expiry||'';
+  $('totalLegs').value=q.totalLegs||Math.max(1,(q.legs||[]).length)||1;
+  $('quanto').value=q.quanto||'USD';
+  $('strike').value=q.strike||'';
+  $('bid').value=q.bid||'';
+  $('ask').value=q.ask||'';
+  $('hedge').value=q.hedge||'N';
+  $('from').value=q.from||$('from').value;
+  renderLegs();
+  (q.legs||[]).forEach((leg,i)=>{if($('leg'+(i+1)))$('leg'+(i+1)).value=leg;});
+  syncPickerFromExpiry();
+  refreshEmail();
+}
+function saveActiveQuote(){quoteTabs[activeQuote]=currentQuoteState();renderQuoteTabs();}
+function quoteTabLabel(q,i){
+  if(!q)return `Price ${i+1}`;
+  const legs=(q.legs||[]).join('/')||'Price';
+  const bid=stripPct(formatQuotePct(q.bid));
+  const ask=stripPct(formatQuotePct(q.ask));
+  return `${i+1}. ${legs}${bid||ask?` ${bid}/${ask}`:''}`;
+}
+function renderQuoteTabs(){
+  $('quoteTabs').innerHTML=quoteTabs.map((q,i)=>`<button class="quote-tab ${i===activeQuote?'active':''}" onclick="switchQuote(${i})">${htmlEncode(quoteTabLabel(q,i))}</button>`).join('')+
+    '<button class="quote-tab add" onclick="newQuote()">+ New price</button>';
+}
+function switchQuote(i){
+  quoteTabs[activeQuote]=currentQuoteState();
+  activeQuote=i;
+  applyQuoteState(quoteTabs[i]);
+  renderQuoteTabs();
+}
+function newQuote(){
+  quoteTabs[activeQuote]=currentQuoteState();
+  const base=currentQuoteState();
+  base.quick='';
+  base.bid='';
+  base.ask='';
+  quoteTabs.push(base);
+  activeQuote=quoteTabs.length-1;
+  applyQuoteState(base);
+  renderQuoteTabs();
+}
+function parseQuickExpiry(token){
+  const s=String(token||'').trim();
+  const months={jan:'01',feb:'02',mar:'03',apr:'04',may:'05',jun:'06',jul:'07',aug:'08',sep:'09',oct:'10',nov:'11',dec:'12'};
+  let m=s.match(/^(\d{1,2})(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)(\d{2,4})$/i);
+  if(m){
+    const yy=m[3].length===2?'20'+m[3]:m[3];
+    return `${m[1].padStart(2,'0')}${months[m[2].toLowerCase()]}${yy}`;
+  }
+  m=s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})$/);
+  if(m)return `${m[1].padStart(2,'0')}${m[2].padStart(2,'0')}${m[3].length===2?'20'+m[3]:m[3]}`;
+  return '';
+}
+function productFromQuick(token){
+  const t=String(token||'').toLowerCase().replace(/\s+/g,'');
+  const map={cvc:'Call vs Call',pvp:'Put vs Put',pvc:'Put vs Call',cvp:'Call vs Put',quanto:'Synthetic Quanto',syntheticquanto:'Synthetic Quanto'};
+  return map[t]||null;
+}
+function normalizeUnderlyer(raw){
+  const t=String(raw||'').trim().toUpperCase();
+  const map={KOSPI:'.KS200',KOSPI2:'.KS200',KS200:'.KS200',NKY:'NKY',SPX:'SPX',SX5E:'SX5E',SX7E:'SX7E',NDX:'NDX'};
+  return map[t]||t;
+}
+function isQuantoForwardText(raw){
+  return /\bq[A-Z]{3}\b/i.test(raw)&&!/\b(cvc|pvp|pvc|cvp)\b/i.test(raw)&&!/[A-Z0-9]+\/[A-Z0-9]+/i.test(raw);
+}
+function parseQuick(){
+  const raw=$('quickInput').value.trim();
+  if(!raw){showToast('Quick input vide');return;}
+  const tokens=raw.split(/\s+/).filter(Boolean);
+  const expToken=tokens.find(t=>parseQuickExpiry(t));
+  const isQuanto=isQuantoForwardText(raw);
+  const legsToken=tokens.find(t=>/^[A-Z0-9]+(?:\/[A-Z0-9]+)+$/i.test(t));
+  const underlyerToken=isQuanto?tokens.find(t=>/^[A-Z][A-Z0-9.]*$/i.test(t)&&!parseQuickExpiry(t)&&!/^q[A-Z]{3}$/i.test(t)&&!productFromQuick(t)):null;
+  const strikeToken=tokens.find(t=>/^\d+(?:\.\d+)?%$/.test(t));
+  const productToken=tokens.find(t=>productFromQuick(t));
+  const currencyToken=tokens.find(t=>/^q?[A-Z]{3}:?$/i.test(t)&&!productFromQuick(t));
+  const quoteMatch=raw.match(/(-?\d+(?:\.\d+)?)\s*%?\s*\/\s*(-?\d+(?:\.\d+)?)\s*%?\s*$/);
+  if(expToken)$('expiry').value=parseQuickExpiry(expToken);
+  if(isQuanto)$('productType').value='Synthetic Quanto';
+  else if(productToken)$('productType').value=productFromQuick(productToken);
+  if(strikeToken)$('strike').value=strikeToken;
+  if(currencyToken)$('quanto').value=currencyToken.replace(/^q/i,'').replace(/:$/,'').toUpperCase();
+  if(quoteMatch){$('bid').value=quoteMatch[1]+'%';$('ask').value=quoteMatch[2]+'%';}
+  if(isQuanto&&underlyerToken){
+    $('totalLegs').value=1;
+    renderLegs();
+    $('leg1').value=normalizeUnderlyer(underlyerToken);
+  }else if(legsToken){
+    const legs=legsToken.split('/').map(x=>x.trim().toUpperCase()).filter(Boolean).slice(0,6);
+    $('totalLegs').value=legs.length||1;
+    renderLegs();
+    legs.forEach((leg,i)=>{$('leg'+(i+1)).value=leg;});
+  }else{
+    refreshEmail();
+  }
+  syncPickerFromExpiry();
+  refreshEmail();
+  showToast('Parsed');
+}
 function legValues(){
   const total=Math.max(1,Math.min(6,Number($('totalLegs').value)||1));
   const out=[];
@@ -245,9 +382,22 @@ function buildSubject(){
   const exp=formatExpirySubject($('expiry').value);
   const ptype=productShort($('productType').value);
   const q=$('quanto').value.trim()?('q'+$('quanto').value.trim().toUpperCase()):'';
+  if($('productType').value==='Synthetic Quanto'){
+    return `STELLAR - Exotic Quote | ${legs} ${exp} ${ptype} ${q} [${stripPct(formatQuotePct($('bid').value))}/${stripPct(formatQuotePct($('ask').value))}]`.replace(/\s+/g,' ').trim();
+  }
   return `STELLAR - Exotic Quote | ${legs} ${exp} ${ptype} ${q} ${formatStrikePct($('strike').value)} [${stripPct(formatQuotePct($('bid').value))}/${stripPct(formatQuotePct($('ask').value))}]`.replace(/\s+/g,' ').trim();
 }
 function buildRows(){
+  if($('productType').value==='Synthetic Quanto'){
+    return [
+      ['ProductType','Synthetic Quanto'],
+      ['Underlyer',legValues()[0]||''],
+      ['QuantoCurrency',$('quanto').value],
+      ['Expiry',formatExpiryBody($('expiry').value)],
+      ['Bid',formatQuotePct($('bid').value)],
+      ['Ask',formatQuotePct($('ask').value)]
+    ];
+  }
   return [
     ['ProductType',$('productType').value],
     ['Expiry',formatExpiryBody($('expiry').value)],
@@ -313,6 +463,8 @@ function refreshEmail(){
   $('bccOut').value=selectedBcc();
   $('bodyOut').value=buildBody();
   $('bodyHtmlOut').innerHTML=buildPreviewTable();
+  if(quoteTabs.length)quoteTabs[activeQuote]=currentQuoteState();
+  if($('quoteTabs'))renderQuoteTabs();
 }
 async function copyTicket(){
   const text=`Subject: ${buildSubject()}\nBCC: ${selectedBcc()}\n\n${buildBody()}`;
@@ -360,6 +512,7 @@ function downloadEml(){
 }
 function showToast(msg){$('toast').textContent=msg;$('toast').style.display='block';setTimeout(()=>$('toast').style.display='none',1800);}
 $('expiryPicker').addEventListener('change',syncExpiryFromPicker);
+$('quickInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.ctrlKey)parseQuick();});
 ['from','productType','expiry','totalLegs','quanto','strike','bid','ask','hedge'].forEach(id=>{
   $(id).addEventListener('input',id==='totalLegs'?renderLegs:refreshEmail);
   $(id).addEventListener('change',id==='totalLegs'?renderLegs:refreshEmail);
