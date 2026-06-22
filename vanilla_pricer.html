@@ -755,13 +755,11 @@ function render(legs,ref,agg){
 }
 function chainAggregate(matches){
   const live=matches.filter(m=>Number.isFinite(Number(m.quote&&m.quote.bid))||Number.isFinite(Number(m.quote&&m.quote.ask)));
-  const bestBid=Math.max(...live.map(m=>Number(m.quote.bid)).filter(Number.isFinite));
-  const bestAsk=Math.min(...live.map(m=>Number(m.quote.ask)).filter(Number.isFinite));
-  const mid=Number.isFinite(bestBid)&&Number.isFinite(bestAsk)?(bestBid+bestAsk)/2:null;
-  const bestMid=live.slice().sort((a,b)=>(Number(b.quote.mid)||-Infinity)-(Number(a.quote.mid)||-Infinity))[0];
-  const q=bestMid&&bestMid.quote?bestMid.quote:{fields:{}};
+  const rows=live.map(m=>({match:m,bid:Number(m.quote.bid),ask:Number(m.quote.ask),mid:Number.isFinite(Number(m.quote.bid))&&Number.isFinite(Number(m.quote.ask))?(Number(m.quote.bid)+Number(m.quote.ask))/2:Number(m.quote.mid)}));
+  const best=rows.slice().sort((a,b)=>(Number(b.mid)||-Infinity)-(Number(a.mid)||-Infinity))[0]||{};
+  const q=best.match&&best.match.quote?best.match.quote:{fields:{}};
   const oi=matches.reduce((sum,m)=>sum+(Number(fnum(m.quote,['OPEN_INT','OPEN_INTEREST']))||0),0);
-  return {bid:Number.isFinite(bestBid)?bestBid:null,ask:Number.isFinite(bestAsk)?bestAsk:null,mid,delta:delta(q)||0,gamma:fnum(q,['OPT_GAMMA','GAMMA'])||0,vega:fnum(q,['OPT_VEGA','VEGA'])||0,theta:fnum(q,['OPT_THETA','THETA'])||0,rho:fnum(q,['OPT_RHO','RHO'])||0,vol:fnum(q,['IVOL_MID','IMPLIED_VOLATILITY_MID']),oi};
+  return {bid:Number.isFinite(best.bid)?best.bid:null,ask:Number.isFinite(best.ask)?best.ask:null,mid:Number.isFinite(best.mid)?best.mid:null,delta:delta(q)||0,gamma:fnum(q,['OPT_GAMMA','GAMMA'])||0,vega:fnum(q,['OPT_VEGA','VEGA'])||0,theta:fnum(q,['OPT_THETA','THETA'])||0,rho:fnum(q,['OPT_RHO','RHO'])||0,vol:fnum(q,['IVOL_MID','IMPLIED_VOLATILITY_MID']),oi};
 }
 function renderChainMatches(matches,ref){
   const agg=chainAggregate(matches);
