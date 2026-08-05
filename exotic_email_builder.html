@@ -202,9 +202,7 @@ const defaultTraders=[
   ['mad-eqty-exo-ind.group@bbva.com','BBVA',false],
   ['eqtrading.es@bbva.com','BBVA',false],
   ['eqd.global.exo.quotes@uk.bnpparibas.com','BNP Paribas SA',false],
-  ['dl.eqd.americas.flow.structuring@uk.bnpparibas.com','BNP Paribas SA',false],
-  ['dl.nyk_exotics_index@us.bnpparibas.com','BNP Paribas SA',false],
-  ['jupyterhub.cib.lisbon.nlt@bnpparibas.com','BNP Paribas SA',false],
+  ['dl.eqd.americas.flow.structuring@uk.bnpparibas.com;dl.nyk_exotics_index@us.bnpparibas.com;jupyterhub.cib.lisbon.nlt@bnpparibas.com','BNP PARIBAS US',false],
   ['pvgequitybrokerquotes@bofa.com','BofA Securities Europe SA',false],
   ['ukfinbia.mailbox@cibc.co.uk','CIBC',false],
   ['l.gt.nam.rapid.solutions@citi.com','CITIGROUP Global Markets Limited',false],
@@ -232,21 +230,50 @@ function readStoredTraders(){
   try{return JSON.parse(localStorage.getItem('stellar_exotic_email_traders')||'null');}
   catch(e){return null;}
 }
+function traderSortKey(t){
+  const name=String(t&&t[1]||t&&t[0]||'').trim().toLowerCase();
+  return name.replace(/^the\s+/,'');
+}
+function sortTraders(list){
+  return list.slice().sort((a,b)=>{
+    const byName=traderSortKey(a).localeCompare(traderSortKey(b),undefined,{sensitivity:'base'});
+    if(byName)return byName;
+    return String(a[0]).toLowerCase().localeCompare(String(b[0]).toLowerCase());
+  });
+}
+function traderEmails(t){
+  return String(t&&t[0]||'').split(';').map(e=>e.trim().toLowerCase()).filter(Boolean);
+}
+function applyDefaultGroups(list){
+  let out=list.slice();
+  defaultTraders.filter(t=>traderEmails(t).length>1&&!String(t[0]).includes('@stellar-securities.com')).forEach(group=>{
+    const groupEmails=traderEmails(group);
+    const groupSet=new Set(groupEmails);
+    const matched=out.filter(t=>traderEmails(t).some(email=>groupSet.has(email)));
+    if(!matched.length)return;
+    const selected=matched.some(t=>t[2]);
+    out=out.filter(t=>!traderEmails(t).some(email=>groupSet.has(email)));
+    out.push([group[0],group[1],selected]);
+  });
+  return out;
+}
 function mergeDefaultTraders(stored){
   if(!stored)return normalizeTraders(defaultTraders,true);
   const storedSignature=localStorage.getItem('stellar_exotic_email_traders_signature')||'';
-  let merged=normalizeTraders(stored,false);
+  let merged=normalizeTraders(applyDefaultGroups(stored),false);
   if(storedSignature!==DEFAULT_TRADERS_SIGNATURE){
-    const known=new Set(merged.flatMap(t=>String(t[0]).split(';').map(e=>e.trim().toLowerCase()).filter(Boolean)));
-    const additions=defaultTraders.filter(t=>!String(t[0]).includes('@stellar-securities.com')&&!known.has(String(t[0]).toLowerCase()));
+    const known=new Set(merged.flatMap(traderEmails));
+    const additions=defaultTraders.filter(t=>{
+      const emails=traderEmails(t);
+      return !String(t[0]).includes('@stellar-securities.com')&&emails.some(email=>!known.has(email));
+    });
     if(additions.length){
-      const stellarIndex=merged.findIndex(t=>String(t[0]).includes('@stellar-securities.com'));
-      const insertAt=stellarIndex>=0?stellarIndex:merged.length;
-      merged.splice(insertAt,0,...additions);
+      merged=normalizeTraders([...merged,...additions],false);
       localStorage.setItem('stellar_exotic_email_traders',JSON.stringify(merged));
     }
     localStorage.setItem('stellar_exotic_email_traders_signature',DEFAULT_TRADERS_SIGNATURE);
   }
+  localStorage.setItem('stellar_exotic_email_traders',JSON.stringify(merged));
   return merged;
 }
 let traders=mergeDefaultTraders(readStoredTraders());
@@ -258,7 +285,7 @@ function normalizeTraders(list,isDefault){
   const stellar=['olivier.levybencheton@stellar-securities.com','uriel.kutnowski@stellar-securities.com','jeremy.cohen@stellar-securities.com','jonathan.buenavida@stellar-securities.com','julien.rouach@stellar-securities.com','benjamin.dray@stellar-securities.com'];
   const selected=list.some(t=>String(t[0]).includes('@stellar-securities.com')&&t[2]);
   const nonStellar=list.filter(t=>!String(t[0]).includes('@stellar-securities.com'));
-  return [...nonStellar,[stellar.join(';'),'STELLAR TEAM',isDefault?true:selected]];
+  return sortTraders([...nonStellar,[stellar.join(';'),'STELLAR TEAM',isDefault?true:selected]]);
 }
 function formatExpirySubject(raw){
   const s=String(raw||'').trim();
@@ -505,6 +532,7 @@ function renderTraders(){
 }
 function selectedBcc(){return traders.filter(t=>t[2]).map(t=>t[0]).join(';');}
 function saveTraders(){
+  traders=normalizeTraders(traders,false);
   localStorage.setItem('stellar_exotic_email_traders',JSON.stringify(traders));
   localStorage.setItem('stellar_exotic_email_traders_signature',DEFAULT_TRADERS_SIGNATURE);
 }
