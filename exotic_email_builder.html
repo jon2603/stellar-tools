@@ -27,13 +27,26 @@ textarea{min-height:210px;font-family:'JetBrains Mono',monospace;line-height:1.4
 input:focus,select:focus,textarea:focus{border-color:var(--gold)}
 button{height:38px;border:none;border-radius:var(--radius);background:var(--gold);color:white;font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;padding:0 18px;cursor:pointer;white-space:nowrap}
 button.secondary{background:var(--bg3);color:var(--text-dim);border:1px solid var(--border)}
+button.danger{background:#fff;color:var(--red);border:1px solid rgba(184,50,50,.28)}
 .quick{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:stretch;margin-bottom:16px}
 .quick textarea{min-height:96px;font-size:13px}
 .quick button{height:auto;min-height:44px}
 .quote-tabs{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
-.quote-tab{height:34px;background:var(--bg3);color:var(--text-dim);border:1px solid var(--border);padding:0 12px}
-.quote-tab.active{background:var(--gold);color:#fff;border-color:var(--gold)}
+.quote-tab{height:34px;background:var(--bg3);color:var(--text-dim);border:1px solid var(--border);border-left-width:5px;padding:0 12px;display:inline-flex;align-items:center;gap:8px;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.quote-tab.c0{border-left-color:var(--gold);background:#fffdf6}
+.quote-tab.c1{border-left-color:var(--blue);background:#f7fbff}
+.quote-tab.c2{border-left-color:var(--green);background:#f7fff9}
+.quote-tab.c3{border-left-color:var(--purple);background:#fbf8ff}
+.quote-tab.c4{border-left-color:var(--red);background:#fff8f8}
+.quote-tab.active{color:#fff;border-color:currentColor;box-shadow:0 5px 14px rgba(0,0,0,.14)}
+.quote-tab.active.c0{background:var(--gold)}
+.quote-tab.active.c1{background:var(--blue)}
+.quote-tab.active.c2{background:var(--green)}
+.quote-tab.active.c3{background:var(--purple)}
+.quote-tab.active.c4{background:var(--red)}
 .quote-tab.add{background:#fff;color:var(--gold);border-color:var(--gold-border)}
+.quote-close{width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:14px;line-height:1;color:inherit;background:rgba(255,255,255,.35)}
+.quote-tab:not(.active) .quote-close{background:#fff;color:var(--red)}
 .template-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px}
 .template-card h3{font-family:'Cormorant Garamond',serif;color:var(--gold);font-size:16px;margin-bottom:10px}
 .actions{display:flex;gap:10px;align-items:center;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
@@ -47,8 +60,12 @@ button.secondary{background:var(--bg3);color:var(--text-dim);border:1px solid va
 .trader-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px}
 .trader{display:flex;gap:9px;align-items:flex-start;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px}
 .trader input{height:auto;margin-top:2px}
+.trader span{min-width:0;flex:1}
+.trader button{height:28px;padding:0 10px;font-size:11px}
 .trader-name{font-weight:600;font-size:13px}
 .trader-email{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-muted);margin-top:2px;word-break:break-all}
+.add-trader{background:#fffdf6;border:1px solid var(--gold-border);border-radius:8px;padding:12px;margin-bottom:14px}
+.add-trader .actions{margin-top:0;justify-content:flex-start}
 .legs-wrap{margin-top:16px;background:#fffdf6;border:1px solid var(--gold-border);border-left:5px solid var(--gold);border-radius:10px;padding:14px}
 .legs-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
 .legs-title{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:600;color:var(--gold)}
@@ -137,6 +154,15 @@ button.secondary{background:var(--bg3);color:var(--text-dim);border:1px solid va
       <div class="note">Equivalent HTML de l'onglet Liste.</div>
     </div>
     <div class="panel-body">
+      <div class="add-trader">
+        <div class="grid">
+          <div class="field"><label>Client name</label><input id="newTraderName" placeholder="UBS"></div>
+          <div class="field wide"><label>Email address</label><input id="newTraderEmail" placeholder="name@client.com"></div>
+          <div class="actions">
+            <button onclick="addTrader()">Add client</button>
+          </div>
+        </div>
+      </div>
       <div class="trader-list" id="traderList"></div>
     </div>
   </section>
@@ -173,6 +199,9 @@ button.secondary{background:var(--bg3);color:var(--text-dim);border:1px solid va
 const defaultTraders=[
   ['pvgequitybrokerquotes@bofa.com','BofA Securities Europe SA',false],
   ['eqd.global.exo.quotes@uk.bnpparibas.com','BNP Paribas SA',false],
+  ['dl.eqd.americas.flow.structuring@uk.bnpparibas.com','BNP Paribas SA',false],
+  ['dl.nyk_exotics_index@us.bnpparibas.com','BNP Paribas SA',false],
+  ['jupyterhub.cib.lisbon.nlt@bnpparibas.com','BNP Paribas SA',false],
   ['peqbqm@morganstanley.com','MS',false],
   ['asia.exo.quotes@morganstanley.com','MS ASIA',false],
   ['lxtindex@morganstanley.com','MS',false],
@@ -187,13 +216,16 @@ const defaultTraders=[
   ['romain.bengui@natixis.com','Natixis',false],
   ['LD-M-SED-Index@natixis.com','Natixis',false],
   ['hkindexderivtrading@natixis.com','NATIXIS ASIA',false],
-  ['olivier.levybencheton@stellar-securities.com;uriel.kutnowski@stellar-securities.com;jeremy.cohen@stellar-securities.com;jonathan.buenavida@stellar-securities.com;julien.rouach@stellar-securities.com','STELLAR TEAM',true],
+  ['olivier.levybencheton@stellar-securities.com;uriel.kutnowski@stellar-securities.com;jeremy.cohen@stellar-securities.com;jonathan.buenavida@stellar-securities.com;julien.rouach@stellar-securities.com;benjamin.dray@stellar-securities.com','STELLAR TEAM',true],
   ['pcgpricetest@barclays.com','Barclays',false],
   ['EFSEuropeSSTrading@barclays.com','Barclays',false],
   ['exo-broker-prod@ny.email.gs.com','Goldman Sachs International',true],
   ['equityratesstructured@unicredit.de','Unicredito',false],
   ['mad-eqty-exo-ind.group@bbva.com','BBVA',false],
-  ['jan.spolenak@db.com','DBK',false]
+  ['eqtrading.es@bbva.com','BBVA',false],
+  ['jan.spolenak@db.com','DBK',false],
+  ['Tobias.hahn@db.com','DBK',false],
+  ['sh-acqabrokerquotesscan@ubs.com','UBS',false]
 ];
 const storedTraders=JSON.parse(localStorage.getItem('stellar_exotic_email_traders')||'null');
 let traders=normalizeTraders(storedTraders||defaultTraders,!storedTraders);
@@ -202,7 +234,7 @@ let activeQuote=0;
 function $(id){return document.getElementById(id);}
 function titleMonth(s){return s?s.slice(0,1).toUpperCase()+s.slice(1,3).toLowerCase():'';}
 function normalizeTraders(list,isDefault){
-  const stellar=['olivier.levybencheton@stellar-securities.com','uriel.kutnowski@stellar-securities.com','jeremy.cohen@stellar-securities.com','jonathan.buenavida@stellar-securities.com','julien.rouach@stellar-securities.com'];
+  const stellar=['olivier.levybencheton@stellar-securities.com','uriel.kutnowski@stellar-securities.com','jeremy.cohen@stellar-securities.com','jonathan.buenavida@stellar-securities.com','julien.rouach@stellar-securities.com','benjamin.dray@stellar-securities.com'];
   const selected=list.some(t=>String(t[0]).includes('@stellar-securities.com')&&t[2]);
   const nonStellar=list.filter(t=>!String(t[0]).includes('@stellar-securities.com'));
   return [...nonStellar,[stellar.join(';'),'STELLAR TEAM',isDefault?true:selected]];
@@ -283,7 +315,6 @@ function applyQuoteState(q){
   syncPickerFromExpiry();
   refreshEmail();
 }
-function saveActiveQuote(){quoteTabs[activeQuote]=currentQuoteState();renderQuoteTabs();}
 function quoteTabLabel(q,i){
   if(!q)return `Price ${i+1}`;
   const legs=(q.legs||[]).join('/')||'Price';
@@ -292,7 +323,7 @@ function quoteTabLabel(q,i){
   return `${i+1}. ${legs}${bid||ask?` ${bid}/${ask}`:''}`;
 }
 function renderQuoteTabs(){
-  $('quoteTabs').innerHTML=quoteTabs.map((q,i)=>`<button class="quote-tab ${i===activeQuote?'active':''}" onclick="switchQuote(${i})">${htmlEncode(quoteTabLabel(q,i))}</button>`).join('')+
+  $('quoteTabs').innerHTML=quoteTabs.map((q,i)=>`<button class="quote-tab c${i%5} ${i===activeQuote?'active':''}" onclick="switchQuote(${i})"><span>${htmlEncode(quoteTabLabel(q,i))}</span>${quoteTabs.length>1?`<span class="quote-close" title="Remove price" onclick="event.stopPropagation();removeQuote(${i})">x</span>`:''}</button>`).join('')+
     '<button class="quote-tab add" onclick="newQuote()">+ New price</button>';
 }
 function switchQuote(i){
@@ -311,6 +342,15 @@ function newQuote(){
   activeQuote=quoteTabs.length-1;
   applyQuoteState(base);
   renderQuoteTabs();
+}
+function removeQuote(i){
+  if(quoteTabs.length<=1){showToast('Keep at least one price');return;}
+  quoteTabs.splice(i,1);
+  if(activeQuote>=quoteTabs.length)activeQuote=quoteTabs.length-1;
+  if(i<activeQuote)activeQuote--;
+  applyQuoteState(quoteTabs[activeQuote]);
+  renderQuoteTabs();
+  showToast('Price removed');
 }
 function parseQuickExpiry(token){
   const s=String(token||'').trim();
@@ -343,8 +383,8 @@ function parseQuick(){
   const tokens=raw.split(/\s+/).filter(Boolean);
   const expToken=tokens.find(t=>parseQuickExpiry(t));
   const isQuanto=isQuantoForwardText(raw);
-  const legsToken=tokens.find(t=>/^[A-Z0-9]+(?:\/[A-Z0-9]+)+$/i.test(t));
-  const underlyerToken=isQuanto?tokens.find(t=>/^[A-Z][A-Z0-9.]*$/i.test(t)&&!parseQuickExpiry(t)&&!/^q[A-Z]{3}$/i.test(t)&&!productFromQuick(t)):null;
+  const legsToken=tokens.find(t=>/^[A-Z0-9.]+(?:\/[A-Z0-9.]+)+$/i.test(t));
+  const underlyerToken=isQuanto?tokens.find(t=>/^[A-Z][A-Z0-9.]*$/i.test(t)&&!parseQuickExpiry(t)&&!/^q[A-Z]{3}:?$/i.test(t)&&!productFromQuick(t)):null;
   const strikeToken=tokens.find(t=>/^\d+(?:\.\d+)?%$/.test(t));
   const productToken=tokens.find(t=>productFromQuick(t));
   const currencyToken=tokens.find(t=>/^q?[A-Z]{3}:?$/i.test(t)&&!productFromQuick(t));
@@ -360,7 +400,7 @@ function parseQuick(){
     renderLegs();
     $('leg1').value=normalizeUnderlyer(underlyerToken);
   }else if(legsToken){
-    const legs=legsToken.split('/').map(x=>x.trim().toUpperCase()).filter(Boolean).slice(0,6);
+    const legs=legsToken.split('/').map(x=>normalizeUnderlyer(x)).filter(Boolean).slice(0,6);
     $('totalLegs').value=legs.length||1;
     renderLegs();
     legs.forEach((leg,i)=>{$('leg'+(i+1)).value=leg;});
@@ -437,10 +477,49 @@ function renderLegs(){
   refreshEmail();
 }
 function renderTraders(){
-  $('traderList').innerHTML=traders.map((t,i)=>`<label class="trader"><input type="checkbox" ${t[2]?'checked':''} onchange="traders[${i}][2]=this.checked;saveTraders();refreshEmail()"><span><div class="trader-name">${t[1]||t[0]}</div><div class="trader-email">${t[0]}</div></span></label>`).join('');
+  $('traderList').innerHTML=traders.map((t,i)=>{
+    const isStellar=String(t[0]).includes('@stellar-securities.com');
+    return `<label class="trader"><input type="checkbox" ${t[2]?'checked':''} onchange="traders[${i}][2]=this.checked;saveTraders();refreshEmail()"><span><div class="trader-name">${htmlEncode(t[1]||t[0])}</div><div class="trader-email">${htmlEncode(t[0])}</div></span>${isStellar?'':`<button type="button" class="danger" onclick="event.preventDefault();removeTrader(${i})">Remove</button>`}</label>`;
+  }).join('');
 }
 function selectedBcc(){return traders.filter(t=>t[2]).map(t=>t[0]).join(';');}
 function saveTraders(){localStorage.setItem('stellar_exotic_email_traders',JSON.stringify(traders));}
+function isValidEmailList(value){
+  return String(value||'').split(';').map(s=>s.trim()).filter(Boolean).every(s=>/^[^\s@;]+@[^\s@;]+\.[^\s@;]+$/.test(s));
+}
+function addTrader(){
+  const name=$('newTraderName').value.trim();
+  const email=$('newTraderEmail').value.trim();
+  if(!name){showToast('Client name missing');return;}
+  if(!email||!isValidEmailList(email)){showToast('Email invalid');return;}
+  const key=email.toLowerCase();
+  const existing=traders.findIndex(t=>String(t[0]).toLowerCase()===key);
+  if(existing>=0){
+    traders[existing]=[email,name,true];
+    showToast('Client updated');
+  }else{
+    const stellarIndex=traders.findIndex(t=>String(t[0]).includes('@stellar-securities.com'));
+    const insertAt=stellarIndex>=0?stellarIndex:traders.length;
+    traders.splice(insertAt,0,[email,name,true]);
+    showToast('Client added');
+  }
+  $('newTraderName').value='';
+  $('newTraderEmail').value='';
+  saveTraders();
+  renderTraders();
+  refreshEmail();
+}
+function removeTrader(index){
+  const trader=traders[index];
+  if(!trader)return;
+  if(String(trader[0]).includes('@stellar-securities.com')){showToast('Stellar team kept');return;}
+  if(!confirm(`Remove ${trader[1]||trader[0]} from the list?`))return;
+  traders.splice(index,1);
+  saveTraders();
+  renderTraders();
+  refreshEmail();
+  showToast('Client removed');
+}
 function selectAllTraders(){traders=traders.map(t=>[t[0],t[1],true]);saveTraders();renderTraders();refreshEmail();}
 function clearTraders(){traders=traders.map(t=>[t[0],t[1],false]);saveTraders();renderTraders();refreshEmail();}
 function syncExpiryFromPicker(){
@@ -513,6 +592,8 @@ function downloadEml(){
 function showToast(msg){$('toast').textContent=msg;$('toast').style.display='block';setTimeout(()=>$('toast').style.display='none',1800);}
 $('expiryPicker').addEventListener('change',syncExpiryFromPicker);
 $('quickInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.ctrlKey)parseQuick();});
+$('newTraderName').addEventListener('keydown',e=>{if(e.key==='Enter')addTrader();});
+$('newTraderEmail').addEventListener('keydown',e=>{if(e.key==='Enter')addTrader();});
 ['from','productType','expiry','totalLegs','quanto','strike','bid','ask','hedge'].forEach(id=>{
   $(id).addEventListener('input',id==='totalLegs'?renderLegs:refreshEmail);
   $(id).addEventListener('change',id==='totalLegs'?renderLegs:refreshEmail);
