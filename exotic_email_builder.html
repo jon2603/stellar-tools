@@ -197,38 +197,59 @@ button.danger{background:#fff;color:var(--red);border:1px solid rgba(184,50,50,.
 <div class="toast" id="toast">Copied</div>
 <script>
 const defaultTraders=[
-  ['pvgequitybrokerquotes@bofa.com','BofA Securities Europe SA',false],
+  ['pcgpricetest@barclays.com','Barclays',false],
+  ['EFSEuropeSSTrading@barclays.com','Barclays',false],
+  ['mad-eqty-exo-ind.group@bbva.com','BBVA',false],
+  ['eqtrading.es@bbva.com','BBVA',false],
   ['eqd.global.exo.quotes@uk.bnpparibas.com','BNP Paribas SA',false],
   ['dl.eqd.americas.flow.structuring@uk.bnpparibas.com','BNP Paribas SA',false],
   ['dl.nyk_exotics_index@us.bnpparibas.com','BNP Paribas SA',false],
   ['jupyterhub.cib.lisbon.nlt@bnpparibas.com','BNP Paribas SA',false],
-  ['peqbqm@morganstanley.com','MS',false],
-  ['asia.exo.quotes@morganstanley.com','MS ASIA',false],
-  ['lxtindex@morganstanley.com','MS',false],
-  ['eisexoticquotation@ca-cib.com','Credit Agricole',false],
-  ['l.gt.nam.rapid.solutions@citi.com','CITIGROUP Global Markets Limited',false],
-  ['Exotics-Broker-Quotes@gs.com','Goldman Sachs International',true],
+  ['pvgequitybrokerquotes@bofa.com','BofA Securities Europe SA',false],
   ['ukfinbia.mailbox@cibc.co.uk','CIBC',false],
+  ['l.gt.nam.rapid.solutions@citi.com','CITIGROUP Global Markets Limited',false],
+  ['eisexoticquotation@ca-cib.com','Credit Agricole',false],
+  ['jan.spolenak@db.com','DBK',false],
+  ['Tobias.hahn@db.com','DBK',false],
+  ['Exotics-Broker-Quotes@gs.com','Goldman Sachs International',true],
+  ['exo-broker-prod@ny.email.gs.com','Goldman Sachs International',true],
   ['hbfr-trading-exo-auto@hsbc.com','HSBC Bank Plc',false],
-  ['complex.equity@mediobanca.com','Mediobanca',false],
   ['Correl_Quoting_Bot@jpmorgan.com','JP Morgan Securities PLC',false],
-  ['GELPEMEACorrelationQuotes@rbccm.com','RBC Europe Limited',false],
+  ['complex.equity@mediobanca.com','Mediobanca',false],
+  ['peqbqm@morganstanley.com','MS',false],
+  ['lxtindex@morganstanley.com','MS',false],
+  ['asia.exo.quotes@morganstanley.com','MS ASIA',false],
   ['romain.bengui@natixis.com','Natixis',false],
   ['LD-M-SED-Index@natixis.com','Natixis',false],
   ['hkindexderivtrading@natixis.com','NATIXIS ASIA',false],
+  ['GELPEMEACorrelationQuotes@rbccm.com','RBC Europe Limited',false],
   ['olivier.levybencheton@stellar-securities.com;uriel.kutnowski@stellar-securities.com;jeremy.cohen@stellar-securities.com;jonathan.buenavida@stellar-securities.com;julien.rouach@stellar-securities.com;benjamin.dray@stellar-securities.com','STELLAR TEAM',true],
-  ['pcgpricetest@barclays.com','Barclays',false],
-  ['EFSEuropeSSTrading@barclays.com','Barclays',false],
-  ['exo-broker-prod@ny.email.gs.com','Goldman Sachs International',true],
-  ['equityratesstructured@unicredit.de','Unicredito',false],
-  ['mad-eqty-exo-ind.group@bbva.com','BBVA',false],
-  ['eqtrading.es@bbva.com','BBVA',false],
-  ['jan.spolenak@db.com','DBK',false],
-  ['Tobias.hahn@db.com','DBK',false],
-  ['sh-acqabrokerquotesscan@ubs.com','UBS',false]
+  ['sh-acqabrokerquotesscan@ubs.com','UBS',false],
+  ['equityratesstructured@unicredit.de','Unicredito',false]
 ];
-const storedTraders=JSON.parse(localStorage.getItem('stellar_exotic_email_traders')||'null');
-let traders=normalizeTraders(storedTraders||defaultTraders,!storedTraders);
+const DEFAULT_TRADERS_SIGNATURE=defaultTraders.map(t=>t[0]).join('|');
+function readStoredTraders(){
+  try{return JSON.parse(localStorage.getItem('stellar_exotic_email_traders')||'null');}
+  catch(e){return null;}
+}
+function mergeDefaultTraders(stored){
+  if(!stored)return normalizeTraders(defaultTraders,true);
+  const storedSignature=localStorage.getItem('stellar_exotic_email_traders_signature')||'';
+  let merged=normalizeTraders(stored,false);
+  if(storedSignature!==DEFAULT_TRADERS_SIGNATURE){
+    const known=new Set(merged.flatMap(t=>String(t[0]).split(';').map(e=>e.trim().toLowerCase()).filter(Boolean)));
+    const additions=defaultTraders.filter(t=>!String(t[0]).includes('@stellar-securities.com')&&!known.has(String(t[0]).toLowerCase()));
+    if(additions.length){
+      const stellarIndex=merged.findIndex(t=>String(t[0]).includes('@stellar-securities.com'));
+      const insertAt=stellarIndex>=0?stellarIndex:merged.length;
+      merged.splice(insertAt,0,...additions);
+      localStorage.setItem('stellar_exotic_email_traders',JSON.stringify(merged));
+    }
+    localStorage.setItem('stellar_exotic_email_traders_signature',DEFAULT_TRADERS_SIGNATURE);
+  }
+  return merged;
+}
+let traders=mergeDefaultTraders(readStoredTraders());
 let quoteTabs=[null];
 let activeQuote=0;
 function $(id){return document.getElementById(id);}
@@ -483,7 +504,10 @@ function renderTraders(){
   }).join('');
 }
 function selectedBcc(){return traders.filter(t=>t[2]).map(t=>t[0]).join(';');}
-function saveTraders(){localStorage.setItem('stellar_exotic_email_traders',JSON.stringify(traders));}
+function saveTraders(){
+  localStorage.setItem('stellar_exotic_email_traders',JSON.stringify(traders));
+  localStorage.setItem('stellar_exotic_email_traders_signature',DEFAULT_TRADERS_SIGNATURE);
+}
 function isValidEmailList(value){
   return String(value||'').split(';').map(s=>s.trim()).filter(Boolean).every(s=>/^[^\s@;]+@[^\s@;]+\.[^\s@;]+$/.test(s));
 }
