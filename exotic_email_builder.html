@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -331,6 +330,12 @@ function formatQuotePct(s){
   return s.endsWith('%')?s:s+'%';
 }
 function stripPct(s){return String(s||'').trim().replace(/%$/,'');}
+function formatSubjectQuotePair(bidRaw,askRaw){
+  const bid=stripPct(formatQuotePct(bidRaw));
+  let ask=stripPct(formatQuotePct(askRaw));
+  if(/^0\.\d+$/.test(bid)&&/^0\.\d+$/.test(ask))ask=ask.slice(2);
+  return `${bid}/${ask}`;
+}
 function currentQuoteState(){
   return {
     quick:$('quickInput').value,
@@ -423,7 +428,9 @@ function normalizeUnderlyer(raw){
   return map[t]||t;
 }
 function isQuantoForwardText(raw){
-  return /\bq[A-Z]{3}\b/i.test(raw)&&!/\b(cvc|pvp|pvc|cvp)\b/i.test(raw)&&!/[A-Z0-9]+\/[A-Z0-9]+/i.test(raw);
+  const tokens=String(raw||'').split(/\s+/).filter(Boolean);
+  const hasPairedUnderlyers=tokens.some(t=>/^[A-Z][A-Z0-9.]*(?:\/[A-Z][A-Z0-9.]*)+$/i.test(t));
+  return /\bq[A-Z]{3}\b/i.test(raw)&&!/\b(cvc|pvp|pvc|cvp)\b/i.test(raw)&&!hasPairedUnderlyers;
 }
 function parseQuick(){
   const raw=$('quickInput').value.trim();
@@ -435,7 +442,7 @@ function parseQuick(){
   const underlyerToken=isQuanto?tokens.find(t=>/^[A-Z][A-Z0-9.]*$/i.test(t)&&!parseQuickExpiry(t)&&!/^q[A-Z]{3}:?$/i.test(t)&&!productFromQuick(t)):null;
   const strikeToken=tokens.find(t=>/^\d+(?:\.\d+)?%$/.test(t));
   const productToken=tokens.find(t=>productFromQuick(t));
-  const currencyToken=tokens.find(t=>/^q?[A-Z]{3}:?$/i.test(t)&&!productFromQuick(t));
+  const currencyToken=tokens.find(t=>/^q[A-Z]{3}:?$/i.test(t))||(!isQuanto?tokens.find(t=>/^[A-Z]{3}:?$/i.test(t)&&!productFromQuick(t)):null);
   const quoteMatch=raw.match(/(-?\d+(?:\.\d+)?)\s*%?\s*\/\s*(-?\d+(?:\.\d+)?)\s*%?\s*$/);
   if(expToken)$('expiry').value=parseQuickExpiry(expToken);
   if(isQuanto)$('productType').value='Synthetic Quanto';
@@ -471,7 +478,7 @@ function buildSubject(){
   const ptype=productShort($('productType').value);
   const q=$('quanto').value.trim()?('q'+$('quanto').value.trim().toUpperCase()):'';
   if($('productType').value==='Synthetic Quanto'){
-    return `STELLAR - Exotic Quote | ${legs} ${exp} ${ptype} ${q} [${stripPct(formatQuotePct($('bid').value))}/${stripPct(formatQuotePct($('ask').value))}]`.replace(/\s+/g,' ').trim();
+    return `STELLAR - Exotic Quote | ${exp} ${legs} ${q} [${formatSubjectQuotePair($('bid').value,$('ask').value)}]`.replace(/\s+/g,' ').trim();
   }
   return `STELLAR - Exotic Quote | ${legs} ${exp} ${ptype} ${q} ${formatStrikePct($('strike').value)} [${stripPct(formatQuotePct($('bid').value))}/${stripPct(formatQuotePct($('ask').value))}]`.replace(/\s+/g,' ').trim();
 }
