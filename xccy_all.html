@@ -801,51 +801,40 @@
       });
     }
 
-    async function fetchTicker(bridgeUrl, ticker) {
-      const url = `${bridgeUrl.replace(/\/$/, "")}/quote?ticker=${encodeURIComponent(ticker)}`;
-      const controller = new AbortController();
-      const timeout = window.setTimeout(() => controller.abort(), 15000);
-      try {
-        const response = await fetch(url, { signal: controller.signal });
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok || payload.ok === false) {
-          throw new Error(payload.error || `HTTP ${response.status}`);
-        }
-        const value = readBloombergValue(payload);
-        if (!Number.isFinite(value)) {
-          throw new Error("No numeric LAST_PRICE/PX_LAST returned by bridge");
-        }
-        return value;
-      } catch (error) {
-        if (error.name === "AbortError") {
-          throw new Error("Bloomberg request timed out");
-        }
-        throw error;
-      } finally {
-        window.clearTimeout(timeout);
-      }
-    }
-
-    async function fetchTickersLimited(tickers, bridgeUrl, limit = 4) {
+    async function fetchTickersLimited(tickers, bridgeUrl) {
       const results = new Array(tickers.length);
-      let nextIndex = 0;
+      const baseUrl = bridgeUrl.replace(/\/$/, "");
+      const batchSize = 25;
 
-      async function worker() {
-        while (nextIndex < tickers.length) {
-          const index = nextIndex;
-          nextIndex += 1;
-          const ticker = tickers[index];
-          try {
-            const value = await fetchTicker(bridgeUrl, ticker);
-            results[index] = { status: "fulfilled", value: [ticker, value] };
-          } catch (error) {
-            results[index] = { status: "rejected", reason: error };
+      for (let start = 0; start < tickers.length; start += batchSize) {
+        const batch = tickers.slice(start, start + batchSize);
+        const query = new URLSearchParams({ profile: "price" });
+        batch.forEach((ticker) => query.append("ticker", ticker));
+        const controller = new AbortController();
+        const timeout = window.setTimeout(() => controller.abort(), 20000);
+        try {
+          const response = await fetch(`${baseUrl}/quotes?${query}`, { signal: controller.signal });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok || payload.ok === false) {
+            throw new Error(payload.error || `HTTP ${response.status}`);
           }
+          const quotes = payload.data || {};
+          batch.forEach((ticker, offset) => {
+            const quote = quotes[ticker];
+            const value = readBloombergValue(quote);
+            results[start + offset] = Number.isFinite(value)
+              ? { status: "fulfilled", value: [ticker, value] }
+              : { status: "rejected", reason: new Error((quote && quote.error) || "No numeric LAST_PRICE/PX_LAST returned by bridge") };
+          });
+        } catch (error) {
+          const reason = error.name === "AbortError" ? new Error("Bloomberg request timed out") : error;
+          batch.forEach((ticker, offset) => {
+            results[start + offset] = { status: "rejected", reason };
+          });
+        } finally {
+          window.clearTimeout(timeout);
         }
       }
-
-      const workerCount = Math.min(limit, tickers.length);
-      await Promise.all(Array.from({ length: workerCount }, worker));
       return results;
     }
 
