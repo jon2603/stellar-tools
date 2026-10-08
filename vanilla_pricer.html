@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -186,6 +185,20 @@ button:disabled{opacity:.55;cursor:default}
     </div>
   </section>
 
+  <section class="panel">
+    <div class="panel-head">
+      <div class="panel-title">Bot detail</div>
+      <div class="note">resume pricing pret a coller</div>
+    </div>
+    <div class="panel-body">
+      <div class="rfq-actions">
+        <div class="solver-result" id="botDetail">Parse & Load pour generer le detail.</div>
+        <button class="secondary" onclick="copyBotDetail()">Copy Bot</button>
+      </div>
+      <div class="copy-ok" id="botCopyStatus"></div>
+    </div>
+  </section>
+
   <div class="panel-row">
     <section class="panel hidden eurex-panel" id="eurexPanel">
       <div class="panel-head">
@@ -200,7 +213,7 @@ button:disabled{opacity:.55;cursor:default}
         <div class="solver-box">
           <div class="grid">
             <div class="field"><label>Traded level</label><input id="tradedLevel" placeholder="mid rounded"></div>
-            <div class="field"><label>Size</label><input id="crossSize" type="number" value="3000" step="1"></div>
+            <div class="field"><label>Size</label><input id="crossSize" type="number" value="2000" step="1"></div>
             <div class="field"><label>Agreed delta %</label><input id="crossDelta" type="number" placeholder="20" step="0.1"></div>
             <div class="field"><label>Option tick</label><input id="optionTick" type="number" value="0.05" step="0.001"></div>
             <div class="field"><label>Future tick</label><input id="futureTick" type="number" value="0.05" step="0.001"></div>
@@ -376,6 +389,7 @@ function buildTradingPhrase(){
   return level?`{TW} TRADING ${core} at ${level}`:`{TW} TRADING ${core}`;
 }
 function updateTradingPhrase(){if($('tradingPhrase'))$('tradingPhrase').textContent=buildTradingPhrase();}
+const EUREX_BLOCK_MIN_SIZE=2000;
 const EUREX_STRATEGY_TYPES={
   call_spread:{name:'Call Spread',standard:'BUL',volShort:'BUL-U',detail:'buy low strike call / sell high strike call'},
   put_spread:{name:'Put Spread',standard:'BER',volLong:'BER+U',detail:'buy high strike put / sell low strike put'},
@@ -504,7 +518,7 @@ function buildEurexCrossTicket(code,opts={}){
 function solveCrossEconomics(){
   const oldOpt=tradedLevelNum(), oldRef=num('refSpot')||liveRef();
   const live=liveRef();
-  const size=Number($('crossSize')&&$('crossSize').value)||3000;
+  const size=Number($('crossSize')&&$('crossSize').value)||EUREX_BLOCK_MIN_SIZE;
   const mult=Number($('crossMultiplier')&&$('crossMultiplier').value)||50;
   const optTick=Number($('optionTick')&&$('optionTick').value)||0.05;
   const futTick=Number($('futureTick')&&$('futureTick').value)||0.05;
@@ -512,7 +526,7 @@ function solveCrossEconomics(){
   let d=agreedDelta();
   if(!Number.isFinite(oldOpt)||!Number.isFinite(oldRef)||!Number.isFinite(d)||d===0)return 'Enter traded level, ref and agreed delta.';
   const delta=Math.abs(d)>1?d/100:d;
-  const liveOnly=size<3000;
+  const liveOnly=size<EUREX_BLOCK_MIN_SIZE;
   const oldOptOnTick=Math.abs(oldOpt-roundToTick(oldOpt,optTick))<1e-9;
   const oldRefOnTick=Math.abs(oldRef-roundToTick(oldRef,futTick))<1e-9;
   const minRef=liveOnly&&Number.isFinite(live)?live*(1-bandPct):-Infinity;
@@ -540,22 +554,39 @@ function solveCrossEconomics(){
     candidates.push({newOpt,newRef,a,b,residual:a-b,dist:Math.abs(newOpt-oldOpt)+Math.abs(newRef-oldRef)*delta});
   }
   if(!candidates.length)return `No tick solution inside live ref band +/-${fmtRfqNum(bandPct*100)}%.`;
-  candidates.sort((x,y)=>Math.abs(x.residual)-Math.abs(y.residual)||x.dist-y.dist);
+  candidates.sort((x,y)=>{
+    const residualCentsX=Math.round(Math.abs(x.residual)*100);
+    const residualCentsY=Math.round(Math.abs(y.residual)*100);
+    const distanceUnitsX=Math.round(x.dist*1e9);
+    const distanceUnitsY=Math.round(y.dist*1e9);
+    return residualCentsX-residualCentsY||distanceUnitsX-distanceUnitsY||x.residual-y.residual;
+  });
   const best=candidates[0];
   best.a=(oldOpt-best.newOpt)*size*mult;
   best.b=size*delta*mult*(oldRef-best.newRef);
   best.residual=best.a-best.b;
+  const bestResidualCents=Math.round(Math.abs(best.residual)*100);
+  const bestDistanceUnits=Math.round(best.dist*1e9);
+  const alternative=candidates.find(c=>
+    Math.round(Math.abs(c.residual)*100)===bestResidualCents&&
+    Math.round(c.dist*1e9)===bestDistanceUnits&&
+    Math.abs(c.newOpt-best.newOpt)>1e-9
+  );
   const block=liveOnly?'Live cross only':'Block ok';
   const lines=[
     `${block} | size ${fmtRfqNum(size)} | delta ${fmtRfqNum(delta*100)}% | multiplier ${fmtRfqNum(mult)}`,
     `Option ${fmtRfqNum(oldOpt)} -> ${fmtRfqNum(best.newOpt)} | Ref ${fmtRfqNum(oldRef)} -> ${fmtRfqNum(best.newRef)}`,
     `Cash option A ${fmtCash(best.a)} | futures B ${fmtCash(best.b)} | residual ${fmtCash(best.residual)}`
   ];
+  if(alternative)lines.push(
+    `Alternative | Option ${fmtRfqNum(oldOpt)} -> ${fmtRfqNum(alternative.newOpt)} | Ref ${fmtRfqNum(oldRef)} -> ${fmtRfqNum(alternative.newRef)}`,
+    `Alternative cash A ${fmtCash(alternative.a)} | futures B ${fmtCash(alternative.b)} | residual ${fmtCash(alternative.residual)}`
+  );
   if(liveOnly&&Number.isFinite(live))lines.push(`Live ref band ${fmtRfqNum(minRef)} / ${fmtRfqNum(maxRef)}`);
   const low=Math.floor(oldOpt/optTick)*optTick, high=low+optTick;
-  if(size>=6000&&Math.abs(oldOpt-low)>1e-9&&Math.abs(high-oldOpt)>1e-9){
+  if(size>=2*EUREX_BLOCK_MIN_SIZE&&Math.abs(oldOpt-low)>1e-9&&Math.abs(high-oldOpt)>1e-9){
     const highSize=size*(oldOpt-low)/optTick, lowSize=size-highSize;
-    if(lowSize>=3000&&highSize>=3000)lines.push(`Block split avg: ${fmtRfqNum(lowSize)} @ ${fmtRfqNum(low)} / ${fmtRfqNum(highSize)} @ ${fmtRfqNum(high)}`);
+    if(lowSize>=EUREX_BLOCK_MIN_SIZE&&highSize>=EUREX_BLOCK_MIN_SIZE)lines.push(`Block split avg: ${fmtRfqNum(lowSize)} @ ${fmtRfqNum(low)} / ${fmtRfqNum(highSize)} @ ${fmtRfqNum(high)}`);
   }
   return lines.join('\n');
 }
@@ -741,30 +772,88 @@ function aggregate(legs){
 function recalcAdjusted(){
   if(!state)return;const ref=num('refSpot'),live=liveRef(),a=state.agg;$('refOut').textContent=fmt(ref);$('deltaOut').textContent=fmtPct(a.delta);
   recalcNotional();
-  if(!Number.isFinite(ref)||!Number.isFinite(live)||!Number.isFinite(a.delta)){$('adjBid').textContent=$('adjAsk').textContent=$('adjMid').textContent='-';$('moveText').textContent='move -';updateGoldmanSymph();updateEurexCrossHint();return;}
+  if(!Number.isFinite(ref)||!Number.isFinite(live)||!Number.isFinite(a.delta)){$('adjBid').textContent=$('adjAsk').textContent=$('adjMid').textContent='-';$('moveText').textContent='move -';updateGoldmanSymph();updateEurexCrossHint();updateBotDetail();return;}
   const move=ref-live;$('moveText').textContent=`move ${fmt(ref)} - ${fmt(live)} = ${fmt(move)}`;
   $('adjBid').textContent=fmt(a.bid+a.delta*move);$('adjAsk').textContent=fmt(a.ask+a.delta*move);$('adjMid').textContent=fmt(a.mid+a.delta*move);
   updateGoldmanSymph();
   updateEurexCrossHint();
+  updateBotDetail();
 }
 function useLiveAsRef(){const l=liveRef();if(Number.isFinite(l)){$('refSpot').value=l;recalcAdjusted();}}
+function botStrategyName(){
+  const opt=$('strategy').selectedOptions&&$('strategy').selectedOptions[0];
+  return opt?opt.textContent:$('strategy').value;
+}
+function botAdjustedValue(id){
+  const raw=$(id)&&$(id).textContent;
+  return raw&&raw!=='-'?raw:null;
+}
+function botWarnings(){
+  const out=[];
+  const raw=$('quickInput').value.trim();
+  if(/\bAC\b/i.test(raw)&&$('strategy').value==='call')out.push('AC est interprete ici comme listed Call, pas comme payoff autocall structure.');
+  if(assetMode==='single'&&!$('optionRoot').value.trim())out.push('Option root vide: le pricer utilise la chaine Bloomberg pour trouver les contrats.');
+  if(!Number.isFinite(num('refSpot')))out.push('Reference cible manquante: adjusted price non calcule.');
+  if(state&&Array.isArray(state.legs)){
+    const bad=state.legs.filter(l=>l.quote&&l.quote.error).map(l=>l.ticker);
+    if(bad.length)out.push('Erreur Bloomberg sur: '+bad.join(', '));
+  }
+  return out;
+}
+function buildBotDetail(){
+  if(!state||!state.agg)return 'Parse & Load pour generer le detail.';
+  const a=state.agg, ref=num('refSpot'), live=liveRef(), move=Number.isFinite(ref)&&Number.isFinite(live)?ref-live:null;
+  const lines=[];
+  lines.push(`${assetMode==='single'?$('stockRef').value.trim():cleanUnderlying()} | ${botStrategyName()} | ${$('mat1').value.trim()} | strike ${fmtRfqNum($('strike1').value)}`);
+  if($('strategy').value.includes('fly'))lines[0]+=` / ${fmtRfqNum($('strike2').value)} / ${fmtRfqNum($('strike3').value)}`;
+  else if($('strategy').value.includes('spread')||$('strategy').value.includes('ratio')||$('strategy').value.includes('strangle')||$('strategy').value.includes('diagonal'))lines[0]+=` / ${fmtRfqNum($('strike2').value)}`;
+  lines.push('');
+  lines.push(`Bloomberg tickers: ${state.legs.map(l=>l.ticker).join(' | ')}`);
+  lines.push(`Reference live: ${fmt(live)}${Number.isFinite(ref)?` | reference cible: ${fmt(ref)}`:''}${Number.isFinite(move)?` | move: ${fmt(move)}`:''}`);
+  lines.push(`Market bid/mid/ask: ${fmt(a.bid)} / ${fmt(a.mid)} / ${fmt(a.ask)}`);
+  const adjBid=botAdjustedValue('adjBid'),adjMid=botAdjustedValue('adjMid'),adjAsk=botAdjustedValue('adjAsk');
+  if(adjBid||adjMid||adjAsk)lines.push(`Adjusted bid/mid/ask: ${adjBid||'-'} / ${adjMid||'-'} / ${adjAsk||'-'}`);
+  lines.push(`Greeks: delta ${fmtPct(a.delta)} | gamma ${fmt(a.gamma)} | vega ${fmt(a.vega)} | theta ${fmt(a.theta)} | rho ${fmt(a.rho)}`);
+  lines.push(`Vol/OI: IVOL mid ${fmt(a.vol)} | open interest ${fmt(a.oi)}`);
+  if($('optionSize').value.trim())lines.push(`Notional: ${$('tradeNotional').textContent} (${$('notionalMeta').textContent})`);
+  const warnings=botWarnings();
+  if(warnings.length){
+    lines.push('');
+    warnings.forEach(w=>lines.push(`Warning: ${w}`));
+  }
+  return lines.join('\n');
+}
+function updateBotDetail(){
+  if($('botDetail'))$('botDetail').textContent=buildBotDetail();
+}
+async function copyBotDetail(){
+  const text=$('botDetail').textContent;
+  await navigator.clipboard.writeText(text);
+  $('botCopyStatus').textContent='Copied';
+  setTimeout(()=>$('botCopyStatus').textContent='',1400);
+}
 function render(legs,ref,agg){
   $('bid').textContent=fmt(agg.bid);$('ask').textContent=fmt(agg.ask);$('mid').textContent=fmt(agg.mid);$('liveRef').textContent=fmt(liveRef());$('refTime').textContent=liveRefMoveText(ref);$('openInterest').textContent=fmt(agg.oi);$('gGamma').textContent=fmt(agg.gamma);$('gVega').textContent=fmt(agg.vega);$('gTheta').textContent=fmt(agg.theta);$('gRho').textContent=fmt(agg.rho);$('gVol').textContent=fmt(agg.vol);$('strategyLabel').textContent=$('strategy').selectedOptions[0].textContent;$('bbgTicker').textContent=legs.map(l=>l.ticker).join(' | ');updateEurexCrossHint();
   $('legsBody').innerHTML=legs.map(l=>`<tr title="${esc(contractTooltip(l.quote))}"><td>${l.name}</td><td>${l.ticker}</td><td>${l.qty>0?'Long':'Short'}</td><td>${fmtPxSize(l.quote,'bid')}</td><td>${fmtPxSize(l.quote,'ask')}</td><td>${fmt(l.quote.mid)}</td><td>${fmtPct(delta(l.quote))}</td><td>${fmt(fnum(l.quote,['OPEN_INT','OPEN_INTEREST']))}</td></tr>`).join('');
   if(!$('refSpot').value&&Number.isFinite(liveRef()))$('refSpot').value=liveRef();recalcAdjusted();
 }
 function chainAggregate(matches){
-  const live=matches.filter(m=>Number.isFinite(Number(m.quote&&m.quote.bid))||Number.isFinite(Number(m.quote&&m.quote.ask)));
-  const rows=live.map(m=>({match:m,bid:Number(m.quote.bid),ask:Number(m.quote.ask),mid:Number.isFinite(Number(m.quote.bid))&&Number.isFinite(Number(m.quote.ask))?(Number(m.quote.bid)+Number(m.quote.ask))/2:Number(m.quote.mid)}));
-  const best=rows.slice().sort((a,b)=>(Number(b.mid)||-Infinity)-(Number(a.mid)||-Infinity))[0]||{};
-  const q=best.match&&best.match.quote?best.match.quote:{fields:{}};
+  const live=matches
+    .map(m=>({...m,bid:Number(m.quote&&m.quote.bid),ask:Number(m.quote&&m.quote.ask)}))
+    .filter(m=>Number.isFinite(m.bid)&&Number.isFinite(m.ask)&&m.bid>0&&m.ask>0&&m.ask>=m.bid);
+  const best=live.slice().sort((a,b)=>{
+    const midA=(a.bid+a.ask)/2,midB=(b.bid+b.ask)/2;
+    if(midB!==midA)return midB-midA;
+    return (a.ask-a.bid)-(b.ask-b.bid);
+  })[0];
+  const q=best&&best.quote?best.quote:{fields:{}};
   const oi=matches.reduce((sum,m)=>sum+(Number(fnum(m.quote,['OPEN_INT','OPEN_INTEREST']))||0),0);
-  return {bid:Number.isFinite(best.bid)?best.bid:null,ask:Number.isFinite(best.ask)?best.ask:null,mid:Number.isFinite(best.mid)?best.mid:null,delta:delta(q)||0,gamma:fnum(q,['OPT_GAMMA','GAMMA'])||0,vega:fnum(q,['OPT_VEGA','VEGA'])||0,theta:fnum(q,['OPT_THETA','THETA'])||0,rho:fnum(q,['OPT_RHO','RHO'])||0,vol:fnum(q,['IVOL_MID','IMPLIED_VOLATILITY_MID']),oi};
+  return {bid:best?best.bid:null,ask:best?best.ask:null,mid:best?(best.bid+best.ask)/2:null,delta:delta(q)||0,gamma:fnum(q,['OPT_GAMMA','GAMMA'])||0,vega:fnum(q,['OPT_VEGA','VEGA'])||0,theta:fnum(q,['OPT_THETA','THETA'])||0,rho:fnum(q,['OPT_RHO','RHO'])||0,vol:fnum(q,['IVOL_MID','IMPLIED_VOLATILITY_MID']),oi,market:best&&best.market};
 }
 function renderChainMatches(matches,ref){
   const agg=chainAggregate(matches);
   state={legs:matches.map(m=>({name:m.root,ticker:m.ticker,qty:1,quote:m.quote})),ref,agg,chainMatches:matches};
-  $('bid').textContent=fmt(agg.bid);$('ask').textContent=fmt(agg.ask);$('mid').textContent=fmt(agg.mid);$('liveRef').textContent=fmt(liveRef());$('refTime').textContent=liveRefMoveText(ref);$('openInterest').textContent=fmt(agg.oi);$('gGamma').textContent=fmt(agg.gamma);$('gVega').textContent=fmt(agg.vega);$('gTheta').textContent=fmt(agg.theta);$('gRho').textContent=fmt(agg.rho);$('gVol').textContent=fmt(agg.vol);$('strategyLabel').textContent=`All markets (${matches.length})`;$('bbgTicker').textContent=matches.map(m=>m.ticker).join(' | ');updateEurexCrossHint();
+  $('bid').textContent=fmt(agg.bid);$('ask').textContent=fmt(agg.ask);$('mid').textContent=fmt(agg.mid);$('liveRef').textContent=fmt(liveRef());$('refTime').textContent=liveRefMoveText(ref);$('openInterest').textContent=fmt(agg.oi);$('gGamma').textContent=fmt(agg.gamma);$('gVega').textContent=fmt(agg.vega);$('gTheta').textContent=fmt(agg.theta);$('gRho').textContent=fmt(agg.rho);$('gVol').textContent=fmt(agg.vol);$('strategyLabel').textContent=`Best market${agg.market?' '+agg.market:''} (${matches.length})`;$('bbgTicker').textContent=matches.map(m=>m.ticker).join(' | ');updateEurexCrossHint();
   $('legsBody').innerHTML=matches.map(m=>`<tr title="${esc(contractTooltip(m.quote))}"><td>${m.root}</td><td>${m.ticker}</td><td>${m.market}</td><td>${fmtPxSize(m.quote,'bid')}</td><td>${fmtPxSize(m.quote,'ask')}</td><td>${fmt(m.quote.mid)}</td><td>${fmtPct(delta(m.quote))}</td><td>${fmt(fnum(m.quote,['OPEN_INT','OPEN_INTEREST']))}</td></tr>`).join('');
   if(!$('refSpot').value&&Number.isFinite(liveRef()))$('refSpot').value=liveRef();recalcAdjusted();
 }
@@ -1124,6 +1213,7 @@ function quickUnderlying(text){
 }
 async function parseQuickAndLoad(){
   setError('');
+  if($('botDetail'))$('botDetail').textContent='Loading Bloomberg...';
   const rawText=$('quickInput').value.trim();
   const traded=extractTradingLevel(rawText);
   state=null;
