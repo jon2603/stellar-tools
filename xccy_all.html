@@ -417,7 +417,7 @@
       <div class="controls">
         <input id="bridgeUrl" class="bridge-input" value="http://127.0.0.1:8765" aria-label="Bloomberg bridge URL">
         <button id="refreshBtn" type="button">Refresh tab</button>
-        <div id="status" class="status">Ready</div>
+        <div id="status" class="status">Ready — click Refresh tab</div>
       </div>
     </div>
 
@@ -916,7 +916,6 @@
     matrices.forEach((matrix) => stacks[matrix.group].appendChild(buildTable(matrix)));
     refreshBtn.addEventListener("click", refreshAll);
     renderAll();
-    refreshAll();
   </script>
 </body>
 </html>
