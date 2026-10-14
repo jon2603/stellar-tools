@@ -1197,6 +1197,22 @@ function quickRatio(text){
   }
   return null;
 }
+function refineQuickStrategy(text,strategy,mats,nums,ratio){
+  const t=String(text||'');
+  const callCode=/\bcs\b/i.test(t), putCode=/\bps\b/i.test(t);
+  const hasRatio=Number.isFinite(ratio)&&(/[-+]?\d+(?:\.\d+)?\s*(?:x|by|par)\s*[-+]?\d+(?:\.\d+)?/i.test(t)||/\b(?:x|by|par)\s*[-+]?\d+(?:\.\d+)?\b/i.test(t));
+  if(mats.length>=2){
+    if(callCode)return nums.length>=2?'call_diagonal':'call_calendar';
+    if(putCode)return nums.length>=2?'put_diagonal':'put_calendar';
+    if(nums.length===1&&['call','call_spread'].includes(strategy))return 'call_calendar';
+    if(nums.length===1&&['put','put_spread'].includes(strategy))return 'put_calendar';
+  }
+  if(mats.length===1&&nums.length>=2&&hasRatio){
+    if(callCode||['call','call_spread'].includes(strategy))return 'call_ratio';
+    if(putCode||['put','put_spread'].includes(strategy))return 'put_ratio';
+  }
+  return strategy;
+}
 function quickUnderlying(text){
   const t=text.toUpperCase();
   if(/\bSX7E\b/.test(t))return {mode:'index',root:'SX7E'};
@@ -1226,10 +1242,7 @@ async function parseQuickAndLoad(){
   const refMatch=text.match(/\(([-+]?\d+(?:\.\d+)?)\)|\bref(?:erence)?\s*[:=]?\s*([-+]?\d+(?:\.\d+)?)|\bvs\s*([-+]?\d+(?:\.\d+)?)/i);
   const ref=refMatch?Number(refMatch[1]||refMatch[2]||refMatch[3]):null;
   const parsed=quickUnderlying(text), mats=quickMaturities(text), nums=quickNumbers(text), ratio=quickRatio(text);
-  let strategy=quickStrategy(text);
-  if(parsed.mode==='single'&&mats.length>=2&&nums.length===1&&!/\b(spread|ratio|straddle|strangle|std|asd|diag|diagonal)\b/i.test(text)){
-    strategy=/\b(apc|aps|put|p)\b/i.test(text)?'put_calendar':'call_calendar';
-  }
+  let strategy=refineQuickStrategy(text,quickStrategy(text),mats,nums,ratio);
   setAssetMode(parsed.mode);
   if(parsed.mode==='single'){
     $('stockRef').value=parsed.stock||$('stockRef').value;
