@@ -1146,7 +1146,7 @@ function quickStrategy(text){
   if(/\b(call\s*spread|cs)\b/.test(t))return 'call_spread';
   if(/\b(put\s*spread|ps)\b/.test(t))return 'put_spread';
   if(/\b(straddle|std|asd)\b/.test(t))return 'straddle';
-  if(/\b(asg|strangle|stg)\b/.test(t))return 'strangle';
+  if(/\b(asg|astg|strangle|stg)\b/.test(t))return 'strangle';
   if(/\b(ac|call|c)\b/.test(t))return 'call';
   if(/\b(ap|put|p)\b/.test(t))return 'put';
   return 'call';
