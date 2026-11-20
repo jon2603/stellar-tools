@@ -254,6 +254,76 @@ function fmtPct(v){if(v===null||v===undefined||v==='')return '-';const n=Number(
 function fmtRfqNum(v){const n=Number(v);if(!Number.isFinite(n))return '';return Number.isInteger(n)?String(n):String(Number(n.toFixed(4))).replace(/\.?0+$/,'');}
 function fmtCash(v){const n=Number(v);return Number.isFinite(n)?n.toLocaleString('en-US',{maximumFractionDigits:0}):'-';}
 function roundToTick(v,tick){const n=Number(v),t=Number(tick);return Number.isFinite(n)&&Number.isFinite(t)&&t>0?Math.round(n/t)*t:null;}
+// Exact decimal fractions used by the Eurex re-ref solver. Prices, ticks and
+// deltas entered as decimals stay exact all the way through candidate ranking.
+function bigAbs(n){return n<0n?-n:n;}
+function bigGcd(a,b){a=bigAbs(a);b=bigAbs(b);while(b){const t=a%b;a=b;b=t;}return a||1n;}
+function rational(n,d=1n){
+  if(d===0n)throw new Error('Zero rational denominator');
+  if(d<0n){n=-n;d=-d;}
+  const g=bigGcd(n,d);
+  return {n:n/g,d:d/g};
+}
+function decimalRational(value){
+  const s=String(value??'').trim();
+  const m=s.match(/^([+-]?)(\d*)(?:\.(\d*))?(?:[eE]([+-]?\d+))?$/);
+  if(!m||(!m[2]&&!m[3]))return null;
+  const sign=m[1]==='-'?-1n:1n, whole=m[2]||'0', frac=m[3]||'', exp=Number(m[4]||0);
+  let n=sign*BigInt((whole+frac)||'0'), scale=frac.length-exp;
+  if(scale<0){n*=10n**BigInt(-scale);scale=0;}
+  return rational(n,10n**BigInt(scale));
+}
+function ratAdd(a,b){return rational(a.n*b.d+b.n*a.d,a.d*b.d);}
+function ratSub(a,b){return rational(a.n*b.d-b.n*a.d,a.d*b.d);}
+function ratMul(a,b){return rational(a.n*b.n,a.d*b.d);}
+function ratDiv(a,b){return rational(a.n*b.d,a.d*b.n);}
+function ratAbs(a){return {n:bigAbs(a.n),d:a.d};}
+function ratCmp(a,b){const v=a.n*b.d-b.n*a.d;return v<0n?-1:v>0n?1:0;}
+function ratRoundInt(a){
+  let q=a.n/a.d, rem=bigAbs(a.n%a.d);
+  if(rem*2n>=a.d)q+=a.n<0n?-1n:1n;
+  return q;
+}
+function ratToNumber(a){return Number(a.n)/Number(a.d);}
+function ratIsZero(a){return a.n===0n;}
+function isTickMultiple(value,tick){return ratDiv(value,tick).d===1n;}
+function compareReRefCandidates(x,y){
+  if(x.exact!==y.exact)return x.exact?-1:1;
+  if(!x.exact){const residualCmp=ratCmp(ratAbs(x.residual),ratAbs(y.residual));if(residualCmp)return residualCmp;}
+  const distanceCmp=ratCmp(x.distance,y.distance);
+  if(distanceCmp)return distanceCmp;
+  // Symmetric exact solutions are economically equivalent. Prefer the higher
+  // future reference first (the convention selected for the put example).
+  const xUp=ratCmp(x.refMove,rational(0n))>0, yUp=ratCmp(y.refMove,rational(0n))>0;
+  if(xUp!==yUp)return xUp?-1:1;
+  return -ratCmp(x.newRef,y.newRef);
+}
+function solveTickReRefExact({oldOpt,oldRef,delta,optTick,futTick,size,mult,minRef=null,maxRef=null,steps=200}){
+  const pOldOpt=decimalRational(oldOpt),pOldRef=decimalRational(oldRef),pDelta=decimalRational(delta);
+  const pOptTick=decimalRational(optTick),pFutTick=decimalRational(futTick);
+  const pSize=decimalRational(size),pMult=decimalRational(mult);
+  const pMin=minRef===null?null:decimalRational(minRef),pMax=maxRef===null?null:decimalRational(maxRef);
+  if(!pOldOpt||!pOldRef||!pDelta||!pOptTick||!pFutTick||!pSize||!pMult||pDelta.n===0n||pOptTick.n<=0n||pFutTick.n<=0n)return null;
+  const centerIndex=ratRoundInt(ratDiv(pOldRef,pFutTick)), cashFactor=ratMul(pSize,pMult), candidates=[];
+  for(let i=-steps;i<=steps;i++){
+    const newRef=ratMul(pFutTick,rational(centerIndex+BigInt(i)));
+    if((pMin&&ratCmp(newRef,pMin)<0)||(pMax&&ratCmp(newRef,pMax)>0))continue;
+    const refMove=ratSub(newRef,pOldRef);
+    const idealOpt=ratAdd(pOldOpt,ratMul(pDelta,refMove));
+    const optIndex=ratRoundInt(ratDiv(idealOpt,pOptTick));
+    if(optIndex<0n)continue;
+    const newOpt=ratMul(pOptTick,rational(optIndex));
+    const optionCashPerLot=ratSub(pOldOpt,newOpt);
+    const futuresCashPerLot=ratMul(pDelta,ratSub(pOldRef,newRef));
+    const residualPerLot=ratSub(optionCashPerLot,futuresCashPerLot);
+    const a=ratMul(optionCashPerLot,cashFactor),b=ratMul(futuresCashPerLot,cashFactor);
+    const optionMove=ratSub(newOpt,pOldOpt);
+    const distance=ratAdd(ratAbs(optionMove),ratAbs(ratMul(pDelta,refMove)));
+    candidates.push({newOpt,newRef,a,b,residual:ratMul(residualPerLot,cashFactor),distance,refMove,exact:ratIsZero(residualPerLot)});
+  }
+  candidates.sort(compareReRefCandidates);
+  return {oldOpt:pOldOpt,oldRef:pOldRef,delta:pDelta,optTick:pOptTick,futTick:pFutTick,candidates};
+}
 function fmtPxSize(q,side){
   const px=side==='bid'?q&&q.bid:q&&q.ask;
   const size=fnum(q,[side==='bid'?'BID_SIZE':'ASK_SIZE']);
@@ -516,7 +586,7 @@ function buildEurexCrossTicket(code,opts={}){
   return `${code} ${roots.opt} ${eurexStrategyDescription()}${cross} vs ${hedge}${at}`;
 }
 function solveCrossEconomics(){
-  const oldOpt=tradedLevelNum(), oldRef=num('refSpot')||liveRef();
+  const oldOpt=tradedLevelNum(), refInput=String($('refSpot')&&$('refSpot').value||'').trim(), inputRef=Number(refInput), oldRef=(Number.isFinite(inputRef)&&inputRef!==0)?inputRef:liveRef();
   const live=liveRef();
   const size=Number($('crossSize')&&$('crossSize').value)||EUREX_BLOCK_MIN_SIZE;
   const mult=Number($('crossMultiplier')&&$('crossMultiplier').value)||50;
@@ -526,9 +596,12 @@ function solveCrossEconomics(){
   let d=agreedDelta();
   if(!Number.isFinite(oldOpt)||!Number.isFinite(oldRef)||!Number.isFinite(d)||d===0)return 'Enter traded level, ref and agreed delta.';
   const delta=Math.abs(d)>1?d/100:d;
+  const oldOptRat=decimalRational(String($('tradedLevel').value).trim()),oldRefText=(Number.isFinite(inputRef)&&inputRef!==0)?refInput:String(oldRef);
+  const oldRefRat=decimalRational(oldRefText),optTickText=(Number.isFinite(optTick)&&optTick>0)?String($('optionTick').value||optTick):'0.05',futTickText=(Number.isFinite(futTick)&&futTick>0)?String($('futureTick').value||futTick):'0.05';
+  const optTickRat=decimalRational(optTickText),futTickRat=decimalRational(futTickText);
   const liveOnly=size<EUREX_BLOCK_MIN_SIZE;
-  const oldOptOnTick=Math.abs(oldOpt-roundToTick(oldOpt,optTick))<1e-9;
-  const oldRefOnTick=Math.abs(oldRef-roundToTick(oldRef,futTick))<1e-9;
+  const oldOptOnTick=!!(oldOptRat&&optTickRat&&isTickMultiple(oldOptRat,optTickRat));
+  const oldRefOnTick=!!(oldRefRat&&futTickRat&&isTickMultiple(oldRefRat,futTickRat));
   const minRef=liveOnly&&Number.isFinite(live)?live*(1-bandPct):-Infinity;
   const maxRef=liveOnly&&Number.isFinite(live)?live*(1+bandPct):Infinity;
   const liveCrossOk=Number.isFinite(live)&&oldRef>=live*(1-bandPct)&&oldRef<=live*(1+bandPct)&&oldOptOnTick&&oldRefOnTick;
@@ -541,46 +614,23 @@ function solveCrossEconomics(){
     else if(Number.isFinite(live))lines.push(`Live ref ${fmtRfqNum(live)} | band ${fmtRfqNum(live*(1-bandPct))} / ${fmtRfqNum(live*(1+bandPct))}`);
     return lines.join('\n');
   }
-  const center=roundToTick(oldRef,futTick);
-  const candidates=[];
-  for(let i=-200;i<=200;i++){
-    const newRef=Number((center+i*futTick).toFixed(10));
-    if(!Number.isFinite(newRef)||newRef<minRef||newRef>maxRef)continue;
-    const idealOpt=oldOpt+delta*(newRef-oldRef);
-    const newOpt=roundToTick(idealOpt,optTick);
-    if(!Number.isFinite(newOpt)||newOpt<0)continue;
-    const a=(oldOpt-newOpt)*size*mult;
-    const b=size*delta*mult*(oldRef-newRef);
-    candidates.push({newOpt,newRef,a,b,residual:a-b,dist:Math.abs(newOpt-oldOpt)+Math.abs(newRef-oldRef)*delta});
-  }
-  if(!candidates.length)return `No tick solution inside live ref band +/-${fmtRfqNum(bandPct*100)}%.`;
-  candidates.sort((x,y)=>{
-    const residualCentsX=Math.round(Math.abs(x.residual)*100);
-    const residualCentsY=Math.round(Math.abs(y.residual)*100);
-    const distanceUnitsX=Math.round(x.dist*1e9);
-    const distanceUnitsY=Math.round(y.dist*1e9);
-    return residualCentsX-residualCentsY||distanceUnitsX-distanceUnitsY||x.residual-y.residual;
+  const exactResult=solveTickReRefExact({
+    oldOpt:String($('tradedLevel').value).trim(),oldRef:oldRefText,delta:String(delta),optTick:optTickText,futTick:futTickText,
+    size:String(size),mult:String(mult),minRef:Number.isFinite(minRef)?String(minRef):null,maxRef:Number.isFinite(maxRef)?String(maxRef):null
   });
+  const candidates=exactResult?exactResult.candidates:[];
+  if(!candidates.length)return `No tick solution inside live ref band +/-${fmtRfqNum(bandPct*100)}%.`;
   const best=candidates[0];
-  best.a=(oldOpt-best.newOpt)*size*mult;
-  best.b=size*delta*mult*(oldRef-best.newRef);
-  best.residual=best.a-best.b;
-  const bestResidualCents=Math.round(Math.abs(best.residual)*100);
-  const bestDistanceUnits=Math.round(best.dist*1e9);
-  const alternative=candidates.find(c=>
-    Math.round(Math.abs(c.residual)*100)===bestResidualCents&&
-    Math.round(c.dist*1e9)===bestDistanceUnits&&
-    Math.abs(c.newOpt-best.newOpt)>1e-9
-  );
+  const alternative=candidates.slice(1).find(c=>c.exact===best.exact)||candidates[1];
   const block=liveOnly?'Live cross only':'Block ok';
   const lines=[
     `${block} | size ${fmtRfqNum(size)} | delta ${fmtRfqNum(delta*100)}% | multiplier ${fmtRfqNum(mult)}`,
-    `Option ${fmtRfqNum(oldOpt)} -> ${fmtRfqNum(best.newOpt)} | Ref ${fmtRfqNum(oldRef)} -> ${fmtRfqNum(best.newRef)}`,
-    `Cash option A ${fmtCash(best.a)} | futures B ${fmtCash(best.b)} | residual ${fmtCash(best.residual)}`
+    `Option ${fmtRfqNum(oldOpt)} -> ${fmtRfqNum(ratToNumber(best.newOpt))} | Ref ${fmtRfqNum(oldRef)} -> ${fmtRfqNum(ratToNumber(best.newRef))}`,
+    `Cash option A ${fmtCash(ratToNumber(best.a))} | futures B ${fmtCash(ratToNumber(best.b))} | residual ${fmtCash(ratToNumber(best.residual))}`
   ];
   if(alternative)lines.push(
-    `Alternative | Option ${fmtRfqNum(oldOpt)} -> ${fmtRfqNum(alternative.newOpt)} | Ref ${fmtRfqNum(oldRef)} -> ${fmtRfqNum(alternative.newRef)}`,
-    `Alternative cash A ${fmtCash(alternative.a)} | futures B ${fmtCash(alternative.b)} | residual ${fmtCash(alternative.residual)}`
+    `Alternative | Option ${fmtRfqNum(oldOpt)} -> ${fmtRfqNum(ratToNumber(alternative.newOpt))} | Ref ${fmtRfqNum(oldRef)} -> ${fmtRfqNum(ratToNumber(alternative.newRef))}`,
+    `Alternative cash A ${fmtCash(ratToNumber(alternative.a))} | futures B ${fmtCash(ratToNumber(alternative.b))} | residual ${fmtCash(ratToNumber(alternative.residual))}`
   );
   if(liveOnly&&Number.isFinite(live))lines.push(`Live ref band ${fmtRfqNum(minRef)} / ${fmtRfqNum(maxRef)}`);
   const low=Math.floor(oldOpt/optTick)*optTick, high=low+optTick;
@@ -1292,4 +1342,3 @@ checkBridge();refreshPreview();
 </script>
 </body>
 </html>
-
