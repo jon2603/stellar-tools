@@ -553,7 +553,11 @@ function eurexHedgeCode(info, d){
 }
 function eurexRatioHedgeCode(base,d){
   if(!Number.isFinite(d))return `${base}-U`;
-  return `${base}${d>=0?'-U':'+U'}`;
+  // RBUL/RBER and BU23/BR23 use the inverse option-leg signature of the
+  // ratio entered in the pricer (the cross price is inverted for the same
+  // reason). Invert its delta too before selecting the underlying side:
+  // positive entered delta -> negative Eurex-template delta -> long future.
+  return `${base}${d>=0?'+U':'-U'}`;
 }
 function eurexStrategyDescription(){
   const s=$('strategy').value,k1=fmtRfqNum($('strike1').value),k2=fmtRfqNum($('strike2').value);
